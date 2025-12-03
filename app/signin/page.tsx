@@ -20,17 +20,9 @@ export default function SignIn() {
 
   useEffect(() => {
     if (user) {
-      // Check if user has completed onboarding
-      const onboardingData = localStorage.getItem("postvolve_onboarding");
-      if (onboardingData) {
-        const parsed = JSON.parse(onboardingData);
-        if (parsed.onboardingComplete) {
-          router.push("/dashboard");
-          return;
-        }
-      }
-      // User hasn't completed onboarding - redirect there
-      router.push("/onboarding");
+      // Sign in = existing user, they've already completed onboarding
+      // Go directly to dashboard
+      router.push("/dashboard");
     }
   }, [user, router]);
 

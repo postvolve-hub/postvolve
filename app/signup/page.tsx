@@ -22,16 +22,7 @@ export default function SignUp() {
 
   useEffect(() => {
     if (user) {
-      // Check if user has completed onboarding
-      const onboardingData = localStorage.getItem("postvolve_onboarding");
-      if (onboardingData) {
-        const parsed = JSON.parse(onboardingData);
-        if (parsed.onboardingComplete) {
-          router.push("/dashboard");
-          return;
-        }
-      }
-      // New user - redirect to onboarding
+      // Sign up = new user, send them to onboarding
       router.push("/onboarding");
     }
   }, [user, router]);
