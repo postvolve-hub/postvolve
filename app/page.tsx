@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 // Dashboard preview image - located in public folder
 const dashboardImage = "/dashboard-preview.png";
 import { Navbar } from "@/components/Navbar";
@@ -115,103 +114,121 @@ const IconBarChart = () => (
   </svg>
 );
 
-// Social Media Icons
-const IconInstagram = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className="h-6 w-6 md:h-12 md:w-12">
+// Social Media Icons - Accept className prop to allow color customization
+const IconInstagram = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className={className}>
     <path d="M 16 3 C 8.83 3 3 8.83 3 16 L 3 34 C 3 41.17 8.83 47 16 47 L 34 47 C 41.17 47 47 41.17 47 34 L 47 16 C 47 8.83 41.17 3 34 3 L 16 3 z M 37 11 C 38.1 11 39 11.9 39 13 C 39 14.1 38.1 15 37 15 C 35.9 15 35 14.1 35 13 C 35 11.9 35.9 11 37 11 z M 25 14 C 31.07 14 36 18.93 36 25 C 36 31.07 31.07 36 25 36 C 18.93 36 14 31.07 14 25 C 14 18.93 18.93 14 25 14 z M 25 16 C 20.04 16 16 20.04 16 25 C 16 29.96 20.04 34 25 34 C 29.96 34 34 29.96 34 25 C 34 20.04 29.96 16 25 16 z" fill="currentColor" />
   </svg>
 );
 
-const IconFacebook = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className="h-6 w-6 md:h-12 md:w-12">
+const IconFacebook = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className={className}>
     <path d="M25,3C12.85,3,3,12.85,3,25c0,11.03,8.125,20.137,18.712,21.728V30.831h-5.443v-5.783h5.443v-3.848 c0-6.371,3.104-9.168,8.399-9.168c2.536,0,3.877,0.188,4.512,0.274v5.048h-3.612c-2.248,0-3.033,2.131-3.033,4.533v3.161h6.588 l-0.894,5.783h-5.694v15.944C38.716,45.318,47,36.137,47,25C47,12.85,37.15,3,25,3z" fill="currentColor" />
   </svg>
 );
 
-const IconLinkedIn = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className="h-6 w-6 md:h-12 md:w-12">
+const IconLinkedIn = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className={className}>
     <path d="M26.111,3H5.889c-1.595,0-2.889,1.293-2.889,2.889V26.111c0,1.595,1.293,2.889,2.889,2.889H26.111c1.595,0,2.889-1.293,2.889-2.889V5.889c0-1.595-1.293-2.889-2.889-2.889ZM10.861,25.389h-3.877V12.87h3.877v12.519Zm-1.957-14.158c-1.267,0-2.293-1.034-2.293-2.31s1.026-2.31,2.293-2.31,2.292,1.034,2.292,2.31-1.026,2.31-2.292,2.31Zm16.485,14.158h-3.858v-6.571c0-1.802-.685-2.809-2.111-2.809-1.551,0-2.362,1.048-2.362,2.809v6.571h-3.718V12.87h3.718v1.686s1.118-2.069,3.775-2.069,4.556,1.621,4.556,4.975v7.926Z" fill="currentColor" fillRule="evenodd" />
   </svg>
 );
 
-const IconX = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className="h-6 w-6 md:h-12 md:w-12">
+const IconX = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className={className}>
     <path d="M 6.9199219 6 L 21.136719 26.726562 L 6.2285156 44 L 9.40625 44 L 22.544922 28.777344 L 32.986328 44 L 43 44 L 28.123047 22.3125 L 42.203125 6 L 39.027344 6 L 26.716797 20.261719 L 16.933594 6 L 6.9199219 6 z" fill="currentColor" />
   </svg>
 );
 
 // --- Components ---
 
-const Hero = () => {
-  // Floating icons configuration - positioned away from center text area
-  const floatingIcons = [
-    // Social Media Icons - positioned at edges with responsive positioning
-    { Icon: IconInstagram, position: "top-[5%] left-[1%] sm:top-[8%] sm:left-[2%]", color: "text-pink-500", animation: "animate-float", rotation: 12 },
-    { Icon: IconFacebook, position: "top-[12%] right-[1%] sm:top-[15%] sm:right-[3%]", color: "text-blue-600", animation: "animate-float-slow", rotation: -6 },
-    { Icon: IconLinkedIn, position: "top-[8%] left-[5%] sm:top-[12%] sm:left-[55%]", color: "text-blue-600", animation: "animate-float-fast", rotation: 8 },
-    { Icon: IconX, position: "top-[18%] right-[3%] sm:top-[22%] sm:right-[8%]", color: "text-foreground", animation: "animate-float", rotation: -12 },
-  ];
+// Small floating icon component for hero section
+const FloatingIcon = ({ Icon, color, className }: { Icon: React.FC<{ className?: string }>, color: string, className?: string }) => (
+  <div className={`w-12 h-12 md:w-14 md:h-14 rounded-full bg-white shadow-lg shadow-gray-200/50 flex items-center justify-center ${className}`}>
+    <Icon className={`h-5 w-5 md:h-6 md:w-6 ${color}`} />
+  </div>
+);
 
+const Hero = () => {
   return (
     <section className="relative overflow-hidden pt-16 md:pt-24 lg:pt-32 pb-8 md:pb-16">
-      {/* Angled Linear Gradient Background */}
-      <div className="absolute inset-0 pointer-events-none z-[-1]">
+      {/* Smooth Wavy Background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
         <div 
-          className="absolute inset-0 opacity-40"
+          className="absolute inset-0"
           style={{
-            background: 'linear-gradient(135deg, rgba(109, 40, 217, 0.08) 0%, rgba(59, 130, 246, 0.06) 50%, rgba(109, 40, 217, 0.04) 100%)'
+            background: 'linear-gradient(135deg, rgba(109, 40, 217, 0.08) 0%, rgba(236, 233, 250, 0.5) 25%, rgba(250, 245, 255, 0.7) 50%, rgba(236, 233, 250, 0.5) 75%, rgba(147, 51, 234, 0.08) 100%)'
           }}
         />
+        {/* Wavy Pattern Overlay */}
+        <svg
+          className="absolute inset-0 w-full h-full opacity-20"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="none"
+          viewBox="0 0 1200 800"
+        >
+          <defs>
+            <linearGradient id="heroWaveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="rgba(109, 40, 217, 0.15)" />
+              <stop offset="50%" stopColor="rgba(147, 51, 234, 0.08)" />
+              <stop offset="100%" stopColor="rgba(109, 40, 217, 0.15)" />
+            </linearGradient>
+          </defs>
+          <path
+            fill="url(#heroWaveGradient)"
+            d="M0,160 Q300,80 600,160 T1200,160 L1200,0 L0,0 Z"
+          />
+          <path
+            fill="url(#heroWaveGradient)"
+            opacity="0.6"
+            d="M0,500 Q300,400 600,500 T1200,500 L1200,800 L0,800 Z"
+          />
+        </svg>
       </div>
 
-      {/* Floating Animated Icons with Glassmorphism */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        {floatingIcons.map((item, index) => {
-          const IconComponent = item.Icon;
-          // Extract color for glow effect
-          const getGlowColor = (color: string) => {
-            if (color.includes('pink')) return 'bg-pink-500';
-            if (color.includes('blue-700')) return 'bg-blue-700';
-            if (color.includes('blue-600')) return 'bg-blue-600';
-            if (color.includes('blue-500')) return 'bg-blue-500';
-            if (color.includes('primary')) return 'bg-primary';
-            return 'bg-primary';
-          };
-          
-          return (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.5, y: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ 
-                duration: 0.6, 
-                delay: 0.4 + (index * 0.15),
-                ease: [0.16, 1, 0.3, 1]
-              }}
-              className={`absolute ${item.position} ${item.animation} transition-all duration-300`}
-              style={{
-                transform: `rotate(${item.rotation}deg)`,
-              }}
-            >
-              <div className="relative group">
-                {/* Glassmorphism container with shine effect */}
-                <div className="relative backdrop-blur-sm md:backdrop-blur-md bg-white/25 dark:bg-white/15 rounded-lg md:rounded-2xl p-1.5 md:p-3 border border-white/40 shadow-lg md:shadow-xl shadow-primary/25 group-hover:shadow-primary/40 transition-all duration-300 group-hover:scale-110 group-hover:bg-white/35">
-                  {/* Shine overlay */}
-                  <div className="absolute inset-0 rounded-lg md:rounded-2xl bg-gradient-to-br from-white/50 via-white/20 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300" />
-                  {/* Icon */}
-                  <div className={`relative ${item.color} drop-shadow-md md:drop-shadow-lg filter brightness-110`}>
-                    <IconComponent />
-                  </div>
-                  {/* Glow effect */}
-                  <div className={`absolute -inset-1 md:-inset-2 rounded-lg md:rounded-2xl ${getGlowColor(item.color)} opacity-25 blur-xl md:blur-2xl -z-10 group-hover:opacity-40 transition-opacity duration-300`} />
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
+      {/* Floating Icons - Positioned like GravityWrite */}
+      <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden">
+        {/* Top Left - Instagram (#E4405F) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="absolute top-[12%] left-[8%] md:left-[12%]"
+        >
+          <FloatingIcon Icon={IconInstagram} color="text-[#E4405F]" className="animate-float" />
+        </motion.div>
+
+        {/* Top Right - LinkedIn (#0A66C2) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="absolute top-[8%] right-[10%] md:right-[15%]"
+        >
+          <FloatingIcon Icon={IconLinkedIn} color="text-[#0A66C2]" className="animate-float-slow" />
+        </motion.div>
+
+        {/* Middle Left - X/Twitter (black) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="absolute top-[35%] left-[3%] md:left-[8%]"
+        >
+          <FloatingIcon Icon={IconX} color="text-black" className="animate-float-fast" />
+        </motion.div>
+
+        {/* Middle Right - Facebook (#1877F2) */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="absolute top-[28%] right-[5%] md:right-[10%]"
+        >
+          <FloatingIcon Icon={IconFacebook} color="text-[#1877F2]" className="animate-float" />
+        </motion.div>
       </div>
 
-      <div className="container mx-auto px-4 md:px-6 flex flex-col items-center text-center relative z-10">
+      <div className="container mx-auto px-4 md:px-6 flex flex-col items-center text-center relative z-20">
         
         <FadeIn delay={0.1}>
           <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-primary bg-primary/10 hover:bg-primary/20 border-primary/20 rounded-full text-xs font-semibold tracking-wide uppercase transition-all duration-300">
@@ -542,76 +559,6 @@ const Stats = () => {
   );
 };
 
-const FAQ = () => {
-  const faqs = [
-    {
-      question: "How does the news card generation work?",
-      answer: "PostVolve uses AI to pull the latest news and trends from your selected categories (Tech, AI, Business, Motivation), then automatically generates visually compelling news cards with engaging captions. The entire process takes under 6 seconds, and you can review and customize before posting."
-    },
-    {
-      question: "Can I customize the generated news cards?",
-      answer: "Absolutely! Every generated news card can be reviewed and edited. You can modify the caption, adjust the visual design, change the posting schedule, or regenerate if it doesn't match your style. Full control while maintaining automation."
-    },
-    {
-      question: "Which social media platforms are supported?",
-      answer: "Currently, PostVolve supports LinkedIn and Twitter/X, with more platforms coming soon. You can connect multiple accounts and schedule posts across all of them simultaneously."
-    },
-    {
-      question: "What happens during the free trial?",
-      answer: "The 7-day free trial gives you full access to all features. You can generate unlimited news cards, connect your social accounts, schedule posts, and access analytics. No credit card required, and you can cancel anytime."
-    },
-    {
-      question: "How does the auto-posting scheduler work?",
-      answer: "Once enabled, PostVolve automatically generates fresh news cards daily and posts them at your preferred time. You can set different schedules for different categories, pause anytime, or review posts before they go live. You're always in control."
-    },
-    {
-      question: "Is there a limit on how many posts I can generate?",
-      answer: "Post generation limits depend on your plan. Starter plans include daily auto-posts, while Professional and Enterprise plans offer multiple posts per day and custom generation limits. Check our pricing page for specific details."
-    }
-  ];
-
-  return (
-    <section id="faq" className="py-24 bg-background">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-16">
-          <FadeIn>
-            <Badge variant="outline" className="mb-4 text-primary border-primary/20 bg-primary/5">
-              Frequently Asked
-            </Badge>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
-              Everything You Need to Know
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Got questions? We've got answers. Here's everything you need to know about PostVolve.
-            </p>
-          </FadeIn>
-        </div>
-
-        <div className="max-w-3xl mx-auto">
-          <FadeIn delay={0.2}>
-            <Accordion type="single" collapsible className="w-full space-y-4">
-              {faqs.map((faq, index) => (
-                <AccordionItem 
-                  key={index} 
-                  value={`item-${index}`}
-                  className="border border-border/40 rounded-lg px-6 bg-secondary/10 hover:bg-secondary/20 transition-colors"
-                >
-                  <AccordionTrigger className="text-left font-semibold hover:no-underline py-6">
-                    {faq.question}
-                  </AccordionTrigger>
-                  <AccordionContent className="text-muted-foreground leading-relaxed pb-6">
-                    {faq.answer}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          </FadeIn>
-        </div>
-      </div>
-    </section>
-  );
-};
-
 const FinalCTA = () => {
   return (
     <section className="py-24 relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-blue-600 text-white">
@@ -687,105 +634,6 @@ const FinalCTA = () => {
   );
 };
 
-const Pricing = () => {
-  return (
-    <section id="pricing" className="py-24 relative overflow-hidden bg-secondary/20">
-      <div className="container mx-auto px-4 md:px-6">
-        <div className="text-center mb-16">
-          <FadeIn>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
-              Simple Plans for Serious Growth
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              Choose the perfect plan to scale your automated authority.
-            </p>
-          </FadeIn>
-        </div>
-
-        <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
-          
-          {/* Tier 1 */}
-          <StaggerItem className="h-full">
-            <Card className="border-border/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/30 bg-background h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-xl font-medium text-muted-foreground">Starter Plan</CardTitle>
-                <div className="mt-4 flex items-baseline">
-                  <span className="text-4xl font-bold tracking-tight">$50</span>
-                  <span className="ml-1 text-muted-foreground">/month</span>
-                </div>
-                <CardDescription className="mt-2 font-medium text-foreground">Consistent Authority</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> Daily Auto-Posts</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> 2 Categories</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> Basic Analytics</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full hover:bg-primary/5 transition-colors">Get Started</Button>
-              </CardFooter>
-            </Card>
-          </StaggerItem>
-
-          {/* Tier 2 - Highlighted */}
-          <StaggerItem className="h-full">
-            <Card className="relative border-primary shadow-2xl shadow-primary/10 z-10 bg-background transition-transform duration-300 hover:scale-[1.02] h-full flex flex-col">
-               <div className="absolute -top-4 left-0 right-0 mx-auto w-fit px-3 py-1 bg-gradient-to-r from-primary to-blue-600 rounded-full text-xs font-bold text-white uppercase tracking-wider shadow-lg">
-                Most Popular
-              </div>
-              <CardHeader>
-                <CardTitle className="text-xl font-medium text-primary">Professional Plan</CardTitle>
-                <div className="mt-4 flex items-baseline">
-                  <span className="text-5xl font-bold tracking-tight">$199</span>
-                  <span className="ml-1 text-muted-foreground">/month</span>
-                </div>
-                <CardDescription className="mt-2 font-medium text-foreground">Scaling Influence</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <ul className="space-y-4 text-sm text-foreground">
-                  <li className="flex items-center"><div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center mr-2"><Check className="h-3 w-3 text-primary" /></div> Multiple Schedules</li>
-                  <li className="flex items-center"><div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center mr-2"><Check className="h-3 w-3 text-primary" /></div> All 4 Categories</li>
-                  <li className="flex items-center"><div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center mr-2"><Check className="h-3 w-3 text-primary" /></div> Post Customization</li>
-                  <li className="flex items-center"><div className="h-5 w-5 rounded-full bg-primary/20 flex items-center justify-center mr-2"><Check className="h-3 w-3 text-primary" /></div> Priority Support</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 h-11 transition-all duration-300 hover:shadow-primary/40">Choose Professional</Button>
-              </CardFooter>
-            </Card>
-          </StaggerItem>
-
-          {/* Tier 3 */}
-          <StaggerItem className="h-full">
-            <Card className="border-border/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/30 bg-background h-full flex flex-col">
-              <CardHeader>
-                <CardTitle className="text-xl font-medium text-muted-foreground">Enterprise Plan</CardTitle>
-                <div className="mt-4 flex items-baseline">
-                  <span className="text-4xl font-bold tracking-tight">Custom</span>
-                </div>
-                <CardDescription className="mt-2 font-medium text-foreground">Full Automation & Collaboration</CardDescription>
-              </CardHeader>
-              <CardContent className="flex-grow">
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> All Pro Features</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> Future Team Collaboration</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> Brand Voice Tuning</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> Dedicated Account Manager</li>
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full hover:bg-primary/5 transition-colors">Contact Sales</Button>
-              </CardFooter>
-            </Card>
-          </StaggerItem>
-
-        </StaggerContainer>
-      </div>
-    </section>
-  );
-};
-
 export default function Home() {
   const pathname = usePathname();
 
@@ -806,6 +654,11 @@ export default function Home() {
             top: offsetPosition,
             behavior: "smooth",
           });
+
+          // Clean up hash from URL after scrolling
+          setTimeout(() => {
+            window.history.replaceState(null, "", window.location.pathname);
+          }, 500);
         }, 100);
       }
     }
@@ -820,8 +673,6 @@ export default function Home() {
         <Features />
         <Stats />
         <SocialProof />
-        <Pricing />
-        <FAQ />
         <FinalCTA />
       </main>
       <Footer />

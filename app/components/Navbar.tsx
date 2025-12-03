@@ -32,14 +32,16 @@ export const Navbar = () => {
     e.preventDefault();
     
     if (pathname !== "/") {
-      // If not on home page, navigate to home with hash
+      // If not on home page, navigate to home with hash temporarily
       // The useEffect in Home component will handle scrolling after page loads
       window.location.href = `/#${sectionId}`;
     } else {
-      // If already on home page, just scroll
+      // If already on home page, just scroll without updating URL
       scrollToSection(sectionId);
-      // Update URL hash without scrolling
-      window.history.pushState(null, "", `#${sectionId}`);
+      // Clean URL by removing hash if present
+      if (window.location.hash) {
+        window.history.replaceState(null, "", window.location.pathname);
+      }
     }
     
     // Close mobile menu if open
@@ -49,7 +51,7 @@ export const Navbar = () => {
   const navigationLinks = [
     { href: "/#how-it-works", label: "How It Works", sectionId: "how-it-works" },
     { href: "/#features", label: "Features", sectionId: "features" },
-    { href: "/#pricing", label: "Pricing", sectionId: "pricing" },
+    { href: "/pricing", label: "Pricing", isLink: true },
     { href: "/contact", label: "Contact", isLink: true },
   ];
 
