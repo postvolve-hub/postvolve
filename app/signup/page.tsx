@@ -9,13 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Mail, Lock, User, ArrowRight, Check, ArrowLeft } from "lucide-react";
+import { Loader2, Mail, Lock, ArrowRight, Check, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SignUp() {
   const router = useRouter();
-  const { user, registerMutation } = useAuth();
-  const [username, setUsername] = useState("");
+  const { user, registerMutation, googleLoginMutation } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -41,7 +40,8 @@ export default function SignUp() {
       return;
     }
     
-    registerMutation.mutate({ username, email, password });
+    const derivedUsername = email.split("@")[0] || "user";
+    registerMutation.mutate({ username: derivedUsername, email, password });
   };
 
   return (
@@ -178,26 +178,6 @@ export default function SignUp() {
                 transition={{ duration: 0.4, delay: 0.6 }}
                 className="space-y-2"
               >
-                <Label htmlFor="username">Username</Label>
-                <div className="relative group">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors duration-300 group-focus-within:text-primary" />
-                  <Input
-                    id="username"
-                    type="text"
-                    placeholder="Choose a username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="pl-9 transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                    required
-                  />
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.7 }}
-                className="space-y-2"
-              >
                 <Label htmlFor="email">Email</Label>
                 <div className="relative group">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors duration-300 group-focus-within:text-primary" />
@@ -215,7 +195,7 @@ export default function SignUp() {
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.8 }}
+                transition={{ duration: 0.4, delay: 0.7 }}
                 className="space-y-2"
               >
                 <Label htmlFor="password">Password</Label>
@@ -235,7 +215,7 @@ export default function SignUp() {
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.9 }}
+                transition={{ duration: 0.4, delay: 0.8 }}
                 className="space-y-2"
               >
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -320,10 +300,7 @@ export default function SignUp() {
                   type="button"
                   variant="outline"
                   className="w-full border-gray-300 hover:bg-gray-50 transition-all duration-300"
-                  onClick={() => {
-                    // TODO: Implement Google auth with Supabase
-                    console.log("Google auth - to be implemented with Supabase");
-                  }}
+                  onClick={() => googleLoginMutation.mutate()}
                 >
                   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                     <path

@@ -24,9 +24,14 @@ type AuthContextType = {
   loginMutation: UseMutationResult<SafeUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SafeUser, Error, InsertUser>;
+  resetPasswordMutation: UseMutationResult<void, Error, ResetPasswordData>;
+  updatePasswordMutation: UseMutationResult<void, Error, UpdatePasswordData>;
+  googleLoginMutation: UseMutationResult<void, Error, void>;
 };
 
 type LoginData = Pick<InsertUser, "email" | "password">;
+type ResetPasswordData = { email: string };
+type UpdatePasswordData = { password: string };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
@@ -179,6 +184,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async ({ email }: ResetPasswordData) => {
+      const redirectBase =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        (typeof window !== "undefined"
+          ? window.location.origin
+          : "http://localhost:3000");
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${redirectBase}/reset-password`,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reset link sent",
+        description: "Check your email for a password reset link.",
+      });
+    },
+    onError: (error: Error) => {
+      setError(error);
+      toast({
+        title: "Reset failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePasswordMutation = useMutation({
+    mutationFn: async ({ password }: UpdatePasswordData) => {
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "Your password has been updated. You can now sign in.",
+      });
+    },
+    onError: (error: Error) => {
+      setError(error);
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const googleLoginMutation = useMutation({
+    mutationFn: async () => {
+      const redirectBase =
+        process.env.NEXT_PUBLIC_APP_URL ||
+        (typeof window !== "undefined"
+          ? window.location.origin
+          : "http://localhost:3000");
+
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${redirectBase}/dashboard`,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    },
+    onError: (error: Error) => {
+      setError(error);
+      toast({
+        title: "Google sign-in failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <AuthContext.Provider
       value={{
@@ -188,6 +277,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        resetPasswordMutation,
+        updatePasswordMutation,
+        googleLoginMutation,
       }}
     >
       {children}

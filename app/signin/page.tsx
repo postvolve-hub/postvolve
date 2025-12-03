@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 
 export default function SignIn() {
   const router = useRouter();
-  const { user, loginMutation } = useAuth();
+  const { user, loginMutation, googleLoginMutation } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -198,10 +198,7 @@ export default function SignIn() {
                   type="button"
                   variant="outline"
                   className="w-full border-gray-300 hover:bg-gray-50 transition-all duration-300"
-                  onClick={() => {
-                    // TODO: Implement Google auth with Supabase
-                    console.log("Google auth - to be implemented with Supabase");
-                  }}
+                  onClick={() => googleLoginMutation.mutate()}
                 >
                   <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                     <path
