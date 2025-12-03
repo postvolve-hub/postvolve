@@ -28,12 +28,16 @@ export const Navbar = () => {
           </Link>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" className="hidden sm:flex text-sm font-medium hover:bg-primary/5 transition-all duration-300">
-            Sign In
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90 text-white font-medium shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-105 hover:shadow-primary/30">
-            Start Free Trial
-          </Button>
+          <Link href="/signin">
+            <Button variant="ghost" className="hidden sm:flex text-sm font-medium hover:bg-primary/5 transition-all duration-300">
+              Sign In
+            </Button>
+          </Link>
+          <Link href="/signup">
+            <Button className="bg-primary hover:bg-primary/90 text-white font-medium shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-105 hover:shadow-primary/30">
+              Start Free Trial
+            </Button>
+          </Link>
         </div>
       </div>
     </nav>
