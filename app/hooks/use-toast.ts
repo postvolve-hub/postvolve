@@ -8,7 +8,10 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+// How long to keep a toast in state after it has been dismissed (ms).
+// Keep this slightly longer than the Radix display duration so exit
+// animations can finish before the toast is removed from memory.
+const TOAST_REMOVE_DELAY = 3500
 
 type ToasterToast = ToastProps & {
   id: string

@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 export default function SignIn() {
   const router = useRouter();
   const { user, loginMutation } = useAuth();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function SignIn() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate({ username, password });
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -106,15 +106,15 @@ export default function SignIn() {
                 transition={{ duration: 0.4, delay: 0.6 }}
                 className="space-y-2"
               >
-                <Label htmlFor="username">Username</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative group">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground transition-colors duration-300 group-focus-within:text-primary" />
                   <Input
-                    id="username"
-                    type="text"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-9 transition-all duration-300 focus:ring-2 focus:ring-primary/20 focus:border-primary"
                     required
                   />

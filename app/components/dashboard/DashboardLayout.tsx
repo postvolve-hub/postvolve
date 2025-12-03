@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   LayoutDashboard, 
   Sparkles, 
@@ -16,6 +16,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 
 const NAVIGATION_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
@@ -32,6 +33,15 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const router = useRouter();
+  const { user, logoutMutation } = useAuth();
+
+  const initials =
+    user?.username
+      ?.split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "PV";
 
   return (
     <div className="min-h-screen bg-[#F7F9FB]">
@@ -80,10 +90,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-[#6D28D9]/10 to-[#6D28D9]/5">
               <div className="w-10 h-10 rounded-full bg-[#6D28D9] flex items-center justify-center text-white font-semibold">
-                JD
+                {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">John Doe</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {user?.username || user?.email || "PostVolve User"}
+                </p>
                 <p className="text-xs text-gray-500 truncate">Pro Plan</p>
               </div>
               <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -128,6 +140,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 variant="ghost"
                 size="sm"
                 className="hidden sm:flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                onClick={() => {
+                  logoutMutation.mutate(undefined, {
+                    onSuccess: () => {
+                      router.push("/signin");
+                    },
+                  });
+                }}
               >
                 <LogOut className="h-4 w-4" />
                 <span>Logout</span>
