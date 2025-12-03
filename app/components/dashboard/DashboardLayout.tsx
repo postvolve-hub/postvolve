@@ -91,6 +91,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, []);
 
+  // Check if user has completed onboarding
+  useEffect(() => {
+    const onboardingData = localStorage.getItem("postvolve_onboarding");
+    if (!onboardingData) {
+      router.push("/onboarding");
+      return;
+    }
+    const parsed = JSON.parse(onboardingData);
+    if (!parsed.onboardingComplete) {
+      router.push("/onboarding");
+    }
+  }, [router]);
+
   const toggleCollapse = () => {
     const newState = !sidebarCollapsed;
     setSidebarCollapsed(newState);

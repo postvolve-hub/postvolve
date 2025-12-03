@@ -22,7 +22,17 @@ export default function SignUp() {
 
   useEffect(() => {
     if (user) {
-      router.push("/dashboard");
+      // Check if user has completed onboarding
+      const onboardingData = localStorage.getItem("postvolve_onboarding");
+      if (onboardingData) {
+        const parsed = JSON.parse(onboardingData);
+        if (parsed.onboardingComplete) {
+          router.push("/dashboard");
+          return;
+        }
+      }
+      // New user - redirect to onboarding
+      router.push("/onboarding");
     }
   }, [user, router]);
 
@@ -68,9 +78,20 @@ export default function SignUp() {
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6, delay: 0.3 }}
-        className="hidden lg:flex flex-1 bg-gradient-to-br from-primary/90 to-primary items-center justify-center p-12"
+        className="hidden lg:flex flex-1 bg-gradient-to-br from-primary/90 to-primary items-center justify-center p-12 relative overflow-hidden"
       >
-        <div className="max-w-lg text-white">
+        {/* Background illustration */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-30">
+          <Image 
+            src="/signup.jpeg" 
+            alt="PostVolve" 
+            width={600} 
+            height={600}
+            className="w-full h-full object-contain scale-125"
+          />
+        </div>
+        
+        <div className="max-w-lg text-white relative z-10">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
