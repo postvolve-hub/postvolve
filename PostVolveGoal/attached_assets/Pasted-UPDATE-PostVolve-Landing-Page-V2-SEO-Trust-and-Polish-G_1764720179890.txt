@@ -1,0 +1,84 @@
+UPDATE: PostVolve Landing Page (V2 - SEO, Trust, and Polish)
+
+Goal: Update the existing PostVolve landing page to include richer SEO-focused content, a Social Proof section for conversion, and implement premium, subtle animations across all interactive elements.
+
+
+Iconography Directive: Use clean, custom-designed SVG icons (inline) for feature sections instead of generic library icons to enhance the premium aesthetic and fit the brand's style.
+
+Design Structure and Content Changes
+
+The page must maintain the existing structure (Header, Hero, Features, Pricing) and insert the two new SEO-focused sections.
+
+1. Header/Navigation
+
+Links: Update navigation to include: "Features", "How It Works" (New link/section anchor), "Pricing", "Contact".
+
+2. Hero Section
+
+Content: No changes to copy or layout needed.
+
+3. NEW SECTION (High-SEO Value: Content Categories)
+
+Anchor Tag: Place this section before the main Feature Section and give it an anchor link: #how-it-works.
+
+Section Title: Content That Establishes You as an Expert
+
+Subhead: Our engine focuses exclusively on the high-value niches that drive professional engagement and network growth.
+
+Content Cards (4 Cards, 2x2 Grid on desktop, Stacked on mobile):
+
+Card 1: AI & Emerging Tech: Curated summaries on LLMs, automation, and deep learning trends.
+
+Card 2: Business & Finance: Market analysis, startup strategy, and investment insights.
+
+Card 3: Breaking Tech News: Timely, concise updates on hardware, software, and industry shifts.
+
+Card 4: Motivational & Leadership: High-impact quotes and principles for personal and professional development.
+
+Animation Directive: Apply the premium hover effects (scale-up and shadow increase) to these cards.
+
+4. Feature Section: The Content Automation Loop
+
+Content: No changes to copy needed.
+
+Animation Directive: Apply the premium hover effects (scale-up and shadow increase) to these cards.
+
+5. NEW SECTION (Trust & Conversion: Social Proof)
+
+Section Title (Center-aligned): Trusted by Thought Leaders in Tech
+
+Content: Create a dedicated, centered testimonial block beneath the Feature Section.
+
+Block Style: A simple, high-contrast quote card with a light background and subtle shadow.
+
+Placeholder Quote: "PostVolve gave me back 10 hours a week and immediately doubled my impression count. Essential for building authority."
+
+Attribution: 
+
+$$Placeholder Name$$
+
+, CEO of Innovation Labs.
+
+Trust Bar: Include a simple row of placeholder logos (e.g., small gray circles or squares) labeled "As featured in: TechCrunch, Forbes, Fast Company, MIT Tech Review" for perceived trust.
+
+6. Pricing Section
+
+Animation Directive: Apply the premium hover effects (scale-up and shadow increase) to the non-highlighted pricing cards.
+
+Summary of Key Directives (V2 Polish)
+
+Layout & Content: Integrate the two new sections (Content Categories & Social Proof) into the existing flow.
+
+Iconography: Ensure feature icons are custom-designed SVG elements, as specified in the directive above.
+
+Color Palette: Maintain the clean white/light gray background with Purple (#6D28D9) and Dark Blue (#1E3A8A) accents.
+
+Tailwind CSS: Use Tailwind for all styling.
+
+Premium Animation (CRITICAL):
+
+Global Transition: Ensure all interactive/hoverable elements (a, button, cards) have transition-all duration-300 for smoothness.
+
+Card Hover Effect: Feature cards, Content Category cards, and Pricing Cards (except the already-scaled 'Professional' tier) must use a subtle hover:scale-[1.02] combined with an increased shadow like hover:shadow-2xl.
+
+Button Polish: Buttons must have clear :hover states with background color shifts and subtle shadow changes.

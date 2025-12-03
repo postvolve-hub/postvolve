@@ -1,0 +1,99 @@
+Replicate and Adapt Landing Page for PostVolve
+
+Goal: Create a high-quality, professional, mobile-responsive landing page for the SaaS product "PostVolve" based on the attached visual inspiration, "Landing2.webp". The design must be clean, use a modern SaaS aesthetic (similar to Stripe or Vercel), and leverage a purple/blue color palette for accents.
+
+Product: PostVolve is an AI-powered auto posting content engine that generates visually compelling "News Cards" and relevant copy for social media (Tech, AI, Business, Motivation categories).
+
+Required Technology: Use modern HTML and Tailwind CSS.
+
+Design Replication and Content Replacement
+
+The page must contain the following sections, using the specified copy. Replicate the visual hierarchy, card structure, and clean whitespace from the "Landing2.webp" inspiration image.
+
+1. Header/Navigation
+
+Logo: Text logo: PostVolve (in a bold font, perhaps with a purple accent on 'Volve').
+
+Links (Simple): "Features", "Pricing", "Contact".
+
+CTA Button (Top Right): "Sign In / Start Free Trial" (Purple background).
+
+2. Hero Section (Replicate the main central banner with the dashboard mockup)
+
+Pre-Headline (Small, Purple Tag): AUTOMATED AUTHORITY
+
+Headline (Large, Bold): Automated Authority. Viral News Cards That Drive Real Engagement.
+
+Subhead (Medium, Muted): Generate, Schedule, and Analyze High-Impact Visual Content, Automatically. Stop spending hours researching and designing daily.
+
+Primary CTA Block (Inline Form Look):
+
+Input Placeholder: Enter your work email address...
+
+Button: "Claim Your Free 7-Day Trial" (Large, Purple)
+
+Sub-text: No credit card required. Connect accounts instantly.
+
+Mockup Image (Dashboard): Use a placeholder image that suggests a clean, data-heavy SaaS dashboard with a large preview of a "Viral News Card."
+
+Placeholder URL: https://placehold.co/900x550/6D28D9/ffffff?text=PostVolve+Dashboard+Mockup
+
+3. Feature Section: The Content Automation Loop (Replicate the 3-column feature cards)
+
+Section Title (Above Cards): The Content Engine That Replaces 4 Tools
+
+Card 1: Research & Generation
+
+Title: The 6-Second Content Engine
+
+Body: Our asynchronous backend pulls fresh data and generates full visual assets and captions, ready for review in under 6 seconds.
+
+Card 2: Design & Polish
+
+Title: Viral News Card Templates
+
+Body: Automatically applies high-contrast, data-driven design to ensure your posts cut through the noise and are instantly shareable.
+
+Card 3: Scheduling & Analytics
+
+Title: Set It and Forget It Posting
+
+Body: Connect your social accounts, select your posting category (Tech, AI, Business), and enable the daily auto-scheduler.
+
+4. Pricing Section (Replicate the clear, multi-tiered pricing columns)
+
+Section Title: Simple Plans for Serious Growth
+
+Tier 1: Starter Plan
+
+Price: $50/Month
+
+Focus: Consistent Authority
+
+Includes: Daily Auto-Posts, 2 Categories, Basic Analytics.
+
+Tier 2: Professional Plan (Highlighted)
+
+Price: $199/Month
+
+Focus: Scaling Influence
+
+Includes: Multiple Schedules, All 4 Categories, Post Customization, Priority Support.
+
+Tier 3: Enterprise Plan
+
+Price: Custom
+
+Focus: Full Automation & Collaboration
+
+Includes: All Pro Features, Future Team Collaboration, Brand Voice Tuning, Dedicated Account Manager.
+
+Summary of Key Directives:
+
+Replicate Layout: Match the structure, whitespace, and clean aesthetic of the Landing2.webp inspiration.
+
+Color Palette: Use a clean white/light gray background with Purple (#6D28D9) and Dark Blue (#1E3A8A) as primary accents.
+
+Responsiveness: Must be fully responsive and look great on mobile.
+
+Tailwind CSS: Use Tailwind for all styling.
