@@ -15,7 +15,7 @@ export default function SignIn() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      setLocation("/dashboard");
     }
   }, [user, setLocation]);
 

@@ -1,0 +1,101 @@
+PostVolve Dashboard UI Development: MVP Completion Prompt
+Goal: Create the complete, high-fidelity user interface for the PostVolve internal dashboard, integrating all MVP features (Dashboard, Content Generation, Scheduler, Analytics, Settings) into a single-file React component (App.jsx). The UI must be highly responsive, modern, and utilize the full aesthetic defined in the PostVolve Design System (design.json).
+
+Required Technology & Structure:
+
+Framework: React (Functional Components, Hooks).
+
+Styling: Tailwind CSS (Strictly adhere to the design system tokens).
+
+Single-File Mandate: All components, logic, and constants must reside within the single App.jsx file.
+
+Icons: Continue using the existing, custom inline SVG icons (HomeIcon, GenerateIcon, SchedulerIcon, HistoryIcon, SettingsIcon).
+
+Design System & Polish Mandates (Non-Negotiable):
+
+Aesthetics: The UI must be clean, spacious, and premium. Use COLORS.primary (#6D28D9) generously for interactive elements and accents.
+
+Smoothness: Apply UI_TOKENS.transition (all 300ms ease-in-out) to all interactive elements, buttons, and card hovers.
+
+Card Hover Effect: Apply the premium hover effect: hover:shadow-lg combined with a subtle scale, e.g., hover:scale-[1.01].
+
+Responsiveness: Use Tailwind's responsive utilities (sm:, lg:) to ensure a flawless experience on both mobile (collapsible drawer or select menu for navigation) and desktop (fixed sidebar).
+
+Feature UI Breakdown (Page by Page)
+1. Dashboard Page (/)
+Purpose: Quick summary of performance and immediate actions.
+
+Components:
+
+Analytics Grid: 3-4 AnalyticsCard components displaying high-level stats (Impressions, Posts Scheduled, Drafts).
+
+Upcoming Posts Table: A clean table (implementing dataTable style) showing the next 5-10 scheduled or draft posts. Include columns for Title, Category (with a colored chip/badge), Scheduled Time, and Status (StatusBadge).
+
+Key Interaction: A large "Review Drafts" PrimaryButton linking/switching to the Content Generation Page.
+
+2. Content Generation & Review Page (/generate)
+Purpose: The main working area for reviewing and customizing AI-generated content.
+
+Components:
+
+Category Filter: Implement FilterChip components (from design.json specs) to filter content by category (Tech, AI, Business, Motivation, All). The selected chip must use COLORS.primary for its background.
+
+Content Card List: Display mock drafts using the detailed ContentCard style. Each card must feature:
+
+A prominent visual preview area (left/top).
+
+A text/action area (right/bottom) with post title, category tag, short description, and action buttons.
+
+Action Buttons: Each card must have:
+
+"Review & Edit Post" (PrimaryButton) which triggers the Post Customization Modal (see below).
+
+"Skip / Regenerate" (Secondary/Text Button).
+
+New Generation CTA: A centered PrimaryButton at the bottom: "Generate More Content Now".
+
+3. Post Customization Modal (Standalone Component)
+Purpose: A high-contrast, focused overlay for editing a specific post (Required feature: Post customization).
+
+Style: Implement the modal style from design.json. Must include a close button (X icon).
+
+Content:
+
+Original Image Preview: Large, centered view of the AI-generated image.
+
+Text Editor: A large textarea (implementing inputField style) for editing the post copy. Must include a character count/limit.
+
+Action Buttons: A final row with "Schedule Post" (PrimaryButton) and "Save as Draft" (SecondaryButton).
+
+4. History & Analytics Page (/history)
+Purpose: Track performance and review past publications (Required features: History tracking, Simple growth analytics).
+
+Components:
+
+Global Metrics Grid: 4-5 AnalyticsCard components showing total posts, average impressions, total engagement, etc.
+
+Detailed Post Log: A large, searchable/filterable DataTable showing all past posts.
+
+Table Columns: Date, Category, Impressions, Likes/Engagement, Status (StatusBadge).
+
+Data Visualization Mock: Include a placeholder area (e.g., a large card) where a time-series chart would show impressions over the last 30 days, using COLORS.secondary for mock chart lines/bars.
+
+5. Settings Page (/settings)
+Purpose: Manage core engine preferences (Required features: Category Selector, Auto posting Scheduler control).
+
+Components:
+
+Auto Posting Control Card: A card containing a modern, large toggle switch (as mocked in the current Canvas) for "Enable Auto Posting." Explain the schedule logic underneath (e.g., "automatically posts drafts at 3:00 PM daily").
+
+Content Category Selector: A grid or row of FilterChip-style buttons allowing users to select/deselect the categories they wish to receive content for (Tech, AI, Business, Motivation). Use the selected/unselected styles to clearly indicate preference.
+
+Integration Status Card (Mock): A card showing the status of linked social accounts (e.g., "LinkedIn: Connected," "Twitter: Connected"). Include a "Disconnect All" or "Manage Integrations" button.
+
+Navigation Implementation
+Sidebar (<Sidebar />): Must be fixed on desktop and implement SidebarLink components for seamless navigation. Use the PAGES constant structure from the existing Canvas.
+
+Mobile Navigation: Use a responsive approach (like the select menu currently in the Canvas) or a collapsible menu drawer to switch between the main pages.
+
+Mandate for Implementation:
+
+Refine and complete the existing PostVolveApp.jsx Canvas using all the above detailed specifications. Create the necessary mock data and component shells for the Scheduler Page and the Post Customization Modal to complete the MVP UI structure. Ensure every element adheres to the clean, modern aesthetic.

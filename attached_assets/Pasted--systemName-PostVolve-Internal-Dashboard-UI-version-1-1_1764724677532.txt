@@ -1,0 +1,134 @@
+{
+  "systemName": "PostVolve Internal Dashboard UI",
+  "version": "1.1.0 (In-Depth)",
+  "designTokens": {
+    "colors": {
+      "primary": {
+        "name": "Purple Accent",
+        "hex": "#6D28D9",
+        "tailwindName": "volvo-purple"
+      },
+      "primaryHover": {
+        "name": "Darker Purple for Hover",
+        "hex": "#4C1D95",
+        "tailwindName": "volvo-dark-purple"
+      },
+      "secondary": {
+        "name": "Dark Blue/Data Accent",
+        "hex": "#1E3A8A",
+        "tailwindName": "volvo-blue"
+      },
+      "background": {
+        "light": "#F7F9FB",
+        "default": "#FFFFFF",
+        "dark": "#1F2937"
+      },
+      "grayScale": {
+        "100": "#F3F4F6",
+        "200": "#E5E7EB",
+        "300": "#D1D5DB",
+        "500": "#6B7280"
+      },
+      "text": {
+        "header": "#111827",
+        "body": "#374151",
+        "muted": "#6B7280"
+      },
+      "state": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "focusRing": "ring-4 ring-primary ring-opacity-30"
+      }
+    },
+    "typography": {
+      "fontFamily": "'Inter', sans-serif",
+      "h1": { "size": "3rem", "weight": "800", "tracking": "tight" },
+      "h2": { "size": "1.875rem", "weight": "700" },
+      "body": { "size": "1rem", "weight": "400" },
+      "caption": { "size": "0.75rem", "weight": "500", "color": "text.muted" }
+    },
+    "polish": {
+      "borderRadius": "0.75rem",
+      "shadows": {
+        "sm": "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+        "md": "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        "lg": "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        "premiumHover": "0 20px 25px -5px rgba(109, 40, 217, 0.2), 0 8px 10px -6px rgba(109, 40, 217, 0.1)"
+      },
+      "transitions": "all 300ms ease-in-out"
+    },
+    "layout": {
+      "spacingUnit": "4px",
+      "zIndex": {
+        "sidebar": 40,
+        "modal": 50,
+        "dropdown": 30
+      }
+    }
+  },
+  "utilityClasses": {
+    "smoothHover": "transition-all duration-300 hover:scale-[1.01] hover:shadow-lg",
+    "focusRing": "focus:outline-none focus:ring-4 focus:ring-primary focus:ring-opacity-30",
+    "cardBorder": "border border-grayScale-200 rounded-borderRadius",
+    "textPrimary": "text-primary font-semibold"
+  },
+  "componentSpecs": {
+    "dashboardLayout": {
+      "structure": "Single Column Content Area with Fixed Left Sidebar (Desktop) / Collapsible Drawer (Mobile).",
+      "sidebar": {
+        "width": "280px (desktop)",
+        "style": "bg-background.default, shadow-lg, z-zIndex.sidebar",
+        "items": ["Dashboard", "Content Generation", "Scheduler", "Analytics", "Settings"]
+      }
+    },
+    "primaryButton": {
+      "usage": "CTAs, Save changes, Post Now",
+      "style": "bg-primary, text-white, rounded-borderRadius, px-6 py-3, shadow-md, hover:bg-primaryHover, transition-transitions, focus:focusRing, disabled:opacity-50"
+    },
+    "secondaryButton": {
+      "usage": "Cancel, View History, Secondary Actions",
+      "style": "bg-grayScale-100, text-text.body, rounded-borderRadius, px-6 py-3, border border-grayScale-300, hover:bg-grayScale-200, transition-transitions, focus:focusRing"
+    },
+    "sidebarLink": {
+      "style": "text-text.body, py-3 px-4 rounded-md, hover:bg-grayScale-100, active:bg-primary/10 active:text-primary font-medium, transition-transitions"
+    },
+    "contentCard": {
+      "usage": "Displaying individual generated posts (visual + copy)",
+      "style": "bg-background.default, rounded-borderRadius, shadow-md, overflow-hidden, smoothHover",
+      "contentArea": "Split layout (3/5 visual preview, 2/5 edit/stats area) for desktop; stacked for mobile."
+    },
+    "analyticsCard": {
+      "usage": "Displaying key metrics (Likes, Reach, Clicks)",
+      "style": "bg-background.default, rounded-borderRadius, shadow-sm, border-t-4 border-primary, transition-transitions, p-6",
+      "dataDisplay": "Use secondary color (#1E3A8A) for chart elements and metrics."
+    },
+    "filterChip": {
+      "usage": "Category Selector (Tech, AI, Business, Motivation)",
+      "style": "bg-grayScale-100, text-text.muted, text-sm, rounded-full, px-4 py-1, cursor-pointer, transition-transitions, selected:bg-primary selected:text-white"
+    },
+    "dataTable": {
+      "usage": "Post History tracking",
+      "style": "bg-background.default, cardBorder, text-sm",
+      "header": "bg-grayScale-100, font-semibold text-text.header, sticky top-0",
+      "rowHover": "hover:bg-grayScale-50/50"
+    },
+    "inputField": {
+      "style": "border-gray-300, rounded-md, w-full py-2 px-3 focus:focusRing, shadow-sm, transition-transitions"
+    },
+    "modal": {
+      "usage": "Post Customization, Settings Changes, Confirmation",
+      "style": "bg-background.default, rounded-borderRadius, shadow-lg, max-w-lg, z-zIndex.modal"
+    },
+    "statusBadge": {
+      "usage": "Showing post status (Scheduled, Draft, Posted, Error)",
+      "styleMap": {
+        "scheduled": "bg-warning/10 text-warning",
+        "draft": "bg-grayScale-500/10 text-grayScale-500",
+        "posted": "bg-success/10 text-success",
+        "error": "bg-error/10 text-error"
+      },
+      "baseStyle": "inline-flex items-center px-3 py-0.5 rounded-full text-xs font-medium"
+    }
+  }
+}
