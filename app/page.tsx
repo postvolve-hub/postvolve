@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Check, ArrowRight } from "lucide-react";
@@ -13,7 +13,7 @@ const dashboardImage = "/dashboard-preview.png";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/Motion";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 
 // --- Custom SVG Icons ---
 
@@ -186,6 +186,19 @@ const FloatingIcon = ({ Icon, color, className }: { Icon: React.FC<{ className?:
 );
 
 const Hero = () => {
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  
+  // Track scroll progress for the dashboard section
+  const { scrollYProgress } = useScroll({
+    target: dashboardRef,
+    offset: ["start end", "end start"]
+  });
+  
+  // Transform scroll progress to 3D rotation (starts tilted back, reveals to flat)
+  const rotateX = useTransform(scrollYProgress, [0, 0.5], [25, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [0.9, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.3], [0.6, 1]);
+  
   return (
     <section className="relative overflow-hidden pt-16 md:pt-24 lg:pt-32 pb-8 md:pb-16">
       {/* Smooth Wavy Background */}
@@ -255,14 +268,14 @@ const Hero = () => {
         </motion.div>
 
         {/* Middle Right - Facebook (#1877F2) */}
-        <motion.div
+            <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.6 }}
           className="absolute top-[28%] right-[5%] md:right-[10%]"
         >
           <FloatingIcon Icon={IconFacebook} color="text-[#1877F2]" className="animate-float" />
-        </motion.div>
+            </motion.div>
       </div>
 
       <div className="container mx-auto px-4 md:px-6 flex flex-col items-center text-center relative z-20">
@@ -302,38 +315,42 @@ const Hero = () => {
           </p>
         </FadeIn>
 
-        {/* Dashboard Mockup with Enhanced Overlays */}
-        <FadeIn delay={0.6} className="w-full hidden md:block md:mt-8">
-          <div className="relative w-full max-w-5xl mx-auto rounded-2xl border border-border/50 bg-background/50 backdrop-blur-xl shadow-2xl shadow-primary/20 overflow-hidden group hover:shadow-primary/30 transition-all duration-500">
-            {/* Enhanced gradient overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 via-transparent to-transparent z-10 h-full w-full pointer-events-none opacity-60"></div>
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/40 z-10 pointer-events-none opacity-40"></div>
-            
-            {/* Border glow effect */}
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-blue-500/20 to-primary/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
-            
-            {/* Decorative corner elements */}
-            <div className="absolute top-4 left-4 w-16 h-16 border-t-2 border-l-2 border-primary/20 rounded-tl-2xl opacity-50" />
-            <div className="absolute top-4 right-4 w-16 h-16 border-t-2 border-r-2 border-primary/20 rounded-tr-2xl opacity-50" />
-            
-            <img 
-              src={dashboardImage} 
-              alt="PostVolve Dashboard Interface" 
-              className="relative w-full h-auto rounded-2xl transform transition-transform duration-700 group-hover:scale-[1.01] z-0"
-            />
-            
-            {/* Floating UI Badge for depth */}
-            <div className="absolute bottom-8 right-8 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm p-4 rounded-lg shadow-2xl border border-border/50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-300 hover:scale-105 transition-transform duration-300">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center text-green-600 shadow-lg shadow-green-500/20">
-                <Check className="h-5 w-5" />
+        {/* Dashboard Mockup - Mac Window Style with 3D Scroll Effect */}
+        <div ref={dashboardRef} className="w-full hidden md:block md:mt-8" style={{ perspective: "1200px" }}>
+          <motion.div 
+            className="relative w-full max-w-4xl mx-auto"
+            style={{
+              rotateX,
+              scale,
+              opacity,
+              transformOrigin: "center bottom",
+            }}
+          >
+            {/* Mac Window Frame */}
+            <div className="rounded-xl overflow-hidden shadow-2xl shadow-black/25 border border-gray-200/50 bg-white">
+              {/* Mac Title Bar */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-gray-100 border-b border-gray-200">
+                {/* Traffic Light Buttons */}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-[#FF5F57] shadow-inner"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#FFBD2E] shadow-inner"></div>
+                  <div className="w-3 h-3 rounded-full bg-[#28CA41] shadow-inner"></div>
+                </div>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Post Published</p>
-                <p className="text-sm font-bold text-foreground">Success! +24% Engagement</p>
+              
+              {/* Dashboard Screenshot */}
+              <div className="relative">
+                <img 
+                  src={dashboardImage} 
+                  alt="PostVolve Dashboard Interface" 
+                  className="w-full h-auto block"
+                />
+                {/* Subtle bottom fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/80 to-transparent pointer-events-none"></div>
               </div>
             </div>
-          </div>
-        </FadeIn>
+          </motion.div>
+        </div>
 
       </div>
     </section>

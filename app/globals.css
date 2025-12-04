@@ -202,3 +202,16 @@
   animation-play-state: paused;
 }
 
+/* Hide Next.js development indicator */
+[data-nextjs-dialog-overlay],
+[data-nextjs-dialog],
+nextjs-portal {
+  display: none !important;
+}
+
+/* Hide the N logo in bottom left corner */
+body > div:last-child img[alt="next.js logo"],
+body > div:last-child a[href^="https://nextjs.org"] {
+  display: none !important;
+}
+
