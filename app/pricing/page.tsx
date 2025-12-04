@@ -541,6 +541,7 @@ const FAQ = () => {
 };
 
 const FinalCTA = () => {
+  const { user } = useAuth();
   return (
     <section className="py-24 relative overflow-hidden bg-gradient-to-br from-primary via-primary/95 to-blue-600 text-white">
       {/* Background decorations */}
