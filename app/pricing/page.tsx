@@ -68,7 +68,7 @@ const Pricing = () => {
               <CardHeader>
                 <CardTitle className="text-xl font-medium text-muted-foreground">Starter Plan</CardTitle>
                 <div className="mt-4 flex items-baseline">
-                  <span className="text-4xl font-bold tracking-tight">$50</span>
+                  <span className="text-4xl font-bold tracking-tight">$39</span>
                   <span className="ml-1 text-muted-foreground">/month</span>
                 </div>
                 <CardDescription className="mt-2 font-medium text-foreground">Consistent Authority</CardDescription>
@@ -97,9 +97,9 @@ const Pricing = () => {
                 Most Popular
               </div>
               <CardHeader>
-                <CardTitle className="text-xl font-medium text-primary">Professional Plan</CardTitle>
+                <CardTitle className="text-xl font-medium text-primary">Plus Plan</CardTitle>
                 <div className="mt-4 flex items-baseline">
-                  <span className="text-5xl font-bold tracking-tight">$199</span>
+                  <span className="text-5xl font-bold tracking-tight">$99</span>
                   <span className="ml-1 text-muted-foreground">/month</span>
                 </div>
                 <CardDescription className="mt-2 font-medium text-foreground">Scaling Influence</CardDescription>
@@ -116,7 +116,7 @@ const Pricing = () => {
               </CardContent>
               <CardFooter>
                 <Link href="/signup" className="w-full">
-                  <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 h-11 transition-all duration-300 hover:shadow-primary/40">Choose Professional</Button>
+                  <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 h-11 transition-all duration-300 hover:shadow-primary/40">Choose Plus</Button>
                 </Link>
               </CardFooter>
             </Card>
@@ -126,15 +126,16 @@ const Pricing = () => {
           <StaggerItem className="h-full">
             <Card className="border-border/60 shadow-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/30 bg-background h-full flex flex-col">
               <CardHeader>
-                <CardTitle className="text-xl font-medium text-muted-foreground">Enterprise Plan</CardTitle>
+                <CardTitle className="text-xl font-medium text-muted-foreground">Pro Plan</CardTitle>
                 <div className="mt-4 flex items-baseline">
-                  <span className="text-4xl font-bold tracking-tight">Custom</span>
+                  <span className="text-4xl font-bold tracking-tight">$299</span>
+                  <span className="ml-1 text-muted-foreground">/month</span>
                 </div>
                 <CardDescription className="mt-2 font-medium text-foreground">Full Automation & Collaboration</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
                 <ul className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> All Pro Features</li>
+                  <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> All Plus Features</li>
                   <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> Unlimited Accounts</li>
                   <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> Future Team Collaboration</li>
                   <li className="flex items-center"><Check className="h-4 w-4 text-blue-500 mr-2" /> Brand Voice Tuning</li>
@@ -143,8 +144,8 @@ const Pricing = () => {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Link href="/contact" className="w-full">
-                  <Button variant="outline" className="w-full hover:bg-primary/5 transition-colors">Contact Sales</Button>
+                <Link href="/signup" className="w-full">
+                  <Button variant="outline" className="w-full hover:bg-primary/5 transition-colors">Get Pro</Button>
                 </Link>
               </CardFooter>
             </Card>
@@ -185,41 +186,41 @@ const CompareAllPlans = () => {
     {
       category: "Core Features",
       items: [
-        { name: "Daily Auto-Posts", starter: "1 per day", professional: "3 per day", enterprise: "Unlimited" },
-        { name: "Content Categories", starter: "2", professional: "All 4", enterprise: "All 4 + Custom" },
-        { name: "Social Accounts", starter: "1", professional: "5", enterprise: "Unlimited" },
-        { name: "Post Scheduling", starter: true, professional: true, enterprise: true },
-        { name: "Content Customization", starter: false, professional: true, enterprise: true },
+        { name: "Daily Auto-Posts", starter: "1 per day", plus: "3 per day", pro: "Unlimited" },
+        { name: "Content Categories", starter: "2", plus: "All 4", pro: "All 4 + Custom" },
+        { name: "Social Accounts", starter: "1", plus: "5", pro: "Unlimited" },
+        { name: "Post Scheduling", starter: true, plus: true, pro: true },
+        { name: "Content Customization", starter: false, plus: true, pro: true },
       ]
     },
     {
       category: "Analytics & Insights",
       items: [
-        { name: "Basic Analytics", starter: true, professional: true, enterprise: true },
-        { name: "Advanced Analytics", starter: false, professional: true, enterprise: true },
-        { name: "Performance Reports", starter: false, professional: true, enterprise: true },
-        { name: "Competitor Analysis", starter: false, professional: false, enterprise: true },
-        { name: "Custom Dashboards", starter: false, professional: false, enterprise: true },
+        { name: "Basic Analytics", starter: true, plus: true, pro: true },
+        { name: "Advanced Analytics", starter: false, plus: true, pro: true },
+        { name: "Performance Reports", starter: false, plus: true, pro: true },
+        { name: "Competitor Analysis", starter: false, plus: false, pro: true },
+        { name: "Custom Dashboards", starter: false, plus: false, pro: true },
       ]
     },
     {
       category: "Support & Priority",
       items: [
-        { name: "Email Support", starter: true, professional: true, enterprise: true },
-        { name: "Priority Support", starter: false, professional: true, enterprise: true },
-        { name: "Dedicated Account Manager", starter: false, professional: false, enterprise: true },
-        { name: "Onboarding Call", starter: false, professional: false, enterprise: true },
-        { name: "24/7 Phone Support", starter: false, professional: false, enterprise: true },
+        { name: "Email Support", starter: true, plus: true, pro: true },
+        { name: "Priority Support", starter: false, plus: true, pro: true },
+        { name: "Dedicated Account Manager", starter: false, plus: false, pro: true },
+        { name: "Onboarding Call", starter: false, plus: false, pro: true },
+        { name: "24/7 Phone Support", starter: false, plus: false, pro: true },
       ]
     },
     {
       category: "Advanced Features",
       items: [
-        { name: "Multiple Schedules", starter: false, professional: true, enterprise: true },
-        { name: "Brand Voice Tuning", starter: false, professional: false, enterprise: true },
-        { name: "Team Collaboration", starter: false, professional: false, enterprise: true },
-        { name: "Custom Integrations", starter: false, professional: false, enterprise: true },
-        { name: "API Access", starter: false, professional: false, enterprise: true },
+        { name: "Multiple Schedules", starter: false, plus: true, pro: true },
+        { name: "Brand Voice Tuning", starter: false, plus: false, pro: true },
+        { name: "Team Collaboration", starter: false, plus: false, pro: true },
+        { name: "Custom Integrations", starter: false, plus: false, pro: true },
+        { name: "API Access", starter: false, plus: false, pro: true },
       ]
     },
   ];
@@ -261,8 +262,8 @@ const CompareAllPlans = () => {
                   <tr className="border-b border-border/40 bg-secondary/30">
                     <th className="text-left py-6 px-6 font-semibold text-foreground">Features</th>
                     <th className="text-center py-6 px-6 font-semibold text-muted-foreground">Starter</th>
-                    <th className="text-center py-6 px-6 font-semibold text-primary bg-primary/5">Professional</th>
-                    <th className="text-center py-6 px-6 font-semibold text-muted-foreground">Enterprise</th>
+                    <th className="text-center py-6 px-6 font-semibold text-primary bg-primary/5">Plus</th>
+                    <th className="text-center py-6 px-6 font-semibold text-muted-foreground">Pro</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -277,8 +278,8 @@ const CompareAllPlans = () => {
                         <tr key={itemIdx} className="border-b border-border/20 hover:bg-secondary/10 transition-colors">
                           <td className="py-4 px-6 text-sm text-foreground">{item.name}</td>
                           <td className="py-4 px-6 text-center">{renderCell(item.starter)}</td>
-                          <td className="py-4 px-6 text-center bg-primary/5">{renderCell(item.professional)}</td>
-                          <td className="py-4 px-6 text-center">{renderCell(item.enterprise)}</td>
+                          <td className="py-4 px-6 text-center bg-primary/5">{renderCell(item.plus)}</td>
+                          <td className="py-4 px-6 text-center">{renderCell(item.pro)}</td>
                         </tr>
                       ))}
                     </React.Fragment>
@@ -303,12 +304,12 @@ const CompareAllPlans = () => {
                           <div className="flex justify-center">{renderCell(item.starter)}</div>
                         </div>
                         <div className="text-center bg-primary/5 rounded-lg py-2">
-                          <div className="text-xs text-primary font-semibold mb-1">Pro</div>
-                          <div className="flex justify-center">{renderCell(item.professional)}</div>
+                          <div className="text-xs text-primary font-semibold mb-1">Plus</div>
+                          <div className="flex justify-center">{renderCell(item.plus)}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xs text-muted-foreground mb-1">Enterprise</div>
-                          <div className="flex justify-center">{renderCell(item.enterprise)}</div>
+                          <div className="text-xs text-muted-foreground mb-1">Pro</div>
+                          <div className="flex justify-center">{renderCell(item.pro)}</div>
                         </div>
                       </div>
                     </div>

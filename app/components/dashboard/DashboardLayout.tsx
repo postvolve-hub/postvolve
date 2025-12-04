@@ -245,8 +245,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {!sidebarCollapsed ? (
                 <div className="p-3 bg-gradient-to-r from-[#6D28D9]/10 to-[#6D28D9]/5 rounded-xl border border-[#6D28D9]/20 hover:border-[#6D28D9]/40 transition-all duration-200 cursor-pointer group">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-semibold text-[#6D28D9]">Professional</span>
-                    <span className="text-[10px] text-[#6D28D9]/70 bg-[#6D28D9]/10 px-1.5 py-0.5 rounded-full">PRO</span>
+                    <span className="text-xs font-semibold text-[#6D28D9]">Plus</span>
+                    <span className="text-[10px] text-[#6D28D9]/70 bg-[#6D28D9]/10 px-1.5 py-0.5 rounded-full">PLUS</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -263,7 +263,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               ) : (
                 <div 
                   className="flex justify-center p-2.5 rounded-xl bg-gradient-to-r from-[#6D28D9]/10 to-[#6D28D9]/5 border border-[#6D28D9]/20 hover:border-[#6D28D9]/40 transition-all duration-200 cursor-pointer"
-                  title="Professional Plan - 45/90 posts"
+                  title="Plus Plan - 45/90 posts"
                 >
                   <span className="text-[10px] font-bold text-[#6D28D9]">PRO</span>
                 </div>

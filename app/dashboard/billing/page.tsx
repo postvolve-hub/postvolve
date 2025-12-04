@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { 
   CreditCard, 
   Check, 
@@ -11,7 +12,8 @@ import {
   Users,
   BarChart3,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -21,6 +23,8 @@ import { ChangePlanModal } from "@/components/dashboard/ChangePlanModal";
 import { UpdatePaymentModal } from "@/components/dashboard/UpdatePaymentModal";
 import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/lib/supabaseClient";
 
 // Custom Icons
 const IconCrown = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -30,67 +34,217 @@ const IconCrown = ({ className = "h-4 w-4" }: { className?: string }) => (
   </svg>
 );
 
-// Mock data
-const CURRENT_PLAN = {
-  name: "Professional",
-  price: 199,
-  period: "month",
-  features: [
-    "3 posts per day",
-    "All 4 categories",
-    "5 social accounts",
-    "Advanced analytics",
-    "Priority support"
-  ]
+const PLAN_NAMES: Record<string, string> = {
+  starter: "Starter",
+  plus: "Plus",
+  pro: "Pro",
 };
 
-const USAGE = {
-  postsUsed: 45,
-  postsLimit: 90,
-  accountsUsed: 3,
-  accountsLimit: 5,
-  categoriesUsed: 4,
-  categoriesLimit: 4
+const PLAN_PRICES: Record<string, number> = {
+  starter: 39,
+  plus: 99,
+  pro: 299,
 };
-
-const BILLING_HISTORY = [
-  { id: 1, date: "Dec 4, 2024", amount: 199, status: "paid", invoice: "INV-2024-012" },
-  { id: 2, date: "Nov 4, 2024", amount: 199, status: "paid", invoice: "INV-2024-011" },
-  { id: 3, date: "Oct 4, 2024", amount: 199, status: "paid", invoice: "INV-2024-010" },
-  { id: 4, date: "Sep 4, 2024", amount: 199, status: "paid", invoice: "INV-2024-009" },
-];
 
 const PLANS = [
   {
     name: "Starter",
-    price: 50,
+    price: 39,
     description: "For consistent content creators",
     features: ["1 post per day", "2 categories", "1 social account", "Basic analytics"],
     popular: false
   },
   {
-    name: "Professional",
-    price: 199,
+    name: "Plus",
+    price: 99,
     description: "For scaling influence",
     features: ["3 posts per day", "All 4 categories", "5 social accounts", "Advanced analytics", "Priority support"],
     popular: true
   },
   {
-    name: "Enterprise",
-    price: null,
+    name: "Pro",
+    price: 299,
     description: "For teams & agencies",
     features: ["Unlimited posts", "Custom categories", "Unlimited accounts", "Team collaboration", "Dedicated manager"],
     popular: false
   }
 ];
 
-export default function BillingPage() {
+function BillingPageContent() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [changePlanModalOpen, setChangePlanModalOpen] = useState(false);
   const [updatePaymentModalOpen, setUpdatePaymentModalOpen] = useState(false);
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [usage, setUsage] = useState<any>(null);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [processing, setProcessing] = useState(false);
 
-  const postsPercentage = (USAGE.postsUsed / USAGE.postsLimit) * 100;
-  const accountsPercentage = (USAGE.accountsUsed / USAGE.accountsLimit) * 100;
+  // Check for success/cancel from Stripe
+  useEffect(() => {
+    const success = searchParams.get("success");
+    const canceled = searchParams.get("canceled");
+    
+    if (success) {
+      toast({
+        title: "Subscription Updated",
+        description: "Your subscription has been successfully updated.",
+      });
+      router.replace("/dashboard/billing");
+    }
+    if (canceled) {
+      toast({
+        title: "Checkout Canceled",
+        description: "Your subscription was not changed.",
+        variant: "destructive",
+      });
+      router.replace("/dashboard/billing");
+    }
+  }, [searchParams, router]);
+
+  // Fetch subscription data
+  useEffect(() => {
+    async function loadBillingData() {
+      if (!user) return;
+
+      try {
+        // Fetch subscription
+        const { data: subData, error: subError } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
+
+        if (subError && subError.code !== "PGRST116") {
+          console.error("Error fetching subscription:", subError);
+        }
+
+        if (subData) {
+          setSubscription(subData);
+        }
+
+        // Fetch usage (mock for now - will be calculated from posts table later)
+        setUsage({
+          postsUsed: 45,
+          postsLimit: subData?.posts_per_day === -1 ? 999 : (subData?.posts_per_day || 1) * 30,
+          accountsUsed: 3,
+          accountsLimit: subData?.social_accounts_limit === -1 ? 999 : (subData?.social_accounts_limit || 1),
+          categoriesUsed: 4,
+          categoriesLimit: subData?.categories_limit === -1 ? 999 : (subData?.categories_limit || 2),
+        });
+
+        // Fetch invoices
+        const { data: invoiceData, error: invoiceError } = await supabase
+          .from("invoices")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (!invoiceError && invoiceData) {
+          setInvoices(invoiceData);
+        }
+      } catch (error) {
+        console.error("Error loading billing data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadBillingData();
+  }, [user]);
+
+  const handleChangePlan = async (newPlan: string) => {
+    if (!user) return;
+
+    setProcessing(true);
+    try {
+      const response = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: newPlan,
+          userId: user.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initiate plan change",
+        variant: "destructive",
+      });
+      setProcessing(false);
+    }
+  };
+
+  const handleManagePayment = async () => {
+    if (!user) return;
+
+    setProcessing(true);
+    try {
+      const response = await fetch("/api/stripe/create-portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create portal session");
+      }
+
+      // Redirect to Stripe Customer Portal
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to open payment portal",
+        variant: "destructive",
+      });
+      setProcessing(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-[#6D28D9]" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  const currentPlan = subscription?.plan_type || "starter";
+  const planName = PLAN_NAMES[currentPlan] || "Starter";
+  const planPrice = PLAN_PRICES[currentPlan] || 39;
+  const nextBillingDate = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleDateString()
+    : "N/A";
+
+  const postsPercentage = usage
+    ? (usage.postsUsed / usage.postsLimit) * 100
+    : 0;
+  const accountsPercentage = usage
+    ? (usage.accountsUsed / usage.accountsLimit) * 100
+    : 0;
 
   return (
     <DashboardLayout>
@@ -113,10 +267,10 @@ export default function BillingPage() {
                   Current Plan
                 </Badge>
               </div>
-              <h3 className="text-2xl font-bold mb-1">{CURRENT_PLAN.name} Plan</h3>
+              <h3 className="text-2xl font-bold mb-1">{planName} Plan</h3>
               <p className="text-white/80 text-sm">
-                <span className="text-3xl font-bold text-white">${CURRENT_PLAN.price}</span>
-                <span className="text-white/60">/{CURRENT_PLAN.period}</span>
+                <span className="text-3xl font-bold text-white">${planPrice}</span>
+                <span className="text-white/60">/month</span>
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -124,12 +278,21 @@ export default function BillingPage() {
                 variant="outline" 
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl"
                 onClick={() => setChangePlanModalOpen(true)}
+                disabled={processing}
               >
-                Change Plan
+                {processing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  "Change Plan"
+                )}
               </Button>
               <Button 
                 className="bg-white text-[#6D28D9] hover:bg-white/90 rounded-xl font-medium"
-                onClick={() => setUpdatePaymentModalOpen(true)}
+                onClick={handleManagePayment}
+                disabled={processing || !subscription?.stripe_customer_id}
               >
                 <CreditCard className="h-4 w-4 mr-2" />
                 Manage Payment
@@ -141,7 +304,7 @@ export default function BillingPage() {
           <div className="mt-6 pt-4 border-t border-white/20 flex flex-wrap items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-white/60" />
-              <span className="text-white/80">Next billing: <strong className="text-white">Jan 4, 2025</strong></span>
+              <span className="text-white/80">Next billing: <strong className="text-white">{nextBillingDate}</strong></span>
             </div>
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-green-400" />
@@ -164,11 +327,13 @@ export default function BillingPage() {
               <span className="text-xs text-gray-500">{Math.round(postsPercentage)}%</span>
             </div>
             <div className="mb-2">
-              <span className="text-2xl font-bold text-gray-900">{USAGE.postsUsed}</span>
-              <span className="text-gray-500 text-sm"> / {USAGE.postsLimit}</span>
+              <span className="text-2xl font-bold text-gray-900">{usage?.postsUsed || 0}</span>
+              <span className="text-gray-500 text-sm"> / {usage?.postsLimit === 999 ? "∞" : usage?.postsLimit || 0}</span>
             </div>
             <Progress value={postsPercentage} className="h-2 bg-gray-100" />
-            <p className="text-xs text-gray-500 mt-2">{USAGE.postsLimit - USAGE.postsUsed} posts remaining</p>
+            <p className="text-xs text-gray-500 mt-2">
+              {usage?.postsLimit === 999 ? "Unlimited" : `${(usage?.postsLimit || 0) - (usage?.postsUsed || 0)} posts remaining`}
+            </p>
           </div>
 
           {/* Social Accounts */}
@@ -183,11 +348,13 @@ export default function BillingPage() {
               <span className="text-xs text-gray-500">{Math.round(accountsPercentage)}%</span>
             </div>
             <div className="mb-2">
-              <span className="text-2xl font-bold text-gray-900">{USAGE.accountsUsed}</span>
-              <span className="text-gray-500 text-sm"> / {USAGE.accountsLimit}</span>
+              <span className="text-2xl font-bold text-gray-900">{usage?.accountsUsed || 0}</span>
+              <span className="text-gray-500 text-sm"> / {usage?.accountsLimit === 999 ? "∞" : usage?.accountsLimit || 0}</span>
             </div>
             <Progress value={accountsPercentage} className="h-2 bg-gray-100" />
-            <p className="text-xs text-gray-500 mt-2">{USAGE.accountsLimit - USAGE.accountsUsed} slots available</p>
+            <p className="text-xs text-gray-500 mt-2">
+              {usage?.accountsLimit === 999 ? "Unlimited" : `${(usage?.accountsLimit || 0) - (usage?.accountsUsed || 0)} slots available`}
+            </p>
           </div>
 
           {/* Categories */}
@@ -204,16 +371,18 @@ export default function BillingPage() {
               </Badge>
             </div>
             <div className="mb-2">
-              <span className="text-2xl font-bold text-gray-900">{USAGE.categoriesUsed}</span>
-              <span className="text-gray-500 text-sm"> / {USAGE.categoriesLimit}</span>
+              <span className="text-2xl font-bold text-gray-900">{usage?.categoriesUsed || 0}</span>
+              <span className="text-gray-500 text-sm"> / {usage?.categoriesLimit === 999 ? "∞" : usage?.categoriesLimit || 0}</span>
             </div>
-            <Progress value={100} className="h-2 bg-gray-100" />
-            <p className="text-xs text-gray-500 mt-2">All categories unlocked</p>
+            <Progress value={usage ? (usage.categoriesUsed / usage.categoriesLimit) * 100 : 0} className="h-2 bg-gray-100" />
+            <p className="text-xs text-gray-500 mt-2">
+              {usage?.categoriesLimit === 999 ? "Unlimited" : usage?.categoriesUsed === usage?.categoriesLimit ? "All categories unlocked" : `${(usage?.categoriesLimit || 0) - (usage?.categoriesUsed || 0)} available`}
+            </p>
           </div>
         </div>
 
         {/* Upgrade Prompt (shown if not on highest plan) */}
-        {CURRENT_PLAN.name !== "Enterprise" && (
+        {currentPlan !== "pro" && (
           <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border border-amber-200/50 p-5 animate-in slide-in-from-bottom-2 duration-500 delay-150">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -223,12 +392,12 @@ export default function BillingPage() {
                 <div>
                   <h4 className="font-semibold text-gray-900">Need more power?</h4>
                   <p className="text-sm text-gray-600 mt-0.5">
-                    Upgrade to Enterprise for unlimited posts, team collaboration, and dedicated support.
+                    Upgrade to Pro for unlimited posts, team collaboration, and dedicated support.
                   </p>
                 </div>
               </div>
               <Button className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl shadow-sm whitespace-nowrap">
-                Explore Enterprise
+                Explore Pro
                 <ArrowUpRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
@@ -269,28 +438,51 @@ export default function BillingPage() {
             </Button>
           </div>
           <div className="divide-y divide-gray-100">
-            {BILLING_HISTORY.map((item) => (
-              <div key={item.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-gray-100 rounded-lg">
-                    <CreditCard className="h-4 w-4 text-gray-600" />
+            {invoices.length > 0 ? (
+              invoices.map((invoice) => (
+                <div key={invoice.id} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50/50 transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 bg-gray-100 rounded-lg">
+                      <CreditCard className="h-4 w-4 text-gray-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {invoice.stripe_invoice_id || `INV-${invoice.id}`}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(invoice.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{item.invoice}</p>
-                    <p className="text-xs text-gray-500">{item.date}</p>
+                  <div className="flex items-center gap-4">
+                    <span className="text-sm font-semibold text-gray-900">
+                      ${invoice.amount} {invoice.currency?.toUpperCase()}
+                    </span>
+                    <Badge variant="outline" className={`text-xs capitalize ${
+                      invoice.status === "paid" 
+                        ? "text-green-600 border-green-200 bg-green-50"
+                        : "text-gray-600 border-gray-200 bg-gray-50"
+                    }`}>
+                      {invoice.status}
+                    </Badge>
+                    {invoice.invoice_url && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+                        onClick={() => window.open(invoice.invoice_url, "_blank")}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-semibold text-gray-900">${item.amount}</span>
-                  <Badge variant="outline" className="text-xs text-green-600 border-green-200 bg-green-50 capitalize">
-                    {item.status}
-                  </Badge>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
+              ))
+            ) : (
+              <div className="px-5 py-8 text-center text-sm text-gray-500">
+                No billing history yet
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -318,25 +510,15 @@ export default function BillingPage() {
         <ChangePlanModal
           isOpen={changePlanModalOpen}
           onClose={() => setChangePlanModalOpen(false)}
-          currentPlan="professional"
-          onConfirm={(newPlan) => {
-            toast({
-              title: "Plan Changed",
-              description: `Your subscription has been updated to the ${newPlan} plan.`,
-            });
-          }}
+          currentPlan={currentPlan as any}
+          onConfirm={handleChangePlan}
         />
 
-        {/* Update Payment Modal */}
+        {/* Update Payment Modal - Redirects to Stripe Portal */}
         <UpdatePaymentModal
           isOpen={updatePaymentModalOpen}
           onClose={() => setUpdatePaymentModalOpen(false)}
-          onSuccess={() => {
-            toast({
-              title: "Payment Method Updated",
-              description: "Your new payment method has been saved.",
-            });
-          }}
+          onSuccess={handleManagePayment}
         />
 
         {/* Cancel Subscription Modal */}
@@ -360,4 +542,19 @@ export default function BillingPage() {
     </DashboardLayout>
   );
 }
+
+export default function BillingPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-[#6D28D9]" />
+        </div>
+      </DashboardLayout>
+    }>
+      <BillingPageContent />
+    </Suspense>
+  );
+}
+
 

@@ -156,7 +156,7 @@ postvolve/
 
 ## Pricing Tiers
 
-| Feature | Starter ($50/mo) | Professional ($199/mo) | Enterprise (Custom) |
+| Feature | Starter ($39/mo) | Plus ($99/mo) | Pro ($299/mo) |
 |---------|------------------|------------------------|---------------------|
 | Daily Auto-Posts | 1 per day | 3 per day | Unlimited |
 | Content Categories | 2 | All 4 | All 4 + Custom |

@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-type PlanId = "starter" | "professional" | "enterprise";
+type PlanId = "starter" | "plus" | "pro";
 
 interface Plan {
   id: PlanId;
@@ -31,46 +31,47 @@ const PLANS: Plan[] = [
   {
     id: "starter",
     name: "Starter",
-    price: 0,
-    billing: "Forever free",
+    price: 39,
+    billing: "/month",
     description: "Perfect for getting started",
     icon: <Sparkles className="h-5 w-5" />,
     features: [
-      "5 AI-generated posts/month",
+      "1 post per day",
+      "2 categories",
       "1 social account",
       "Basic analytics",
-      "Manual posting only",
+      "Email support",
     ],
   },
   {
-    id: "professional",
-    name: "Professional",
-    price: 199,
+    id: "plus",
+    name: "Plus",
+    price: 99,
     billing: "/month",
     description: "For growing professionals",
     icon: <Zap className="h-5 w-5" />,
     popular: true,
     features: [
-      "90 AI-generated posts/month",
-      "3 social accounts",
+      "3 posts per day",
+      "All 4 categories",
+      "5 social accounts",
       "Advanced analytics",
-      "Auto-posting enabled",
       "Priority support",
     ],
   },
   {
-    id: "enterprise",
-    name: "Enterprise",
-    price: 499,
+    id: "pro",
+    name: "Pro",
+    price: 299,
     billing: "/month",
     description: "For teams and agencies",
     icon: <Building2 className="h-5 w-5" />,
     features: [
       "Unlimited posts",
-      "10+ social accounts",
+      "All 4 + Custom categories",
+      "Unlimited accounts",
       "Full analytics suite",
-      "Auto-posting enabled",
-      "API access",
+      "Team collaboration",
       "Dedicated support",
     ],
   },
@@ -111,12 +112,12 @@ export function ChangePlanModal({
     if (!selectedPlan) return;
     
     setIsProcessing(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsProcessing(false);
     
+    // Call the onConfirm callback which will handle Stripe checkout
     onConfirm?.(selectedPlan);
-    handleClose();
+    
+    // Don't close modal here - let the redirect happen
+    // The modal will close when user returns from Stripe
   };
 
   const handleClose = () => {

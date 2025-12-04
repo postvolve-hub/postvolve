@@ -18,7 +18,7 @@ export type Json =
 // =====================================================
 
 export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'paused';
-export type PlanType = 'starter' | 'professional' | 'enterprise';
+export type PlanType = 'starter' | 'plus' | 'pro';
 export type InvoiceStatus = 'draft' | 'open' | 'paid' | 'void' | 'uncollectible';
 export type PlatformType = 'linkedin' | 'twitter' | 'facebook' | 'instagram';
 export type ConnectionStatus = 'connected' | 'disconnected' | 'expired' | 'error';
