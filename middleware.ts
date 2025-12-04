@@ -11,7 +11,6 @@ export async function middleware(req: NextRequest) {
                      req.nextUrl.pathname.startsWith("/reset-password");
   
   const isDashboardPage = req.nextUrl.pathname.startsWith("/dashboard");
-  const isOnboardingPage = req.nextUrl.pathname.startsWith("/onboarding");
 
   // Check for Supabase auth cookies
   // Supabase typically sets cookies like:
@@ -23,8 +22,9 @@ export async function middleware(req: NextRequest) {
     .getAll()
     .some((cookie) => cookie.name.startsWith("sb-"));
 
-  // If no auth cookie and trying to access protected routes
-  if (!hasAuthCookie && (isDashboardPage || isOnboardingPage)) {
+  // If no auth cookie and trying to access protected dashboard routes
+  // (Onboarding is handled client-side to avoid redirect loops)
+  if (!hasAuthCookie && isDashboardPage) {
     const redirectUrl = new URL("/signin", req.url);
     redirectUrl.searchParams.set("redirect", req.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);
@@ -42,7 +42,6 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
-    "/onboarding",
     "/signin",
     "/signup",
     "/forgot-password",
