@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   RefreshCw, 
   Edit3, 
@@ -17,7 +17,12 @@ import { GenerateNowModal } from "@/components/dashboard/GenerateNowModal";
 import { GenerationPipeline } from "@/components/dashboard/GenerationPipeline";
 import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { LockOverlay } from "@/components/dashboard/LockOverlay";
+import { PaymentUpdatePrompt } from "@/components/dashboard/PaymentUpdatePrompt";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/lib/supabaseClient";
+import { getAccessPermissions, type Subscription } from "@/lib/subscription-access";
 
 // Custom Icons
 const IconSparkles = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -113,6 +118,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function ContentGeneration() {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedPost, setSelectedPost] = useState<typeof MOCK_CONTENT[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -122,6 +128,39 @@ export default function ContentGeneration() {
   const [skipModalOpen, setSkipModalOpen] = useState(false);
   const [postToSkip, setPostToSkip] = useState<number | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [permissions, setPermissions] = useState<any>(null);
+
+  // Fetch subscription and check permissions
+  useEffect(() => {
+    async function fetchSubscription() {
+      if (!user) return;
+
+      try {
+        const { data: subData, error } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && subData) {
+          setSubscription(subData);
+          const perms = getAccessPermissions(subData);
+          setPermissions(perms);
+        } else {
+          // No subscription - set default locked permissions
+          setPermissions(getAccessPermissions(null));
+        }
+      } catch (error) {
+        console.error("Error fetching subscription:", error);
+        setPermissions(getAccessPermissions(null));
+      }
+    }
+
+    fetchSubscription();
+  }, [user]);
 
   const filteredContent = selectedCategory === "All" 
     ? content 
@@ -163,24 +202,49 @@ export default function ContentGeneration() {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-in fade-in duration-500">
+        {/* Payment Update Prompt */}
+        {permissions && permissions.actionRequired && permissions.accessLevel !== "full" && (
+          <PaymentUpdatePrompt
+            message={permissions.message || "Update your payment method to restore access."}
+            gracePeriodDays={permissions.gracePeriodDays}
+          />
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in slide-in-from-bottom-2 duration-500">
           <div>
             <h2 className="text-xl font-bold text-gray-900">News Card Generation</h2>
             <p className="text-sm text-gray-500 mt-1">Review and customize AI-generated news cards for your audience.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative">
+            {permissions && !permissions.canGenerateContent && (
+              <LockOverlay
+                message={permissions.message || "Your subscription is inactive. Update your payment method to generate new content."}
+                actionLabel="Update Payment"
+                actionPath="/dashboard/billing"
+              />
+            )}
             <Button 
               variant="outline"
               className="border-[#6D28D9]/30 text-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 rounded-xl"
-              onClick={() => setIsGenerateModalOpen(true)}
+              onClick={() => {
+                if (permissions?.canGenerateContent) {
+                  setIsGenerateModalOpen(true);
+                }
+              }}
+              disabled={!permissions?.canGenerateContent}
             >
               <IconSparkles className="h-4 w-4 mr-2" />
               Quick Generate
             </Button>
             <Button 
               className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
-              onClick={() => setIsPipelineOpen(true)}
+              onClick={() => {
+                if (permissions?.canGenerateContent) {
+                  setIsPipelineOpen(true);
+                }
+              }}
+              disabled={!permissions?.canGenerateContent}
             >
               <IconZap className="h-4 w-4 mr-2" />
               Full Pipeline
@@ -262,8 +326,13 @@ export default function ContentGeneration() {
                   </p>
                   <div className="space-y-2">
                     <Button
-                      onClick={() => handleEditPost(post)}
+                      onClick={() => {
+                        if (permissions?.canViewDrafts) {
+                          handleEditPost(post);
+                        }
+                      }}
                       className="w-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white transition-all duration-200 rounded-xl h-9 text-sm"
+                      disabled={!permissions?.canViewDrafts}
                     >
                       <Edit3 className="h-3.5 w-3.5 mr-2" />
                       Review & Edit
@@ -272,8 +341,12 @@ export default function ContentGeneration() {
                       <Button
                         variant="outline"
                         className="flex-1 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
-                        onClick={() => handleRegeneratePost(post.id)}
-                        disabled={regeneratingId === post.id}
+                        onClick={() => {
+                          if (permissions?.canGenerateContent) {
+                            handleRegeneratePost(post.id);
+                          }
+                        }}
+                        disabled={regeneratingId === post.id || !permissions?.canGenerateContent}
                       >
                         <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
                         {regeneratingId === post.id ? "..." : "Regenerate"}

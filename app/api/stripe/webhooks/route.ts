@@ -66,6 +66,18 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case "customer.subscription.trial_will_end": {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleTrialWillEnd(subscription);
+        break;
+      }
+
+      case "invoice.payment_action_required": {
+        const invoice = event.data.object as Stripe.Invoice;
+        await handlePaymentActionRequired(invoice);
+        break;
+      }
+
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
@@ -114,13 +126,24 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const periodStart = (subscription as any).current_period_start;
   const periodEnd = (subscription as any).current_period_end;
   const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end;
+  const trialStart = (subscription as any).trial_start;
+  const trialEnd = (subscription as any).trial_end;
+  const subscriptionStatus = subscription.status;
+
+  // Map Stripe status to our database status
+  let dbStatus: "active" | "canceled" | "past_due" | "trialing" | "paused" = "active";
+  if (subscriptionStatus === "active") dbStatus = "active";
+  else if (subscriptionStatus === "trialing") dbStatus = "trialing";
+  else if (subscriptionStatus === "past_due") dbStatus = "past_due";
+  else if (subscriptionStatus === "canceled" || subscriptionStatus === "unpaid") dbStatus = "canceled";
+  else if (subscriptionStatus === "paused") dbStatus = "paused";
 
   // Update subscription in database
   await supabaseAdmin
     .from("subscriptions")
     .update({
       plan_type: planId as any,
-      status: "active",
+      status: dbStatus,
       stripe_subscription_id: subscriptionId,
       stripe_customer_id: customerId,
       posts_per_day: plan.features.postsPerDay,
@@ -132,6 +155,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       current_period_end: periodEnd
         ? new Date(periodEnd * 1000).toISOString()
         : null,
+      trial_start: trialStart ? new Date(trialStart * 1000).toISOString() : null,
+      trial_end: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
       cancel_at_period_end: cancelAtPeriodEnd || false,
       updated_at: new Date().toISOString(),
     })
@@ -149,6 +174,21 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const userId = subscription.metadata?.userId;
   const planId = subscription.metadata?.planId;
 
+  // Map Stripe status to our database status
+  let dbStatus: "active" | "canceled" | "past_due" | "trialing" | "paused" = "active";
+  if (subscription.status === "active") dbStatus = "active";
+  else if (subscription.status === "trialing") dbStatus = "trialing";
+  else if (subscription.status === "past_due") dbStatus = "past_due";
+  else if (subscription.status === "canceled" || subscription.status === "unpaid") dbStatus = "canceled";
+  else if (subscription.status === "paused") dbStatus = "paused";
+
+  // Extract subscription properties
+  const periodStart = (subscription as any).current_period_start;
+  const periodEnd = (subscription as any).current_period_end;
+  const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end;
+  const trialStart = (subscription as any).trial_start;
+  const trialEnd = (subscription as any).trial_end;
+
   if (!userId || !planId) {
     // Try to get from database
     const { data: sub } = await supabaseAdmin
@@ -162,24 +202,22 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
     const plan = PLAN_CONFIG[sub.plan_type as keyof typeof PLAN_CONFIG];
     if (!plan) return;
 
-      const periodStart = (subscription as any).current_period_start;
-      const periodEnd = (subscription as any).current_period_end;
-      const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end;
-
-      await supabaseAdmin
-        .from("subscriptions")
-        .update({
-          status: subscription.status === "active" ? "active" : "canceled",
-          current_period_start: periodStart
-            ? new Date(periodStart * 1000).toISOString()
-            : null,
-          current_period_end: periodEnd
-            ? new Date(periodEnd * 1000).toISOString()
-            : null,
-          cancel_at_period_end: cancelAtPeriodEnd || false,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("stripe_subscription_id", subscription.id);
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        status: dbStatus,
+        current_period_start: periodStart
+          ? new Date(periodStart * 1000).toISOString()
+          : null,
+        current_period_end: periodEnd
+          ? new Date(periodEnd * 1000).toISOString()
+          : null,
+        trial_start: trialStart ? new Date(trialStart * 1000).toISOString() : null,
+        trial_end: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
+        cancel_at_period_end: cancelAtPeriodEnd || false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscription.id);
 
     return;
   }
@@ -187,15 +225,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const plan = PLAN_CONFIG[planId as keyof typeof PLAN_CONFIG];
   if (!plan) return;
 
-  const periodStart = (subscription as any).current_period_start;
-  const periodEnd = (subscription as any).current_period_end;
-  const cancelAtPeriodEnd = (subscription as any).cancel_at_period_end;
-
   await supabaseAdmin
     .from("subscriptions")
     .update({
       plan_type: planId as any,
-      status: subscription.status === "active" ? "active" : "canceled",
+      status: dbStatus,
       posts_per_day: plan.features.postsPerDay,
       social_accounts_limit: plan.features.socialAccountsLimit,
       categories_limit: plan.features.categoriesLimit,
@@ -205,6 +239,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       current_period_end: periodEnd
         ? new Date(periodEnd * 1000).toISOString()
         : null,
+      trial_start: trialStart ? new Date(trialStart * 1000).toISOString() : null,
+      trial_end: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
       cancel_at_period_end: cancelAtPeriodEnd || false,
       updated_at: new Date().toISOString(),
     })
@@ -292,12 +328,107 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     : (invoice as any).subscription?.id || null;
   if (!subscriptionId) return;
 
+  // Get subscription to check retry count and determine if this is final failure
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("user_id, status")
+    .eq("stripe_subscription_id", subscriptionId)
+    .single();
+
+  if (!sub) return;
+
+  // Check if this is the final retry failure (Stripe will cancel after all retries)
+  // We'll check the invoice attempt_count to see if this is likely the final attempt
+  const attemptCount = (invoice as any).attempt_count || 0;
+  const maxRetries = 3; // Stripe's default
+
+  // If this is the final retry and it failed, subscription will be canceled by Stripe
+  // We'll set to past_due for now, and Stripe will send customer.subscription.deleted if it's truly canceled
+  const status = attemptCount >= maxRetries ? "past_due" : "past_due";
+
   await supabaseAdmin
     .from("subscriptions")
     .update({
-      status: "past_due",
+      status: status,
       updated_at: new Date().toISOString(),
     })
     .eq("stripe_subscription_id", subscriptionId);
+
+  // Log activity
+  await supabaseAdmin.from("activity_log").insert({
+    user_id: sub.user_id,
+    activity_type: "payment_failed",
+    description: `Payment failed (attempt ${attemptCount + 1}). Update payment method to restore access.`,
+    metadata: {
+      invoice_id: invoice.id,
+      attempt_count: attemptCount + 1,
+      amount: invoice.amount_due,
+    },
+  } as any);
 }
 
+async function handleTrialWillEnd(subscription: Stripe.Subscription) {
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_subscription_id", subscription.id)
+    .single();
+
+  if (!sub) return;
+
+  const trialEnd = (subscription as any).trial_end;
+  const trialEndDate = trialEnd ? new Date(trialEnd * 1000) : null;
+
+  // Update trial_end in database
+  await supabaseAdmin
+    .from("subscriptions")
+    .update({
+      trial_end: trialEndDate ? trialEndDate.toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("stripe_subscription_id", subscription.id);
+
+  // Log activity for trial ending reminder
+  await supabaseAdmin.from("activity_log").insert({
+    user_id: sub.user_id,
+    activity_type: "trial_ending_soon",
+    description: `Trial ending soon. Add payment method to continue.`,
+    metadata: {
+      trial_end: trialEndDate ? trialEndDate.toISOString() : null,
+      days_remaining: trialEndDate
+        ? Math.ceil((trialEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+        : null,
+    },
+  } as any);
+}
+
+async function handlePaymentActionRequired(invoice: Stripe.Invoice) {
+  const subscriptionId = typeof (invoice as any).subscription === "string"
+    ? (invoice as any).subscription
+    : (invoice as any).subscription?.id || null;
+  if (!subscriptionId) return;
+
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("user_id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .single();
+
+  if (!sub) return;
+
+  // Log activity - user needs to complete payment (e.g., 3D Secure)
+  await supabaseAdmin.from("activity_log").insert({
+    user_id: sub.user_id,
+    activity_type: "payment_action_required",
+    description: "Payment requires action. Please complete authentication to continue.",
+    metadata: {
+      invoice_id: invoice.id,
+      hosted_invoice_url: invoice.hosted_invoice_url,
+      payment_intent: (invoice as any).payment_intent
+        ? typeof (invoice as any).payment_intent === "string"
+          ? (invoice as any).payment_intent
+          : (invoice as any).payment_intent?.id || null
+        : null,
+    },
+  } as any);
+}

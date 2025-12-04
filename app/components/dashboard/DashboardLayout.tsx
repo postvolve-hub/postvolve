@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
 import { SearchDropdown } from "@/components/dashboard/SearchDropdown";
+import { SubscriptionBanner } from "@/components/dashboard/SubscriptionBanner";
 
 // Custom SVG Icons for Dashboard Navigation
 const IconDashboard = ({ className = "h-5 w-5" }: { className?: string }) => (
@@ -94,10 +95,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
   const router = useRouter();
   const { user, logoutMutation } = useAuth();
 
-  // Check if user has completed onboarding
+  // Check if user has completed onboarding and fetch subscription
   useEffect(() => {
     async function checkOnboarding() {
       if (!user) return;
@@ -117,6 +119,19 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         if (userRecord && userRecord.avatar_url) {
           setAvatarUrl(userRecord.avatar_url);
+        }
+
+        // Fetch subscription
+        const { data: subData, error: subError } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!subError && subData) {
+          setSubscription(subData);
         }
       } catch (error) {
         console.error("Error checking onboarding status:", error);
@@ -378,6 +393,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
           </div>
         </header>
+
+        {/* Subscription Status Banner */}
+        <SubscriptionBanner subscription={subscription} />
 
         {/* Page Content */}
         <main className="p-4 lg:p-8">

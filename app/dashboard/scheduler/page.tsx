@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Clock, 
   Edit2, 
@@ -16,7 +16,12 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
 import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { LockOverlay } from "@/components/dashboard/LockOverlay";
+import { PaymentUpdatePrompt } from "@/components/dashboard/PaymentUpdatePrompt";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/lib/supabaseClient";
+import { getAccessPermissions, type Subscription } from "@/lib/subscription-access";
 
 // Custom Icons
 const IconCalendar = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -60,12 +65,45 @@ const CATEGORY_BADGE_COLORS: Record<string, string> = {
 };
 
 export default function Scheduler() {
+  const { user } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState(MOCK_SCHEDULED_POSTS);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [permissions, setPermissions] = useState<any>(null);
+
+  // Fetch subscription and check permissions
+  useEffect(() => {
+    async function fetchSubscription() {
+      if (!user) return;
+
+      try {
+        const { data: subData, error } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && subData) {
+          setSubscription(subData);
+          const perms = getAccessPermissions(subData);
+          setPermissions(perms);
+        } else {
+          setPermissions(getAccessPermissions(null));
+        }
+      } catch (error) {
+        console.error("Error fetching subscription:", error);
+        setPermissions(getAccessPermissions(null));
+      }
+    }
+
+    fetchSubscription();
+  }, [user]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -126,19 +164,41 @@ export default function Scheduler() {
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-in fade-in duration-500">
+        {/* Payment Update Prompt */}
+        {permissions && permissions.actionRequired && permissions.accessLevel !== "full" && (
+          <PaymentUpdatePrompt
+            message={permissions.message || "Update your payment method to restore access."}
+            gracePeriodDays={permissions.gracePeriodDays}
+          />
+        )}
+
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in slide-in-from-bottom-2 duration-500">
           <div>
             <h2 className="text-xl font-bold text-gray-900">News Card Scheduler</h2>
             <p className="text-sm text-gray-500 mt-1">Plan and manage your news card calendar.</p>
           </div>
-          <Button 
-            onClick={() => setScheduleModalOpen(true)}
-            className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Schedule New Post
-          </Button>
+          <div className="relative">
+            {permissions && !permissions.canSchedulePosts && (
+              <LockOverlay
+                message={permissions.message || "Your subscription is inactive. Update your payment method to schedule posts."}
+                actionLabel="Update Payment"
+                actionPath="/dashboard/billing"
+              />
+            )}
+            <Button 
+              onClick={() => {
+                if (permissions?.canSchedulePosts) {
+                  setScheduleModalOpen(true);
+                }
+              }}
+              className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
+              disabled={!permissions?.canSchedulePosts}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Schedule New Post
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

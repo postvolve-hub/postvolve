@@ -158,7 +158,23 @@ function BillingPageContent() {
   }, [user]);
 
   const handleChangePlan = async (newPlan: string) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to change your plan",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user is already on this plan
+    if (subscription?.plan_type === newPlan) {
+      toast({
+        title: "Already on this plan",
+        description: `You are already subscribed to the ${PLAN_NAMES[newPlan] || newPlan} plan`,
+      });
+      return;
+    }
 
     setProcessing(true);
     try {
@@ -180,6 +196,8 @@ function BillingPageContent() {
       // Redirect to Stripe Checkout
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
       }
     } catch (error: any) {
       toast({

@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { 
   Plus,
   Paperclip,
@@ -9,12 +11,18 @@ import {
   Filter,
   ArrowUpDown,
   EyeOff,
-  MoreHorizontal
+  MoreHorizontal,
+  Sparkles,
+  ArrowRight,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Progress } from "@/components/ui/progress";
 import { EmptyState } from "@/components/dashboard/EmptyState";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/lib/supabaseClient";
+import { toast } from "@/hooks/use-toast";
 
 // Custom Icons for Categories - Smaller size (h-4 w-4)
 const IconAI = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -232,9 +240,132 @@ function PostRow({ post, index }: { post: typeof DRAFT_POSTS[0]; index: number }
 }
 
 export default function DashboardHome() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [subscription, setSubscription] = useState<any>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [processingUpgrade, setProcessingUpgrade] = useState(false);
+
+  useEffect(() => {
+    async function loadSubscription() {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && data) {
+          setSubscription(data);
+          // Show upgrade prompt if on starter plan
+          if (data.plan_type === "starter") {
+            const dismissed = localStorage.getItem("upgrade_prompt_dismissed");
+            if (!dismissed) {
+              setShowUpgradePrompt(true);
+            }
+          }
+        } else if (error && error.code !== "PGRST116") {
+          // Log real database errors (PGRST116 = no rows found, which is fine)
+          console.error("Error fetching subscription:", error);
+        }
+      } catch (error) {
+        console.error("Error loading subscription:", error);
+      }
+    }
+
+    loadSubscription();
+  }, [user]);
+
+  const handleUpgrade = async (planId: "plus" | "pro") => {
+    if (!user) return;
+
+    setProcessingUpgrade(true);
+    try {
+      const response = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: planId,
+          userId: user.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initiate checkout",
+        variant: "destructive",
+      });
+      setProcessingUpgrade(false);
+    }
+  };
+
+  const dismissUpgradePrompt = () => {
+    setShowUpgradePrompt(false);
+    localStorage.setItem("upgrade_prompt_dismissed", "true");
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8 animate-in fade-in duration-500">
+        {/* Upgrade Prompt for Starter Plan Users */}
+        {showUpgradePrompt && subscription?.plan_type === "starter" && (
+          <div className="bg-gradient-to-r from-[#6D28D9] to-[#4C1D95] rounded-2xl p-6 text-white shadow-xl shadow-primary/20 animate-in slide-in-from-bottom-2 duration-500 relative">
+            <button
+              onClick={dismissUpgradePrompt}
+              className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/20 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <Sparkles className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold mb-1">Unlock More Power</h3>
+                  <p className="text-white/90 text-sm">
+                    Upgrade to Plus or Pro to get more posts per day, multiple categories, and advanced features.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  onClick={() => handleUpgrade("plus")}
+                  disabled={processingUpgrade}
+                >
+                  {processingUpgrade ? "Processing..." : "Upgrade to Plus"}
+                </Button>
+                <Button
+                  className="bg-white text-[#6D28D9] hover:bg-white/90"
+                  onClick={() => handleUpgrade("pro")}
+                  disabled={processingUpgrade}
+                >
+                  {processingUpgrade ? "Processing..." : "Go Pro"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Recommended Categories */}
         <section className="animate-in slide-in-from-bottom-2 duration-500">
           <h3 className="text-base font-semibold text-gray-900 mb-4">Recommended Categories</h3>

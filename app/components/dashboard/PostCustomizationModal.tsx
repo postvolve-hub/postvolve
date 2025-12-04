@@ -200,9 +200,9 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                     className="bg-white/90 hover:bg-white rounded-xl"
                     onClick={() => setImageUploadOpen(true)}
                   >
-                    <ImageIcon className="h-4 w-4 mr-2" />
+                  <ImageIcon className="h-4 w-4 mr-2" />
                     Change
-                  </Button>
+                </Button>
                 </div>
               </div>
               {/* Category Badge */}
@@ -310,7 +310,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                       'text-gray-500'
                     }`}>
                       {characterCount.toLocaleString()}/{currentPlatform?.charLimit.toLocaleString()}
-                    </span>
+                  </span>
                   </div>
                 </div>
                 <Textarea
@@ -372,21 +372,21 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
               Posting to {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? "s" : ""}
             </p>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={onClose}
+            <Button
+              variant="outline"
+              onClick={onClose}
                 className="border-gray-200 text-gray-600 hover:bg-gray-100 rounded-xl"
-              >
-                <Save className="h-4 w-4 mr-2" />
+            >
+              <Save className="h-4 w-4 mr-2" />
                 Save Draft
-              </Button>
-              <Button
+            </Button>
+            <Button
                 className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl"
                 disabled={selectedPlatforms.some(p => getCharacterStatus(p) === "over")}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Post
-              </Button>
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Schedule Post
+            </Button>
             </div>
           </div>
         </div>

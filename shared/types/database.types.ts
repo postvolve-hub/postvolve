@@ -40,7 +40,11 @@ export type ActivityType =
   | 'subscription_canceled'
   | 'settings_updated' 
   | 'schedule_created' 
-  | 'schedule_updated';
+  | 'schedule_updated'
+  | 'invoice_paid'
+  | 'payment_failed'
+  | 'trial_ending_soon'
+  | 'payment_action_required';
 
 // =====================================================
 // TABLE TYPES

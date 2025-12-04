@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Check, ArrowRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -10,8 +11,54 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/Motion";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "@/hooks/use-toast";
 
 const Pricing = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
+
+  const handlePlanSelect = async (planId: "starter" | "plus" | "pro") => {
+    // If not logged in, go to signup
+    if (!user) {
+      router.push("/signup");
+      return;
+    }
+
+    // If logged in, initiate checkout
+    setProcessingPlan(planId);
+    try {
+      const response = await fetch("/api/stripe/create-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planId: planId,
+          userId: user.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create checkout session");
+      }
+
+      // Redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to initiate checkout",
+        variant: "destructive",
+      });
+      setProcessingPlan(null);
+    }
+  };
   return (
     <section id="pricing" className="py-16 md:py-24 relative overflow-hidden bg-background">
       {/* Smooth Wavy Background */}
@@ -83,9 +130,30 @@ const Pricing = () => {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Link href="/signup" className="w-full">
-                  <Button variant="outline" className="w-full hover:bg-primary/5 transition-colors">Get Started</Button>
-                </Link>
+                {authLoading ? (
+                  <Button variant="outline" className="w-full" disabled>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    className="w-full hover:bg-primary/5 transition-colors"
+                    onClick={() => handlePlanSelect("starter")}
+                    disabled={processingPlan === "starter"}
+                  >
+                    {processingPlan === "starter" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : user ? (
+                      "Subscribe to Starter"
+                    ) : (
+                      "Get Started"
+                    )}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           </StaggerItem>
@@ -115,9 +183,29 @@ const Pricing = () => {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Link href="/signup" className="w-full">
-                  <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 h-11 transition-all duration-300 hover:shadow-primary/40">Choose Plus</Button>
-                </Link>
+                {authLoading ? (
+                  <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 h-11 transition-all duration-300 hover:shadow-primary/40" disabled>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </Button>
+                ) : (
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 h-11 transition-all duration-300 hover:shadow-primary/40"
+                    onClick={() => handlePlanSelect("plus")}
+                    disabled={processingPlan === "plus"}
+                  >
+                    {processingPlan === "plus" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : user ? (
+                      "Upgrade to Plus"
+                    ) : (
+                      "Choose Plus"
+                    )}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           </StaggerItem>
@@ -144,9 +232,30 @@ const Pricing = () => {
                 </ul>
               </CardContent>
               <CardFooter>
-                <Link href="/signup" className="w-full">
-                  <Button variant="outline" className="w-full hover:bg-primary/5 transition-colors">Get Pro</Button>
-                </Link>
+                {authLoading ? (
+                  <Button variant="outline" className="w-full" disabled>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Loading...
+                  </Button>
+                ) : (
+                  <Button 
+                    variant="outline" 
+                    className="w-full hover:bg-primary/5 transition-colors"
+                    onClick={() => handlePlanSelect("pro")}
+                    disabled={processingPlan === "pro"}
+                  >
+                    {processingPlan === "pro" ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : user ? (
+                      "Upgrade to Pro"
+                    ) : (
+                      "Get Pro"
+                    )}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           </StaggerItem>
@@ -330,11 +439,19 @@ const CompareAllPlans = () => {
                   Contact Sales
                 </Button>
               </Link>
-              <Link href="/signup">
-                <Button className="h-11 px-8 bg-primary hover:bg-primary/90">
-                  Start Free Trial
-                </Button>
-              </Link>
+              {user ? (
+                <Link href="/dashboard/billing">
+                  <Button className="h-11 px-8 bg-primary hover:bg-primary/90">
+                    Manage Subscription
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/signup">
+                  <Button className="h-11 px-8 bg-primary hover:bg-primary/90">
+                    Start Free Trial
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </FadeIn>
@@ -456,14 +573,25 @@ const FinalCTA = () => {
 
           <FadeIn delay={0.2}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-              <Link href="/signup">
-                <Button 
-                  className="h-12 px-8 bg-white text-primary hover:bg-white/90 font-bold shadow-2xl shadow-black/20 transition-all duration-300 hover:scale-105 hover:shadow-black/30"
-                >
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
+              {user ? (
+                <Link href="/dashboard/billing">
+                  <Button 
+                    className="h-12 px-8 bg-white text-primary hover:bg-white/90 font-bold shadow-2xl shadow-black/20 transition-all duration-300 hover:scale-105 hover:shadow-black/30"
+                  >
+                    Manage Subscription
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/signup">
+                  <Button 
+                    className="h-12 px-8 bg-white text-primary hover:bg-white/90 font-bold shadow-2xl shadow-black/20 transition-all duration-300 hover:scale-105 hover:shadow-black/30"
+                  >
+                    Start Free Trial
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
               <Link href="/contact">
                 <Button 
                   variant="outline" 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Clock,
   Link2,
@@ -19,7 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ConnectAccountModal } from "@/components/dashboard/ConnectAccountModal";
 import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
+import { PaymentUpdatePrompt } from "@/components/dashboard/PaymentUpdatePrompt";
+import { LockOverlay } from "@/components/dashboard/LockOverlay";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/lib/supabaseClient";
+import { getAccessPermissions, type Subscription } from "@/lib/subscription-access";
 
 // Custom Icons
 const IconZap = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -116,6 +121,7 @@ interface ConnectedAccount {
 }
 
 export default function Settings() {
+  const { user } = useAuth();
   const [autoPosting, setAutoPosting] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState(["tech", "ai", "business"]);
   const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>(CONNECTED_ACCOUNTS_INIT);
@@ -131,6 +137,38 @@ export default function Settings() {
     { id: "1", time: "9:00 AM", days: ["mon", "tue", "wed", "thu", "fri"], platforms: ["linkedin"], enabled: true },
     { id: "2", time: "3:00 PM", days: ["mon", "wed", "fri"], platforms: ["twitter"], enabled: true },
   ]);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [permissions, setPermissions] = useState<any>(null);
+
+  // Fetch subscription and check permissions
+  useEffect(() => {
+    async function fetchSubscription() {
+      if (!user) return;
+
+      try {
+        const { data: subData, error } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (!error && subData) {
+          setSubscription(subData);
+          const perms = getAccessPermissions(subData);
+          setPermissions(perms);
+        } else {
+          setPermissions(getAccessPermissions(null));
+        }
+      } catch (error) {
+        console.error("Error fetching subscription:", error);
+        setPermissions(getAccessPermissions(null));
+      }
+    }
+
+    fetchSubscription();
+  }, [user]);
 
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories(prev => 
@@ -174,6 +212,14 @@ export default function Settings() {
   };
 
   const handleConnectAccount = (platform: Platform) => {
+    if (!permissions?.canConnectAccounts) {
+      toast({
+        title: "Access Restricted",
+        description: permissions?.message || "Update your payment method to connect accounts.",
+        variant: "destructive",
+      });
+      return;
+    }
     setSelectedPlatform(platform);
     setConnectModalOpen(true);
   };
@@ -232,11 +278,26 @@ export default function Settings() {
                 <p className="text-xs text-gray-500">Automatically publish approved drafts</p>
               </div>
               </div>
-              <Switch
-                checked={autoPosting}
-                onCheckedChange={setAutoPosting}
-                className="data-[state=checked]:bg-[#6D28D9]"
-              />
+              <div className="relative">
+                {permissions && !permissions.canUseAutoPosting && (
+                  <LockOverlay
+                    message={permissions.message || "Your subscription is inactive. Update your payment method to enable auto-posting."}
+                    actionLabel="Update Payment"
+                    actionPath="/dashboard/billing"
+                    showIcon={false}
+                  />
+                )}
+                <Switch
+                  checked={autoPosting}
+                  onCheckedChange={(checked) => {
+                    if (permissions?.canUseAutoPosting) {
+                      setAutoPosting(checked);
+                    }
+                  }}
+                  disabled={!permissions?.canUseAutoPosting}
+                  className="data-[state=checked]:bg-[#6D28D9]"
+                />
+              </div>
             </div>
           
             {autoPosting && (
