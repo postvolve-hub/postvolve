@@ -639,7 +639,7 @@ export default function OnboardingPage() {
                   <button
                     key={category.id}
                     onClick={() => toggleCategory(category.id)}
-                    className={`rounded-2xl border-2 text-center transition-all duration-200 ${
+                    className={`relative rounded-2xl border-2 text-center transition-all duration-200 ${
                       isSelected
                         ? "border-[#6D28D9] bg-[#6D28D9]/5"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"

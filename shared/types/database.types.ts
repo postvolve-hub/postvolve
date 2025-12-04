@@ -56,6 +56,7 @@ export interface Database {
           email: string;
           full_name: string | null;
           avatar_url: string | null;
+          account_code: string;
           timezone: string;
           email_verified: boolean;
           two_factor_enabled: boolean;
@@ -70,6 +71,7 @@ export interface Database {
           email: string;
           full_name?: string | null;
           avatar_url?: string | null;
+          account_code?: string;
           timezone?: string;
           email_verified?: boolean;
           two_factor_enabled?: boolean;
@@ -84,6 +86,7 @@ export interface Database {
           email?: string;
           full_name?: string | null;
           avatar_url?: string | null;
+          account_code?: string;
           timezone?: string;
           email_verified?: boolean;
           two_factor_enabled?: boolean;

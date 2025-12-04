@@ -95,6 +95,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
   const { user, logoutMutation } = useAuth();
 
@@ -107,13 +108,17 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         const { supabase } = await import("@/lib/supabaseClient");
         const { data: userData } = await supabase
           .from("users")
-          .select("onboarding_completed")
+          .select("onboarding_completed, avatar_url")
           .eq("id", user.id)
           .single();
 
-        const userRecord = userData as { onboarding_completed: boolean } | null;
+        const userRecord = userData as { onboarding_completed: boolean; avatar_url: string | null } | null;
         if (userRecord && !userRecord.onboarding_completed) {
           router.push("/onboarding");
+        }
+
+        if (userRecord && userRecord.avatar_url) {
+          setAvatarUrl(userRecord.avatar_url);
         }
       } catch (error) {
         console.error("Error checking onboarding status:", error);
@@ -354,13 +359,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             {/* Right: Actions */}
             <div className="flex items-center gap-3">
               <NotificationDropdown />
-              <div 
+              <div
                 className="w-10 h-10 rounded-full overflow-hidden cursor-pointer ring-2 ring-gray-100 hover:ring-[#6D28D9]/30 transition-all duration-200"
-                onClick={() => router.push('/dashboard/account')}
+                onClick={() => router.push("/dashboard/account")}
               >
-                <div className="w-full h-full bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] flex items-center justify-center text-white font-semibold text-sm">
-                  {initials}
-                </div>
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt={user?.username || "Profile photo"}
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] flex items-center justify-center text-white font-semibold text-sm">
+                    {initials}
+                  </div>
+                )}
               </div>
             </div>
           </div>

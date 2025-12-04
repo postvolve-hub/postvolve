@@ -1,25 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { 
-  User, 
-  Mail, 
-  Lock, 
-  Globe, 
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import {
+  User,
+  Mail,
+  Lock,
+  Globe,
   Camera,
   Eye,
   EyeOff,
-  Check,
   AlertTriangle,
-  Trash2
+  Trash2,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabaseClient";
+import { Badge } from "@/components/ui/badge";
 
 // Custom Icon
 const IconShield = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -28,17 +30,6 @@ const IconShield = ({ className = "h-4 w-4" }: { className?: string }) => (
     <path d="M9 12l2 2 4-4" />
   </svg>
 );
-
-// Mock user data
-const MOCK_USER = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-  avatar: null,
-  timezone: "America/New_York",
-  createdAt: "October 15, 2024",
-  emailVerified: true,
-  twoFactorEnabled: false
-};
 
 const TIMEZONES = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -52,9 +43,15 @@ const TIMEZONES = [
 ];
 
 export default function AccountPage() {
-  const [name, setName] = useState(MOCK_USER.name);
-  const [email, setEmail] = useState(MOCK_USER.email);
-  const [timezone, setTimezone] = useState(MOCK_USER.timezone);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [timezone, setTimezone] = useState("America/New_York");
+  const [createdAt, setCreatedAt] = useState("");
+  const [accountCode, setAccountCode] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -67,23 +64,136 @@ export default function AccountPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const initials = name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
+  const initials =
+    name
+      .split(" ")
+      .filter(Boolean)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "PV";
 
   const passwordsMatch = newPassword === confirmPassword && newPassword.length > 0;
   const canDeleteAccount = deleteConfirmText === "DELETE";
 
+  // Load user profile from Supabase
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadProfile() {
+      setProfileLoading(true);
+      setProfileError(null);
+
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (!user) {
+          setProfileError("No authenticated user found.");
+          return;
+        }
+
+        if (!isMounted) return;
+
+        setUserId(user.id);
+
+        // Fetch profile from users table
+        const { data: profile, error } = await supabase
+          .from("users")
+          .select("full_name, email, timezone, created_at, id, avatar_url, account_code")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!isMounted) return;
+
+        setName(profile.full_name || "");
+        setEmail(profile.email || user.email || "");
+        setTimezone(profile.timezone || "America/New_York");
+        setAvatarUrl(profile.avatar_url || null);
+        setAccountCode(profile.account_code || "");
+
+        const createdDate = profile.created_at
+          ? new Date(profile.created_at)
+          : null;
+        setCreatedAt(
+          createdDate ? createdDate.toLocaleDateString(undefined, {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }) : ""
+        );
+      } catch (error: any) {
+        console.error("Error loading account profile:", error);
+        if (isMounted) {
+          setProfileError(
+            error?.message || "Failed to load account information."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setProfileLoading(false);
+        }
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const handleSaveProfile = async () => {
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    toast({
-      title: "Profile Updated",
-      description: "Your profile information has been saved successfully.",
-    });
+    if (!userId) {
+      toast({
+        title: "Unable to save",
+        description: "User ID not found. Please sign in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const updates: Record<string, any> = {
+        full_name: name,
+        timezone,
+        updated_at: new Date().toISOString(),
+      };
+
+      // We only update the users table here; email/password changes can be wired later
+      const { error } = await supabase
+        .from("users")
+        .update(updates)
+        .eq("id", userId);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved successfully.",
+      });
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Update failed",
+        description: error?.message || "Could not update your profile.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChangePassword = async () => {
@@ -112,6 +222,12 @@ export default function AccountPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-500">
+        {profileLoading && (
+          <p className="text-sm text-gray-500">Loading your account...</p>
+        )}
+        {profileError && !profileLoading && (
+          <p className="text-sm text-red-500">{profileError}</p>
+        )}
         {/* Header */}
         <div className="animate-in slide-in-from-bottom-2 duration-500">
           <h2 className="text-xl font-bold text-gray-900">Account Settings</h2>
@@ -134,14 +250,33 @@ export default function AccountPage() {
               {/* Avatar */}
               <div className="flex flex-col items-center gap-3">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] flex items-center justify-center text-white text-2xl font-bold">
-                    {initials}
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] flex items-center justify-center text-white text-2xl font-bold">
+                    {avatarUrl ? (
+                      <Image
+                        src={avatarUrl}
+                        alt={name || "Profile photo"}
+                        width={96}
+                        height={96}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
                   </div>
-                  <button className="absolute bottom-0 right-0 p-2 bg-white rounded-full border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors">
+                  <button
+                    className="absolute bottom-0 right-0 p-2 bg-white rounded-full border border-gray-200 shadow-sm hover:bg-gray-50 transition-colors"
+                    type="button"
+                  >
                     <Camera className="h-4 w-4 text-gray-600" />
                   </button>
                 </div>
-                <Button variant="ghost" size="sm" className="text-xs text-gray-500 hover:text-gray-700">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                  type="button"
+                  disabled={!avatarUrl}
+                >
                   Remove photo
                 </Button>
               </div>
@@ -169,16 +304,10 @@ export default function AccountPage() {
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="h-11 border-gray-200 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 rounded-xl pr-24"
-                      placeholder="Enter your email"
+                      readOnly
+                      className="h-11 border-gray-200 bg-gray-50 text-gray-600 rounded-xl"
+                      placeholder="Your email"
                     />
-                    {MOCK_USER.emailVerified && (
-                      <Badge className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-50 text-green-600 border-green-200 text-xs">
-                        <Check className="h-3 w-3 mr-1" />
-                        Verified
-                      </Badge>
-                    )}
                   </div>
                 </div>
               </div>
@@ -211,18 +340,21 @@ export default function AccountPage() {
             <Label htmlFor="timezone" className="text-sm font-medium text-gray-700 mb-1.5 block">
               Your Timezone
             </Label>
-            <select
-              id="timezone"
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="w-full h-11 px-3 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 bg-white"
-            >
-              {TIMEZONES.map((tz) => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                id="timezone"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full h-11 px-3 pr-10 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 bg-white appearance-none"
+              >
+                {TIMEZONES.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+            </div>
             <p className="text-xs text-gray-500 mt-2">
               All scheduled posts will use this timezone.
             </p>
@@ -370,11 +502,15 @@ export default function AccountPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-4 bg-gray-50 rounded-xl">
                 <p className="text-xs text-gray-500 mb-1">Account Created</p>
-                <p className="text-sm font-medium text-gray-900">{MOCK_USER.createdAt}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {createdAt || "—"}
+                </p>
               </div>
               <div className="p-4 bg-gray-50 rounded-xl">
                 <p className="text-xs text-gray-500 mb-1">Account ID</p>
-                <p className="text-sm font-medium text-gray-900 font-mono">usr_1a2b3c4d5e6f</p>
+                <p className="text-sm font-medium text-gray-900 font-mono">
+                  {accountCode || "—"}
+                </p>
               </div>
             </div>
           </div>
