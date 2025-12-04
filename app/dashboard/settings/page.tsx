@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { 
   Clock, 
   Link2, 
@@ -72,7 +72,7 @@ const CONNECTED_ACCOUNTS_INIT: Array<{
   id: number;
   platformId: Platform;
   name: string;
-  icon: ({ className }: { className?: string }) => JSX.Element;
+  icon: ({ className }: { className?: string }) => React.ReactElement;
   connected: boolean;
   username: string | null;
   color: string;
@@ -111,7 +111,7 @@ interface ConnectedAccount {
   id: number;
   platformId: Platform;
   name: string;
-  icon: ({ className }: { className?: string }) => JSX.Element;
+  icon: ({ className }: { className?: string }) => React.ReactElement;
   connected: boolean;
   username: string | null;
   color: string;
