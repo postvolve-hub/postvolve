@@ -98,6 +98,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const { user, logoutMutation } = useAuth();
 
+  // Check if user has completed onboarding
+  useEffect(() => {
+    async function checkOnboarding() {
+      if (!user) return;
+
+      try {
+        const { supabase } = await import("@/lib/supabaseClient");
+        const { data: userData } = await supabase
+          .from("users")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .single();
+
+        if (userData && !userData.onboarding_completed) {
+          router.push("/onboarding");
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
+      }
+    }
+
+    checkOnboarding();
+  }, [user, router]);
+
   // Persist sidebar collapsed state in localStorage
   useEffect(() => {
     const saved = localStorage.getItem("sidebar-collapsed");

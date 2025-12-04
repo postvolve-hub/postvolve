@@ -27,7 +27,7 @@ export default function SignUp() {
     }
   }, [user, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     
@@ -45,7 +45,38 @@ export default function SignUp() {
     localStorage.setItem("postvolve_signup_email", email);
     
     const derivedUsername = email.split("@")[0] || "user";
-    registerMutation.mutate({ username: derivedUsername, email, password });
+    
+    // Call the register mutation
+    registerMutation.mutate(
+      { username: derivedUsername, email, password },
+      {
+        onSuccess: async (user) => {
+          // After Supabase auth succeeds, create user profile in database
+          try {
+            const response = await fetch("/api/auth/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                userId: user.id,
+                email: email,
+                username: derivedUsername,
+              }),
+            });
+
+            if (!response.ok) {
+              const error = await response.json();
+              console.error("Failed to create user profile:", error);
+              // Don't block the user, they can complete onboarding
+            }
+          } catch (error) {
+            console.error("Error calling register API:", error);
+            // Don't block the user, they can complete onboarding
+          }
+        },
+      }
+    );
   };
 
   return (

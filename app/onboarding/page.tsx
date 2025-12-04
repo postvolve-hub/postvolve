@@ -176,10 +176,12 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState(0); // 0 = welcome, 1 = username, 2-4 = steps
   const [username, setUsername] = useState("");
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+  const [usernameError, setUsernameError] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [preferredDraftTime, setPreferredDraftTime] = useState("09:00");
   const [autoPostingEnabled, setAutoPostingEnabled] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get email from localStorage and set default username
   useEffect(() => {
@@ -190,7 +192,7 @@ export default function OnboardingPage() {
     }
   }, []);
 
-  // Check username availability (simulated - will be replaced with real DB check)
+  // Check username availability (real DB check)
   const checkUsername = async (value: string) => {
     if (!value || value.length < 3) {
       setUsernameStatus("idle");
@@ -199,16 +201,21 @@ export default function OnboardingPage() {
     
     setUsernameStatus("checking");
     
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Simulate check - in real implementation, this will query the database
-    // For now, mark all usernames as available except "admin", "postvolve", "test"
-    const reservedUsernames = ["admin", "postvolve", "test", "user", "support"];
-    if (reservedUsernames.includes(value.toLowerCase())) {
-      setUsernameStatus("taken");
-    } else {
-      setUsernameStatus("available");
+    try {
+      const response = await fetch(`/api/users/check-username?username=${encodeURIComponent(value)}`);
+      const data = await response.json();
+      
+      if (data.available) {
+        setUsernameStatus("available");
+        setUsernameError("");
+      } else {
+        setUsernameStatus("taken");
+        setUsernameError(data.error || "This username is already taken");
+      }
+    } catch (error) {
+      console.error("Error checking username:", error);
+      setUsernameStatus("idle");
+      setUsernameError("Failed to check username availability");
     }
   };
 
@@ -249,22 +256,63 @@ export default function OnboardingPage() {
     });
   };
 
-  const handleFinish = () => {
-    // Store preferences in localStorage for now (will be saved to database later)
-    const onboardingData = {
-      username,
-      platforms: selectedPlatforms,
-      categories: selectedCategories,
-      preferredDraftTime,
-      autoPostingEnabled,
-      onboardingComplete: true,
-      completedAt: new Date().toISOString(),
-    };
-    
-    localStorage.setItem("postvolve_onboarding", JSON.stringify(onboardingData));
-    
-    // Redirect to dashboard
-    router.push("/dashboard");
+  const handleFinish = async () => {
+    setIsSubmitting(true);
+
+    try {
+      // Get the current user ID from Supabase
+      const { supabase } = await import("@/lib/supabaseClient");
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert("No user found. Please sign in again.");
+        router.push("/signin");
+        return;
+      }
+
+      // Call the onboarding complete API
+      const response = await fetch("/api/onboarding/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          username,
+          platforms: selectedPlatforms,
+          categories: selectedCategories,
+          preferredDraftTime,
+          autoPostingEnabled,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error("Onboarding API error:", error);
+        alert(`Failed to save preferences: ${error.error || "Unknown error"}`);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Store in localStorage as backup
+      const onboardingData = {
+        username,
+        platforms: selectedPlatforms,
+        categories: selectedCategories,
+        preferredDraftTime,
+        autoPostingEnabled,
+        onboardingComplete: true,
+        completedAt: new Date().toISOString(),
+      };
+      localStorage.setItem("postvolve_onboarding", JSON.stringify(onboardingData));
+
+      // Redirect to dashboard
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+      alert("An error occurred. Please try again.");
+      setIsSubmitting(false);
+    }
   };
 
   const getTimeLabel = (value: string) => {
@@ -658,10 +706,20 @@ export default function OnboardingPage() {
               </Button>
               <Button
                 onClick={handleFinish}
-                className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300"
+                disabled={isSubmitting}
+                className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Finish Setup
-                <ArrowRight className="ml-2 h-5 w-5" />
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    Finish Setup
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
               </Button>
             </div>
           </div>

@@ -1,0 +1,107 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "@/lib/supabaseServer";
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { userId, username, platforms, categories, preferredDraftTime, autoPostingEnabled } = body;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // 1. Update user profile with username and mark onboarding complete
+    const { error: userError } = await supabase
+      .from("users")
+      .update({
+        username: username,
+        onboarding_completed: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+
+    if (userError) {
+      console.error("Error updating user:", userError);
+      return NextResponse.json(
+        { error: "Failed to update user profile", details: userError.message },
+        { status: 500 }
+      );
+    }
+
+    // 2. Upsert user settings
+    const { error: settingsError } = await supabase
+      .from("user_settings")
+      .upsert({
+        user_id: userId,
+        selected_categories: categories || ["tech", "ai"],
+        default_platforms: platforms || ["linkedin"],
+        preferred_draft_time: preferredDraftTime || "09:00:00",
+        auto_posting_enabled: autoPostingEnabled || false,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: "user_id",
+      });
+
+    if (settingsError) {
+      console.error("Error updating settings:", settingsError);
+      return NextResponse.json(
+        { error: "Failed to save preferences", details: settingsError.message },
+        { status: 500 }
+      );
+    }
+
+    // 3. Create posting schedule if auto-posting is enabled
+    if (autoPostingEnabled && preferredDraftTime && platforms && platforms.length > 0) {
+      const { error: scheduleError } = await supabase
+        .from("posting_schedules")
+        .insert({
+          user_id: userId,
+          name: "Daily Auto-Post",
+          time: preferredDraftTime,
+          days_of_week: ["mon", "tue", "wed", "thu", "fri"],
+          platforms: platforms,
+          categories: categories,
+          enabled: true,
+        });
+
+      if (scheduleError) {
+        console.error("Error creating schedule:", scheduleError);
+        // Don't fail the request, just log it
+      }
+    }
+
+    // 4. Log activity
+    const { error: activityError } = await supabase
+      .from("activity_log")
+      .insert({
+        user_id: userId,
+        activity_type: "settings_updated",
+        description: "Onboarding completed",
+        metadata: {
+          platforms,
+          categories,
+          autoPostingEnabled,
+        },
+      });
+
+    if (activityError) {
+      console.error("Error logging activity:", activityError);
+      // Don't fail the request, just log it
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Onboarding completed successfully",
+    });
+  } catch (error) {
+    console.error("Onboarding complete error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
