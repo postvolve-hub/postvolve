@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseServer";
+import { createClient } from "@supabase/supabase-js";
+
+// Create a Supabase client for this route
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,7 +26,7 @@ export async function POST(request: NextRequest) {
         username: username,
         onboarding_completed: true,
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq("id", userId);
 
     if (userError) {
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
         preferred_draft_time: preferredDraftTime || "09:00:00",
         auto_posting_enabled: autoPostingEnabled || false,
         updated_at: new Date().toISOString(),
-      }, {
+      } as any, {
         onConflict: "user_id",
       });
 
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
           platforms: platforms,
           categories: categories,
           enabled: true,
-        });
+        } as any);
 
       if (scheduleError) {
         console.error("Error creating schedule:", scheduleError);
@@ -85,7 +91,7 @@ export async function POST(request: NextRequest) {
           categories,
           autoPostingEnabled,
         },
-      });
+      } as any);
 
     if (activityError) {
       console.error("Error logging activity:", activityError);

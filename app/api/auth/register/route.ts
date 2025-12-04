@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseServer";
+import { createClient } from "@supabase/supabase-js";
+
+// Create a typed Supabase client for this route
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +31,7 @@ export async function POST(request: NextRequest) {
         email: email,
         email_verified: false,
         onboarding_completed: false,
-      })
+      } as any)
       .select()
       .single();
 
@@ -49,7 +55,7 @@ export async function POST(request: NextRequest) {
         categories_limit: 2,
         current_period_start: new Date().toISOString(),
         current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-      });
+      } as any);
 
     if (subscriptionError) {
       console.error("Error creating subscription:", subscriptionError);
@@ -68,7 +74,7 @@ export async function POST(request: NextRequest) {
         weekly_digest: false,
         default_platforms: ["linkedin"],
         preferred_draft_time: "09:00:00",
-      });
+      } as any);
 
     if (settingsError) {
       console.error("Error creating settings:", settingsError);
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
         user_id: userId,
         activity_type: "login",
         description: "User registered",
-      });
+      } as any);
 
     if (activityError) {
       console.error("Error logging activity:", activityError);

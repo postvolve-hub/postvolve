@@ -111,7 +111,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           .eq("id", user.id)
           .single();
 
-        if (userData && !userData.onboarding_completed) {
+        const userRecord = userData as { onboarding_completed: boolean } | null;
+        if (userRecord && !userRecord.onboarding_completed) {
           router.push("/onboarding");
         }
       } catch (error) {

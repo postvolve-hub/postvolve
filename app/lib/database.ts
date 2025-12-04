@@ -5,19 +5,6 @@
 // =====================================================
 
 import { supabase } from "./supabaseServer";
-import type {
-  User,
-  UserInsert,
-  UserUpdate,
-  Post,
-  PostInsert,
-  PostUpdate,
-  Subscription,
-  UserSettings,
-  ConnectedAccount,
-  PostingSchedule,
-  DailyAnalytics,
-} from "@/shared/types/database.types";
 
 // =====================================================
 // USER OPERATIONS
@@ -34,7 +21,7 @@ export async function getUserById(userId: string) {
     .single();
 
   if (error) throw error;
-  return data as User;
+  return data;
 }
 
 /**
@@ -48,24 +35,29 @@ export async function getUserByUsername(username: string) {
     .single();
 
   if (error) throw error;
-  return data as User;
+  return data;
 }
 
 /**
  * Check if username is available
  */
 export async function checkUsernameAvailability(username: string) {
+  // Check if username already exists in users table
   const { data, error } = await supabase
-    .rpc("is_username_available", { username_to_check: username });
+    .from("users")
+    .select("id")
+    .eq("username", username)
+    .maybeSingle();
 
   if (error) throw error;
-  return data as boolean;
+  // If no user found with this username, it's available
+  return data === null;
 }
 
 /**
  * Update user profile
  */
-export async function updateUser(userId: string, updates: UserUpdate) {
+export async function updateUser(userId: string, updates: Record<string, any>) {
   const { data, error } = await supabase
     .from("users")
     .update(updates)
@@ -74,7 +66,7 @@ export async function updateUser(userId: string, updates: UserUpdate) {
     .single();
 
   if (error) throw error;
-  return data as User;
+  return data;
 }
 
 /**
@@ -89,7 +81,7 @@ export async function completeOnboarding(userId: string) {
     .single();
 
   if (error) throw error;
-  return data as User;
+  return data;
 }
 
 // =====================================================
@@ -108,18 +100,7 @@ export async function getUserSubscription(userId: string) {
     .single();
 
   if (error && error.code !== "PGRST116") throw error; // PGRST116 = no rows
-  return data as Subscription | null;
-}
-
-/**
- * Get user subscription limits
- */
-export async function getUserLimits(userId: string) {
-  const { data, error } = await supabase
-    .rpc("get_user_limits", { user_uuid: userId });
-
-  if (error) throw error;
-  return data?.[0] || null;
+  return data;
 }
 
 // =====================================================
@@ -137,13 +118,13 @@ export async function getUserSettings(userId: string) {
     .single();
 
   if (error && error.code !== "PGRST116") throw error;
-  return data as UserSettings | null;
+  return data;
 }
 
 /**
  * Update user settings
  */
-export async function updateUserSettings(userId: string, settings: Partial<UserSettings>) {
+export async function updateUserSettings(userId: string, settings: Record<string, any>) {
   const { data, error } = await supabase
     .from("user_settings")
     .upsert({ user_id: userId, ...settings })
@@ -151,7 +132,7 @@ export async function updateUserSettings(userId: string, settings: Partial<UserS
     .single();
 
   if (error) throw error;
-  return data as UserSettings;
+  return data;
 }
 
 // =====================================================
@@ -188,7 +169,7 @@ export async function getUserPosts(
 
   const { data, error } = await query;
   if (error) throw error;
-  return data as Post[];
+  return data || [];
 }
 
 /**
@@ -214,7 +195,7 @@ export async function getPostById(postId: string) {
 /**
  * Create a new post
  */
-export async function createPost(post: PostInsert) {
+export async function createPost(post: Record<string, any>) {
   const { data, error } = await supabase
     .from("posts")
     .insert(post)
@@ -222,13 +203,13 @@ export async function createPost(post: PostInsert) {
     .single();
 
   if (error) throw error;
-  return data as Post;
+  return data;
 }
 
 /**
  * Update post
  */
-export async function updatePost(postId: string, updates: PostUpdate) {
+export async function updatePost(postId: string, updates: Record<string, any>) {
   const { data, error } = await supabase
     .from("posts")
     .update(updates)
@@ -237,7 +218,7 @@ export async function updatePost(postId: string, updates: PostUpdate) {
     .single();
 
   if (error) throw error;
-  return data as Post;
+  return data;
 }
 
 /**
@@ -252,7 +233,7 @@ export async function deletePost(postId: string) {
     .single();
 
   if (error) throw error;
-  return data as Post;
+  return data;
 }
 
 /**
@@ -268,7 +249,7 @@ export async function getScheduledPosts(userId: string) {
     .order("scheduled_at", { ascending: true });
 
   if (error) throw error;
-  return data as Post[];
+  return data || [];
 }
 
 // =====================================================
@@ -286,7 +267,7 @@ export async function getConnectedAccounts(userId: string) {
     .order("connected_at", { ascending: false });
 
   if (error) throw error;
-  return data as ConnectedAccount[];
+  return data || [];
 }
 
 /**
@@ -301,7 +282,7 @@ export async function getConnectedAccountByPlatform(userId: string, platform: st
     .single();
 
   if (error && error.code !== "PGRST116") throw error;
-  return data as ConnectedAccount | null;
+  return data;
 }
 
 // =====================================================
@@ -319,7 +300,7 @@ export async function getPostingSchedules(userId: string) {
     .order("created_at", { ascending: false });
 
   if (error) throw error;
-  return data as PostingSchedule[];
+  return data || [];
 }
 
 // =====================================================
@@ -343,7 +324,7 @@ export async function getDailyAnalytics(
     .order("date", { ascending: true });
 
   if (error) throw error;
-  return data as DailyAnalytics[];
+  return data || [];
 }
 
 /**
@@ -369,15 +350,15 @@ export async function getAnalyticsSummary(userId: string, days: number = 30) {
     totalClicks: 0,
     totalShares: 0,
     totalPublished: 0,
-    dailyData: data as DailyAnalytics[],
+    dailyData: data || [],
   };
 
-  data?.forEach((day) => {
-    summary.totalImpressions += day.total_impressions;
-    summary.totalEngagements += day.total_engagements;
-    summary.totalClicks += day.total_clicks;
-    summary.totalShares += day.total_shares;
-    summary.totalPublished += day.posts_published;
+  data?.forEach((day: any) => {
+    summary.totalImpressions += day.total_impressions || 0;
+    summary.totalEngagements += day.total_engagements || 0;
+    summary.totalClicks += day.total_clicks || 0;
+    summary.totalShares += day.total_shares || 0;
+    summary.totalPublished += day.posts_published || 0;
   });
 
   return summary;
@@ -454,4 +435,3 @@ export async function getDashboardData(userId: string) {
     analytics,
   };
 }
-
