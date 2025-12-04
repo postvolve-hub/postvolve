@@ -66,11 +66,21 @@ const CATEGORIES = [
   { id: "motivation", label: "Motivation", description: "Inspirational content" },
 ];
 
-const CONNECTED_ACCOUNTS_INIT = [
-  { id: 1, platformId: "linkedin" as const, name: "LinkedIn", icon: IconLinkedIn, connected: true, username: "@johndoe", color: "text-blue-600" },
-  { id: 2, platformId: "twitter" as const, name: "Twitter/X", icon: IconX, connected: true, username: "@johndoe", color: "text-gray-900" },
-  { id: 3, platformId: "facebook" as const, name: "Facebook", icon: IconFacebook, connected: false, username: null, color: "text-blue-600" },
-  { id: 4, platformId: "instagram" as const, name: "Instagram", icon: IconInstagram, connected: false, username: null, color: "text-pink-600" },
+type Platform = "linkedin" | "twitter" | "facebook" | "instagram";
+
+const CONNECTED_ACCOUNTS_INIT: Array<{
+  id: number;
+  platformId: Platform;
+  name: string;
+  icon: ({ className }: { className?: string }) => JSX.Element;
+  connected: boolean;
+  username: string | null;
+  color: string;
+}> = [
+  { id: 1, platformId: "linkedin", name: "LinkedIn", icon: IconLinkedIn, connected: true, username: "@johndoe", color: "text-blue-600" },
+  { id: 2, platformId: "twitter", name: "Twitter/X", icon: IconX, connected: true, username: "@johndoe", color: "text-gray-900" },
+  { id: 3, platformId: "facebook", name: "Facebook", icon: IconFacebook, connected: false, username: null, color: "text-blue-600" },
+  { id: 4, platformId: "instagram", name: "Instagram", icon: IconInstagram, connected: false, username: null, color: "text-pink-600" },
 ];
 
 // Time options for schedule dropdown
@@ -97,12 +107,20 @@ interface Schedule {
   enabled: boolean;
 }
 
-type Platform = "linkedin" | "twitter" | "facebook" | "instagram";
+interface ConnectedAccount {
+  id: number;
+  platformId: Platform;
+  name: string;
+  icon: ({ className }: { className?: string }) => JSX.Element;
+  connected: boolean;
+  username: string | null;
+  color: string;
+}
 
 export default function Settings() {
   const [autoPosting, setAutoPosting] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState(["tech", "ai", "business"]);
-  const [connectedAccounts, setConnectedAccounts] = useState(CONNECTED_ACCOUNTS_INIT);
+  const [connectedAccounts, setConnectedAccounts] = useState<ConnectedAccount[]>(CONNECTED_ACCOUNTS_INIT);
   const [connectModalOpen, setConnectModalOpen] = useState(false);
   const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
