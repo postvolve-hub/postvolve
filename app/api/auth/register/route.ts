@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Create a typed Supabase client for this route
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Create a Supabase admin client with service role key (bypasses RLS)
+// This is required because we need to create user records after Supabase Auth signup
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!serviceRoleKey) {
+  console.warn("SUPABASE_SERVICE_ROLE_KEY not set - user registration will fail due to RLS");
+}
+
+const supabaseAdmin = createClient(
+  supabaseUrl,
+  serviceRoleKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
 );
 
 export async function POST(request: NextRequest) {
@@ -22,8 +36,17 @@ export async function POST(request: NextRequest) {
     // Generate temporary username from email if not provided
     const finalUsername = username || email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
 
+    // Check if service role key is available
+    if (!serviceRoleKey) {
+      console.error("SUPABASE_SERVICE_ROLE_KEY is not configured");
+      return NextResponse.json(
+        { error: "Server configuration error - please contact support" },
+        { status: 500 }
+      );
+    }
+
     // 1. Create user profile in users table
-    const { data: userData, error: userError } = await supabase
+    const { data: userData, error: userError } = await supabaseAdmin
       .from("users")
       .insert({
         id: userId,
@@ -37,6 +60,15 @@ export async function POST(request: NextRequest) {
 
     if (userError) {
       console.error("Error creating user:", userError);
+      
+      // Check if it's a duplicate key error (user already exists)
+      if (userError.code === "23505") {
+        return NextResponse.json(
+          { error: "User already exists", details: userError.message },
+          { status: 409 }
+        );
+      }
+      
       return NextResponse.json(
         { error: "Failed to create user profile", details: userError.message },
         { status: 500 }
@@ -44,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Create default subscription (starter plan)
-    const { error: subscriptionError } = await supabase
+    const { error: subscriptionError } = await supabaseAdmin
       .from("subscriptions")
       .insert({
         user_id: userId,
@@ -63,7 +95,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Create default user settings
-    const { error: settingsError } = await supabase
+    const { error: settingsError } = await supabaseAdmin
       .from("user_settings")
       .insert({
         user_id: userId,
@@ -82,7 +114,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Log activity
-    const { error: activityError } = await supabase
+    const { error: activityError } = await supabaseAdmin
       .from("activity_log")
       .insert({
         user_id: userId,

@@ -182,15 +182,58 @@ export default function OnboardingPage() {
   const [preferredDraftTime, setPreferredDraftTime] = useState("09:00");
   const [autoPostingEnabled, setAutoPostingEnabled] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Get email from localStorage and set default username
+  // Check if user is authenticated and hasn't completed onboarding
   useEffect(() => {
-    const storedEmail = localStorage.getItem("postvolve_signup_email");
-    if (storedEmail) {
-      const defaultUsername = storedEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
-      setUsername(defaultUsername);
+    async function checkAuth() {
+      try {
+        const { supabase } = await import("@/lib/supabaseClient");
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          // Not authenticated, redirect to signin
+          router.push("/signin");
+          return;
+        }
+
+        // Check if user has already completed onboarding
+        const { data: userData } = await supabase
+          .from("users")
+          .select("onboarding_completed, username")
+          .eq("id", user.id)
+          .single();
+
+        if (userData?.onboarding_completed) {
+          // Already completed onboarding, redirect to dashboard
+          router.push("/dashboard");
+          return;
+        }
+
+        // If user already has a username from the database, use it
+        if (userData?.username) {
+          setUsername(userData.username);
+        }
+      } catch (error) {
+        console.error("Error checking auth:", error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
     }
-  }, []);
+
+    checkAuth();
+  }, [router]);
+
+  // Get email from localStorage and set default username (fallback)
+  useEffect(() => {
+    if (!username) {
+      const storedEmail = localStorage.getItem("postvolve_signup_email");
+      if (storedEmail) {
+        const defaultUsername = storedEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+        setUsername(defaultUsername);
+      }
+    }
+  }, [username]);
 
   // Check username availability (real DB check)
   const checkUsername = async (value: string) => {
@@ -344,6 +387,18 @@ export default function OnboardingPage() {
       ))}
     </div>
   );
+
+  // Show loading state while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#FDF8FF] via-[#F8F4FF] to-[#FFF5F8] flex items-center justify-center p-4">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#6D28D9] mx-auto mb-4" />
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FDF8FF] via-[#F8F4FF] to-[#FFF5F8] flex items-center justify-center p-4">

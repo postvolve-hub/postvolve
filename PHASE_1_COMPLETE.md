@@ -4,6 +4,20 @@
 
 Phase 1 has been successfully implemented! Users can now sign up, complete onboarding with database persistence, and access protected routes.
 
+## IMPORTANT: Environment Variable Required
+
+You **MUST** set the `SUPABASE_SERVICE_ROLE_KEY` in your `.env.local` file for user registration to work. This key is needed to bypass Row Level Security (RLS) when creating user records.
+
+```bash
+# Get this from your Supabase Dashboard > Settings > API
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
+```
+
+Without this key, you'll see the error:
+```
+Error creating user: { code: '42501', message: 'new row violates row-level security policy for table "users"' }
+```
+
 ---
 
 ## What Was Implemented
@@ -226,4 +240,5 @@ Phase 1 is complete! Ready to move on to:
 **Status: ✅ PHASE 1 COMPLETE**
 
 Ready for Phase 2 implementation!
+
 

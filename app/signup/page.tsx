@@ -19,10 +19,17 @@ export default function SignUp() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [isCreatingProfile, setIsCreatingProfile] = useState(false);
 
+  // Handle redirect after successful signup
   useEffect(() => {
-    if (user) {
-      // Sign up = new user, send them to onboarding
+    // Check if we have a pending profile creation
+    const pendingSignup = localStorage.getItem("postvolve_pending_signup");
+    
+    if (user && pendingSignup) {
+      // Clear the pending signup flag
+      localStorage.removeItem("postvolve_pending_signup");
+      // Redirect to onboarding
       router.push("/onboarding");
     }
   }, [user, router]);
@@ -44,13 +51,15 @@ export default function SignUp() {
     // Store email for onboarding to use as default username
     localStorage.setItem("postvolve_signup_email", email);
     
-    const derivedUsername = email.split("@")[0] || "user";
+    const derivedUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "") || "user";
     
     // Call the register mutation
     registerMutation.mutate(
       { username: derivedUsername, email, password },
       {
         onSuccess: async (user) => {
+          setIsCreatingProfile(true);
+          
           // After Supabase auth succeeds, create user profile in database
           try {
             const response = await fetch("/api/auth/register", {
@@ -65,19 +74,35 @@ export default function SignUp() {
               }),
             });
 
+            const result = await response.json();
+
             if (!response.ok) {
-              const error = await response.json();
-              console.error("Failed to create user profile:", error);
-              // Don't block the user, they can complete onboarding
+              // If user already exists (409), that's okay - continue to onboarding
+              if (response.status !== 409) {
+                console.error("Failed to create user profile:", result);
+                setError(result.error || "Failed to create account. Please try again.");
+                setIsCreatingProfile(false);
+                return;
+              }
             }
+            
+            // Set flag and redirect to onboarding
+            localStorage.setItem("postvolve_pending_signup", "true");
+            router.push("/onboarding");
           } catch (error) {
             console.error("Error calling register API:", error);
-            // Don't block the user, they can complete onboarding
+            setError("An error occurred. Please try again.");
+            setIsCreatingProfile(false);
           }
+        },
+        onError: (error) => {
+          setError(error.message);
         },
       }
     );
   };
+  
+  const isLoading = registerMutation.isPending || isCreatingProfile;
 
   return (
     <div className="min-h-screen flex relative overflow-hidden">
@@ -305,12 +330,12 @@ export default function SignUp() {
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
-                  disabled={registerMutation.isPending}
+                  disabled={isLoading}
                 >
-                  {registerMutation.isPending ? (
+                  {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
+                      {isCreatingProfile ? "Setting up your account..." : "Creating account..."}
                     </>
                   ) : (
                     <>

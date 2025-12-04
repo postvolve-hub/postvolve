@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Create a Supabase client for this route
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// Create a Supabase admin client with service role key (bypasses RLS)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+const supabaseAdmin = createClient(
+  supabaseUrl,
+  serviceRoleKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
 );
 
 export async function POST(request: NextRequest) {
@@ -20,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Update user profile with username and mark onboarding complete
-    const { error: userError } = await supabase
+    const { error: userError } = await supabaseAdmin
       .from("users")
       .update({
         username: username,
@@ -38,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Upsert user settings
-    const { error: settingsError } = await supabase
+    const { error: settingsError } = await supabaseAdmin
       .from("user_settings")
       .upsert({
         user_id: userId,
@@ -61,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Create posting schedule if auto-posting is enabled
     if (autoPostingEnabled && preferredDraftTime && platforms && platforms.length > 0) {
-      const { error: scheduleError } = await supabase
+      const { error: scheduleError } = await supabaseAdmin
         .from("posting_schedules")
         .insert({
           user_id: userId,
@@ -80,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Log activity
-    const { error: activityError } = await supabase
+    const { error: activityError } = await supabaseAdmin
       .from("activity_log")
       .insert({
         user_id: userId,

@@ -11,25 +11,72 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
+import { supabase } from "@/lib/supabaseClient";
 
 export default function SignIn() {
   const router = useRouter();
   const { user, loginMutation, googleLoginMutation } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(false);
+  const [error, setError] = useState("");
 
+  // Check onboarding status when user is set
   useEffect(() => {
-    if (user) {
-      // Sign in = existing user, they've already completed onboarding
-      // Go directly to dashboard
-      router.push("/dashboard");
+    async function checkOnboardingAndRedirect() {
+      if (!user) return;
+      
+      setIsCheckingOnboarding(true);
+      
+      try {
+        // Check if user has completed onboarding
+        const { data: userData, error } = await supabase
+          .from("users")
+          .select("onboarding_completed")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          // If no user record found, they might be a new user who needs to complete setup
+          // This can happen with Google OAuth
+          console.log("User record not found, redirecting to onboarding");
+          router.push("/onboarding");
+          return;
+        }
+
+        if (userData && !userData.onboarding_completed) {
+          // User hasn't completed onboarding
+          router.push("/onboarding");
+        } else {
+          // User has completed onboarding, go to dashboard
+          router.push("/dashboard");
+        }
+      } catch (err) {
+        console.error("Error checking onboarding status:", err);
+        // Default to dashboard on error
+        router.push("/dashboard");
+      } finally {
+        setIsCheckingOnboarding(false);
+      }
     }
+
+    checkOnboardingAndRedirect();
   }, [user, router]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate({ email, password });
+    setError("");
+    loginMutation.mutate(
+      { email, password },
+      {
+        onError: (error) => {
+          setError(error.message);
+        },
+      }
+    );
   };
+  
+  const isLoading = loginMutation.isPending || isCheckingOnboarding;
 
   return (
     <div className="min-h-screen flex relative overflow-hidden">
@@ -102,6 +149,16 @@ export default function SignIn() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                  className="p-3 text-sm text-red-500 bg-red-50 rounded-md border border-red-200"
+                >
+                  {error}
+                </motion.div>
+              )}
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -159,12 +216,12 @@ export default function SignIn() {
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30"
-                  disabled={loginMutation.isPending}
+                  disabled={isLoading}
                 >
-                  {loginMutation.isPending ? (
+                  {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
+                      {isCheckingOnboarding ? "Checking account..." : "Signing in..."}
                     </>
                   ) : (
                     <>
