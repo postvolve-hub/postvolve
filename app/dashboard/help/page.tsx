@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { 
   Search, 
@@ -35,9 +36,9 @@ const HELP_CATEGORIES = [
     description: "Learn the basics of PostVolve",
     icon: <PlayCircle className="h-5 w-5" />,
     articles: [
-      { title: "Quick Start Guide", time: "3 min read" },
-      { title: "Understanding Your Dashboard", time: "2 min read" },
-      { title: "Connecting Social Accounts", time: "4 min read" },
+      { title: "Quick Start Guide", slug: "quick-start-guide" },
+      { title: "Understanding Your Dashboard", slug: "understanding-your-dashboard" },
+      { title: "Connecting Social Accounts", slug: "connecting-social-accounts" },
     ],
   },
   {
@@ -46,9 +47,9 @@ const HELP_CATEGORIES = [
     description: "Create AI-powered content",
     icon: <Zap className="h-5 w-5" />,
     articles: [
-      { title: "How AI Content Generation Works", time: "5 min read" },
-      { title: "Using URL-Based Generation", time: "3 min read" },
-      { title: "Custom Prompts & Uploads", time: "4 min read" },
+      { title: "How AI Content Generation Works", slug: "how-ai-content-generation-works" },
+      { title: "Using URL-Based Generation", slug: "using-url-based-generation" },
+      { title: "Custom Prompts & Uploads", slug: "custom-prompts-and-uploads" },
     ],
   },
   {
@@ -57,9 +58,9 @@ const HELP_CATEGORIES = [
     description: "Schedule and automate posts",
     icon: <Calendar className="h-5 w-5" />,
     articles: [
-      { title: "Setting Up Auto-Posting", time: "4 min read" },
-      { title: "Managing Your Schedule", time: "3 min read" },
-      { title: "Best Times to Post", time: "2 min read" },
+      { title: "Setting Up Auto-Posting", slug: "setting-up-auto-posting" },
+      { title: "Managing Your Schedule", slug: "managing-your-schedule" },
+      { title: "Best Times to Post", slug: "best-times-to-post" },
     ],
   },
   {
@@ -68,9 +69,9 @@ const HELP_CATEGORIES = [
     description: "Track your performance",
     icon: <BarChart3 className="h-5 w-5" />,
     articles: [
-      { title: "Understanding Your Metrics", time: "4 min read" },
-      { title: "Engagement Analytics", time: "3 min read" },
-      { title: "Exporting Reports", time: "2 min read" },
+      { title: "Understanding Your Metrics", slug: "understanding-your-metrics" },
+      { title: "Engagement Analytics", slug: "engagement-analytics" },
+      { title: "Exporting Reports", slug: "exporting-reports" },
     ],
   },
   {
@@ -79,9 +80,9 @@ const HELP_CATEGORIES = [
     description: "Manage your account",
     icon: <Settings className="h-5 w-5" />,
     articles: [
-      { title: "Account Security", time: "3 min read" },
-      { title: "Notification Preferences", time: "2 min read" },
-      { title: "Managing Connected Apps", time: "3 min read" },
+      { title: "Account Security", slug: "account-security" },
+      { title: "Notification Preferences", slug: "notification-preferences" },
+      { title: "Managing Connected Apps", slug: "managing-connected-apps" },
     ],
   },
   {
@@ -90,9 +91,9 @@ const HELP_CATEGORIES = [
     description: "Subscription and payments",
     icon: <CreditCard className="h-5 w-5" />,
     articles: [
-      { title: "Understanding Your Plan", time: "2 min read" },
-      { title: "Upgrading or Downgrading", time: "3 min read" },
-      { title: "Payment Methods", time: "2 min read" },
+      { title: "Understanding Your Plan", slug: "understanding-your-plan" },
+      { title: "Upgrading or Downgrading", slug: "upgrading-or-downgrading" },
+      { title: "Payment Methods", slug: "payment-methods" },
     ],
   },
 ];
@@ -222,8 +223,9 @@ export default function HelpPage() {
                 {selectedCategory === category.id && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                     {category.articles.map((article, index) => (
-                      <div
+                      <Link
                         key={index}
+                        href={`/dashboard/help/${article.slug}`}
                         className="flex items-center justify-between p-2 rounded-lg hover:bg-white transition-colors cursor-pointer group"
                       >
                         <div className="flex items-center gap-2">
@@ -232,11 +234,8 @@ export default function HelpPage() {
                             {article.title}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-400">{article.time}</span>
-                          <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-[#6D28D9]" />
-                        </div>
-                      </div>
+                        <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-[#6D28D9]" />
+                      </Link>
                     ))}
                   </div>
                 )}
