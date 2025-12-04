@@ -22,6 +22,30 @@ const IconEye = ({ className = "h-4 w-4" }: { className?: string }) => (
   </svg>
 );
 
+const IconBarChart = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <line x1="12" x2="12" y1="20" y2="10" />
+    <line x1="18" x2="18" y1="20" y2="4" />
+    <line x1="6" x2="6" y1="20" y2="14" />
+  </svg>
+);
+
+// Professional icon for Engagements (Activity/Pulse)
+const IconActivity = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </svg>
+);
+
+// Professional icon for Impressions (Layers/Stack)
+const IconLayers = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z" />
+    <path d="m22 12.5-8.97 4.08a2 2 0 0 1-1.66 0L2 12.5" />
+    <path d="m22 17.5-8.97 4.08a2 2 0 0 1-1.66 0L2 17.5" />
+  </svg>
+);
+
 const IconHeart = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
@@ -62,7 +86,7 @@ const MOCK_METRICS = [
     value: "248.5K", 
     change: "+18.2%", 
     trend: "up",
-    icon: IconEye,
+    icon: IconLayers,
     color: "text-blue-600 bg-blue-50"
   },
   { 
@@ -71,8 +95,8 @@ const MOCK_METRICS = [
     value: "12.4K", 
     change: "+24.5%", 
     trend: "up",
-    icon: IconHeart,
-    color: "text-pink-600 bg-pink-50"
+    icon: IconActivity,
+    color: "text-emerald-600 bg-emerald-50"
   },
   { 
     id: 3, 
@@ -212,31 +236,165 @@ export default function Analytics() {
             <h3 className="text-sm font-semibold text-gray-900">Impressions Over Time</h3>
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-2 text-xs text-gray-500">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#1E3A8A]"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
                 Impressions
               </span>
               <span className="flex items-center gap-2 text-xs text-gray-500">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#6D28D9]"></span>
+                <span className="w-2.5 h-2.5 rounded-full bg-[#10B981]"></span>
                 Engagements
               </span>
             </div>
           </div>
-          <div className="h-52 flex items-end justify-between gap-1.5 px-2">
-            {[65, 45, 78, 52, 88, 67, 92, 73, 85, 60, 95, 70, 82, 55, 90, 68, 75, 48, 86, 72, 94, 58, 80, 64, 88, 76, 91, 69, 84, 77].map((value, index) => (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div 
-                  className="w-full bg-gradient-to-t from-[#1E3A8A] to-[#6D28D9] rounded-t-sm transition-all duration-300 hover:opacity-80"
-                  style={{ height: `${value}%` }}
-                />
+          
+          {/* Chart Container */}
+          <div className="relative h-64">
+            {/* Y-axis labels */}
+            <div className="absolute left-0 top-0 bottom-8 w-12 flex flex-col justify-between text-[10px] text-gray-400">
+              <span>50K</span>
+              <span>40K</span>
+              <span>30K</span>
+              <span>20K</span>
+              <span>10K</span>
+              <span>0</span>
+            </div>
+            
+            {/* Chart Area */}
+            <div className="ml-14 h-full pb-8 relative overflow-hidden">
+              {/* Grid lines */}
+              <div className="absolute inset-0 bottom-8 flex flex-col justify-between">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="border-t border-gray-100 w-full" />
+                ))}
               </div>
-            ))}
+              
+              {/* SVG Chart */}
+              <svg className="absolute inset-0 bottom-8 w-full h-[calc(100%-32px)]" viewBox="0 0 100 100" preserveAspectRatio="none">
+                {/* Gradients */}
+                <defs>
+                  <linearGradient id="impressionsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#6D28D9" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#6D28D9" stopOpacity="0.02" />
+                  </linearGradient>
+                  <linearGradient id="engagementsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#10B981" stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                
+                {/* Impressions Area - with fade in animation */}
+                <path
+                  d="M0,85 C8,78 16,70 20,65 C28,55 32,60 40,52 C48,44 52,48 60,42 C68,36 72,40 80,32 C88,24 92,28 100,20 L100,100 L0,100 Z"
+                  fill="url(#impressionsGradient)"
+                  className="chart-area-animate"
+                />
+                
+                {/* Impressions Line - smooth curve with draw animation */}
+                <path
+                  d="M0,85 C8,78 16,70 20,65 C28,55 32,60 40,52 C48,44 52,48 60,42 C68,36 72,40 80,32 C88,24 92,28 100,20"
+                  fill="none"
+                  stroke="#6D28D9"
+                  strokeWidth="0.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="chart-line-animate"
+                  pathLength="100"
+                />
+                
+                {/* Engagements Area - with fade in animation */}
+                <path
+                  d="M0,92 C12,90 20,88 30,85 C40,82 50,80 60,76 C70,72 80,68 90,65 C95,63 100,60 100,60 L100,100 L0,100 Z"
+                  fill="url(#engagementsGradient)"
+                  className="chart-area-animate-delay"
+                />
+                
+                {/* Engagements Line - smooth curve with draw animation */}
+                <path
+                  d="M0,92 C12,90 20,88 30,85 C40,82 50,80 60,76 C70,72 80,68 90,65 C95,63 100,60 100,60"
+                  fill="none"
+                  stroke="#10B981"
+                  strokeWidth="0.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="chart-line-animate-delay"
+                  pathLength="100"
+                />
+              </svg>
+              
+              {/* Data points overlay - positioned absolutely */}
+              <div className="absolute inset-0 bottom-8">
+                {/* Impressions data points */}
+                {[
+                  { left: '0%', top: '85%' },
+                  { left: '20%', top: '65%' },
+                  { left: '40%', top: '52%' },
+                  { left: '60%', top: '42%' },
+                  { left: '80%', top: '32%' },
+                  { left: '100%', top: '20%' },
+                ].map((pos, i) => (
+                  <div
+                    key={`imp-dot-${i}`}
+                    className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-white border-2 border-[#6D28D9] chart-dot-animate shadow-sm hover:scale-150 transition-transform cursor-pointer"
+                    style={{ 
+                      left: pos.left, 
+                      top: pos.top,
+                      animationDelay: `${800 + i * 100}ms`
+                    }}
+                    title={`${Math.round((100 - parseFloat(pos.top)) * 500)}K impressions`}
+                  />
+                ))}
+                
+                {/* Engagements data points */}
+                {[
+                  { left: '0%', top: '92%' },
+                  { left: '30%', top: '85%' },
+                  { left: '60%', top: '76%' },
+                  { left: '90%', top: '65%' },
+                  { left: '100%', top: '60%' },
+                ].map((pos, i) => (
+                  <div
+                    key={`eng-dot-${i}`}
+                    className="absolute w-2 h-2 -ml-1 -mt-1 rounded-full bg-white border-2 border-emerald-500 chart-dot-animate shadow-sm hover:scale-150 transition-transform cursor-pointer"
+                    style={{ 
+                      left: pos.left, 
+                      top: pos.top,
+                      animationDelay: `${1000 + i * 100}ms`
+                    }}
+                    title={`${Math.round((100 - parseFloat(pos.top)) * 150)} engagements`}
+                  />
+                ))}
+              </div>
+              
+              {/* X-axis labels */}
+              <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-gray-400">
+                <span>Nov 4</span>
+                <span>Nov 11</span>
+                <span>Nov 18</span>
+                <span>Nov 25</span>
+                <span>Dec 3</span>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between mt-3 text-[10px] text-gray-400 px-2">
-            <span>Nov 4</span>
-            <span>Nov 11</span>
-            <span>Nov 18</span>
-            <span>Nov 25</span>
-            <span>Dec 3</span>
+          
+          {/* Chart Stats Summary */}
+          <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-500 delay-300">
+              <div className="w-10 h-10 rounded-xl bg-[#6D28D9]/10 flex items-center justify-center">
+                <IconLayers className="h-5 w-5 text-[#6D28D9]" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900">248.5K</p>
+                <p className="text-xs text-gray-500">Total Impressions</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-right-2 duration-500 delay-300">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <IconActivity className="h-5 w-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-lg font-bold text-gray-900">12.4K</p>
+                <p className="text-xs text-gray-500">Total Engagements</p>
+              </div>
+            </div>
           </div>
         </div>
 

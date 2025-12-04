@@ -41,6 +41,9 @@ export default function SignUp() {
       return;
     }
     
+    // Store email for onboarding to use as default username
+    localStorage.setItem("postvolve_signup_email", email);
+    
     const derivedUsername = email.split("@")[0] || "user";
     registerMutation.mutate({ username: derivedUsername, email, password });
   };

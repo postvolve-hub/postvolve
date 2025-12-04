@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 
 type StageStatus = "pending" | "processing" | "completed" | "error" | "skipped";
-type GenerationLane = "url" | "prompt" | "upload";
+type GenerationLane = "url" | "prompt";
 
 interface Stage {
   id: string;
@@ -118,6 +118,8 @@ const STATUS_STYLES: Record<StageStatus, { bg: string; border: string; icon: Rea
 export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPipelineProps) {
   const [selectedLane, setSelectedLane] = useState<GenerationLane>("url");
   const [inputValue, setInputValue] = useState("");
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [stages, setStages] = useState<Stage[]>(INITIAL_STAGES);
   const [currentStageIndex, setCurrentStageIndex] = useState(-1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -128,6 +130,17 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
     imageUrl: string;
   } | null>(null);
 
+  // Manage image preview URL
+  useEffect(() => {
+    if (uploadedImage && uploadedImage.type.startsWith("image/")) {
+      const objectUrl = URL.createObjectURL(uploadedImage);
+      setImagePreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setImagePreviewUrl(null);
+    }
+  }, [uploadedImage]);
+
   // Reset when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -136,6 +149,8 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
       setIsGenerating(false);
       setOverallProgress(0);
       setInputValue("");
+      setUploadedImage(null);
+      setImagePreviewUrl(null);
       setGeneratedContent(null);
     }
   }, [isOpen]);
@@ -344,48 +359,34 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                   <Label className="text-sm font-medium text-gray-700 mb-3 block">
                     Select Content Source
                   </Label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <button
                       onClick={() => setSelectedLane("url")}
-                      className={`p-4 rounded-xl border-2 transition-all duration-200 text-center ${
+                      className={`p-5 rounded-xl border-2 transition-all duration-200 text-center ${
                         selectedLane === "url"
                           ? "border-[#6D28D9] bg-[#6D28D9]/5"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <Link2 className={`h-6 w-6 mx-auto mb-2 ${
+                      <Link2 className={`h-7 w-7 mx-auto mb-2 ${
                         selectedLane === "url" ? "text-[#6D28D9]" : "text-gray-500"
                       }`} />
                       <span className="text-sm font-medium text-gray-700">From URL</span>
-                      <p className="text-[10px] text-gray-400 mt-1">Extract from article</p>
+                      <p className="text-xs text-gray-400 mt-1">Extract from article or blog</p>
                     </button>
                     <button
                       onClick={() => setSelectedLane("prompt")}
-                      className={`p-4 rounded-xl border-2 transition-all duration-200 text-center ${
+                      className={`p-5 rounded-xl border-2 transition-all duration-200 text-center ${
                         selectedLane === "prompt"
                           ? "border-[#6D28D9] bg-[#6D28D9]/5"
                           : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <MessageSquare className={`h-6 w-6 mx-auto mb-2 ${
+                      <MessageSquare className={`h-7 w-7 mx-auto mb-2 ${
                         selectedLane === "prompt" ? "text-[#6D28D9]" : "text-gray-500"
                       }`} />
                       <span className="text-sm font-medium text-gray-700">Custom Prompt</span>
-                      <p className="text-[10px] text-gray-400 mt-1">Describe your post</p>
-                    </button>
-                    <button
-                      onClick={() => setSelectedLane("upload")}
-                      className={`p-4 rounded-xl border-2 transition-all duration-200 text-center ${
-                        selectedLane === "upload"
-                          ? "border-[#6D28D9] bg-[#6D28D9]/5"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <Upload className={`h-6 w-6 mx-auto mb-2 ${
-                        selectedLane === "upload" ? "text-[#6D28D9]" : "text-gray-500"
-                      }`} />
-                      <span className="text-sm font-medium text-gray-700">Upload File</span>
-                      <p className="text-[10px] text-gray-400 mt-1">PDF, DOC, TXT</p>
+                      <p className="text-xs text-gray-400 mt-1">With optional image upload</p>
                     </button>
                   </div>
                 </div>
@@ -406,42 +407,84 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                     </>
                   )}
                   {selectedLane === "prompt" && (
-                    <>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Content Prompt
-                      </Label>
-                      <Textarea
-                        placeholder="Describe the content you want to create..."
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        className="rounded-xl min-h-[120px]"
-                      />
-                    </>
-                  )}
-                  {selectedLane === "upload" && (
-                    <>
-                      <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                        Upload Document
-                      </Label>
-                      <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-[#6D28D9]/50 transition-colors cursor-pointer">
-                        <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-sm text-gray-500">
-                          Drag and drop or click to upload
-                        </p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Supports PDF, DOC, DOCX, TXT
-                        </p>
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.doc,.docx,.txt"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) setInputValue(file.name);
-                          }}
+                    <div className="space-y-4">
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Content Prompt
+                        </Label>
+                        <Textarea
+                          placeholder="Describe the content you want to create..."
+                          value={inputValue}
+                          onChange={(e) => setInputValue(e.target.value)}
+                          className="rounded-xl min-h-[100px]"
                         />
                       </div>
-                    </>
+                      
+                      {/* Optional Image Upload */}
+                      <div>
+                        <Label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                          <ImageIcon className="h-4 w-4 text-gray-400" />
+                          Reference Image
+                          <span className="text-xs font-normal text-gray-400">(optional)</span>
+                        </Label>
+                        {!uploadedImage ? (
+                          <label className="block cursor-pointer">
+                            <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-[#6D28D9]/50 hover:bg-[#6D28D9]/5 transition-all duration-200">
+                              <div className="flex items-center justify-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                                  <Upload className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-sm font-medium text-gray-600">Add image for context</p>
+                                  <p className="text-xs text-gray-400">PNG, JPG, GIF (max 10MB)</p>
+                                </div>
+                              </div>
+                            </div>
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) setUploadedImage(file);
+                              }}
+                            />
+                          </label>
+                        ) : (
+                          <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {imagePreviewUrl ? (
+                                  <div className="w-12 h-12 rounded-lg border border-gray-200 overflow-hidden bg-white">
+                                    <img 
+                                      src={imagePreviewUrl} 
+                                      alt="Preview" 
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-12 h-12 rounded-lg border border-gray-200 bg-white flex items-center justify-center">
+                                    <ImageIcon className="h-5 w-5 text-gray-400" />
+                                  </div>
+                                )}
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{uploadedImage.name}</p>
+                                  <p className="text-xs text-gray-500">
+                                    {(uploadedImage.size / 1024 / 1024).toFixed(2)} MB
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setUploadedImage(null)}
+                                className="p-1.5 rounded-lg hover:bg-gray-200 text-gray-500 hover:text-red-500 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

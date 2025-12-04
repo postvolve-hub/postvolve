@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   X, 
   Link2, 
@@ -49,7 +49,7 @@ interface GenerateNowModalProps {
   onClose: () => void;
 }
 
-type GenerationMode = "url" | "prompt" | "upload";
+type GenerationMode = "url" | "prompt";
 type GenerationStep = "select" | "input" | "generating" | "preview";
 
 const PLATFORMS = [
@@ -72,10 +72,22 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
   const [url, setUrl] = useState("");
   const [prompt, setPrompt] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "twitter"]);
   const [selectedCategory, setSelectedCategory] = useState("ai");
   const [isGenerating, setIsGenerating] = useState(false);
   const [urlPreview, setUrlPreview] = useState<{ title: string; domain: string } | null>(null);
+
+  // Manage image preview URL
+  useEffect(() => {
+    if (uploadedFile && uploadedFile.type.startsWith("image/")) {
+      const objectUrl = URL.createObjectURL(uploadedFile);
+      setImagePreviewUrl(objectUrl);
+      return () => URL.revokeObjectURL(objectUrl);
+    } else {
+      setImagePreviewUrl(null);
+    }
+  }, [uploadedFile]);
 
   const resetModal = () => {
     setMode(null);
@@ -83,6 +95,7 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
     setUrl("");
     setPrompt("");
     setUploadedFile(null);
+    setImagePreviewUrl(null);
     setSelectedPlatforms(["linkedin", "twitter"]);
     setSelectedCategory("ai");
     setIsGenerating(false);
@@ -145,7 +158,6 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
     if (selectedPlatforms.length === 0) return false;
     if (mode === "url" && !url) return false;
     if (mode === "prompt" && !prompt) return false;
-    if (mode === "upload" && !uploadedFile) return false;
     return true;
   };
 
@@ -170,7 +182,7 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
               </div>
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">Generate New Content</h2>
-                <p className="text-xs text-gray-500">Create a post from URL, prompt, or upload</p>
+                <p className="text-xs text-gray-500">Create a post from URL or custom prompt</p>
               </div>
             </div>
             <button
@@ -188,56 +200,44 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
               <div className="space-y-4">
                 <p className="text-sm text-gray-600 mb-6">How would you like to create your content?</p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* URL Option */}
                   <button
                     onClick={() => handleModeSelect("url")}
-                    className="group p-5 border-2 border-gray-200 rounded-2xl hover:border-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 text-left"
+                    className="group p-6 border-2 border-gray-200 rounded-2xl hover:border-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 text-left"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center mb-4 transition-colors">
-                      <Link2 className="h-6 w-6 text-blue-600" />
+                    <div className="w-14 h-14 rounded-xl bg-blue-50 group-hover:bg-blue-100 flex items-center justify-center mb-4 transition-colors">
+                      <Link2 className="h-7 w-7 text-blue-600" />
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">From URL</h3>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm text-gray-500">
                       Paste an article or blog link. AI will summarize and create a post.
                     </p>
                     <Badge variant="outline" className="mt-3 text-xs text-blue-600 border-blue-200 bg-blue-50">
-                      Lane 2
+                      URL-Driven
                     </Badge>
                   </button>
 
-                  {/* Prompt Option */}
+                  {/* Custom Prompt Option (with image upload) */}
                   <button
                     onClick={() => handleModeSelect("prompt")}
-                    className="group p-5 border-2 border-gray-200 rounded-2xl hover:border-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 text-left"
+                    className="group p-6 border-2 border-gray-200 rounded-2xl hover:border-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 text-left"
                   >
-                    <div className="w-12 h-12 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center mb-4 transition-colors">
-                      <MessageSquare className="h-6 w-6 text-purple-600" />
+                    <div className="w-14 h-14 rounded-xl bg-purple-50 group-hover:bg-purple-100 flex items-center justify-center mb-4 transition-colors">
+                      <MessageSquare className="h-7 w-7 text-purple-600" />
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1">Custom Prompt</h3>
-                    <p className="text-xs text-gray-500">
-                      Write your own prompt and let AI generate the perfect post.
+                    <p className="text-sm text-gray-500">
+                      Write your own prompt with optional image upload for context.
                     </p>
-                    <Badge variant="outline" className="mt-3 text-xs text-purple-600 border-purple-200 bg-purple-50">
-                      Lane 3
-                    </Badge>
-                  </button>
-
-                  {/* Upload Option */}
-                  <button
-                    onClick={() => handleModeSelect("upload")}
-                    className="group p-5 border-2 border-gray-200 rounded-2xl hover:border-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 text-left"
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center mb-4 transition-colors">
-                      <Upload className="h-6 w-6 text-emerald-600" />
+                    <div className="flex gap-2 mt-3">
+                      <Badge variant="outline" className="text-xs text-purple-600 border-purple-200 bg-purple-50">
+                        Custom
+                      </Badge>
+                      <Badge variant="outline" className="text-xs text-gray-500 border-gray-200 bg-gray-50">
+                        + Image
+                      </Badge>
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Upload File</h3>
-                    <p className="text-xs text-gray-500">
-                      Upload an image or document to create content from.
-                    </p>
-                    <Badge variant="outline" className="mt-3 text-xs text-emerald-600 border-emerald-200 bg-emerald-50">
-                      Lane 3
-                    </Badge>
                   </button>
                 </div>
               </div>
@@ -289,77 +289,91 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
                   </div>
                 )}
 
-                {/* Prompt Input */}
+                {/* Custom Prompt Input with Optional Image Upload */}
                 {mode === "prompt" && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Your Prompt
-                    </label>
-                    <Textarea
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="e.g., Write a LinkedIn post about the importance of AI in modern business, focusing on practical applications..."
-                      className="min-h-[150px] border-gray-200 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 rounded-xl resize-none"
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      Be specific about the tone, audience, and key points you want to cover.
-                    </p>
-                  </div>
-                )}
-
-                {/* Upload Input */}
-                {mode === "upload" && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">
-                      Upload File
-                    </label>
-                    {!uploadedFile ? (
-                      <label className="block">
-                        <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-[#6D28D9]/50 hover:bg-[#6D28D9]/5 transition-all duration-200 cursor-pointer">
-                          <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                          <p className="text-sm font-medium text-gray-700 mb-1">
-                            Click to upload or drag and drop
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            PNG, JPG, PDF, or DOC (max 10MB)
-                          </p>
-                        </div>
-                        <input
-                          type="file"
-                          accept="image/*,.pdf,.doc,.docx"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">
+                        Your Prompt
                       </label>
-                    ) : (
-                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white rounded-lg border border-gray-200 flex items-center justify-center">
-                              {uploadedFile.type.startsWith("image/") ? (
-                                <ImageIcon className="h-5 w-5 text-gray-400" />
-                              ) : (
-                                <FileText className="h-5 w-5 text-gray-400" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{uploadedFile.name}</p>
-                              <p className="text-xs text-gray-500">
-                                {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
-                              </p>
+                      <Textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        placeholder="e.g., Write a LinkedIn post about the importance of AI in modern business, focusing on practical applications..."
+                        className="min-h-[120px] border-gray-200 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 rounded-xl resize-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Be specific about the tone, audience, and key points you want to cover.
+                      </p>
+                    </div>
+
+                    {/* Optional Image Upload */}
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4 text-gray-400" />
+                        Reference Image
+                        <span className="text-xs font-normal text-gray-400">(optional)</span>
+                      </label>
+                      {!uploadedFile ? (
+                        <label className="block">
+                          <div className="border-2 border-dashed border-gray-200 rounded-xl p-5 text-center hover:border-[#6D28D9]/50 hover:bg-[#6D28D9]/5 transition-all duration-200 cursor-pointer">
+                            <div className="flex items-center justify-center gap-4">
+                              <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
+                                <Upload className="h-5 w-5 text-gray-400" />
+                              </div>
+                              <div className="text-left">
+                                <p className="text-sm font-medium text-gray-700">
+                                  Add an image for context
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  PNG, JPG, or GIF (max 10MB)
+                                </p>
+                              </div>
                             </div>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setUploadedFile(null)}
-                            className="text-gray-500 hover:text-red-500"
-                          >
-                            Remove
-                          </Button>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      ) : (
+                        <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {imagePreviewUrl ? (
+                                <div className="w-14 h-14 rounded-lg border border-gray-200 overflow-hidden bg-white">
+                                  <img 
+                                    src={imagePreviewUrl} 
+                                    alt="Preview" 
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-14 h-14 bg-white rounded-lg border border-gray-200 flex items-center justify-center">
+                                  <ImageIcon className="h-6 w-6 text-gray-400" />
+                                </div>
+                              )}
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{uploadedFile.name}</p>
+                                <p className="text-xs text-gray-500">
+                                  {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setUploadedFile(null)}
+                              className="text-gray-500 hover:text-red-500 h-8"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -433,8 +447,10 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
                 </h3>
                 <p className="text-sm text-gray-500 max-w-sm mx-auto">
                   {mode === "url" && "Analyzing the article and generating your post..."}
-                  {mode === "prompt" && "Processing your prompt and crafting the perfect post..."}
-                  {mode === "upload" && "Analyzing your file and creating content..."}
+                  {mode === "prompt" && (uploadedFile 
+                    ? "Analyzing your image and prompt to craft the perfect post..." 
+                    : "Processing your prompt and crafting the perfect post..."
+                  )}
                 </p>
                 <div className="mt-6 flex justify-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-[#6D28D9] animate-bounce" style={{ animationDelay: "0ms" }} />

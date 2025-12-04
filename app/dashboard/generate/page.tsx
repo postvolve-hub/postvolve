@@ -312,17 +312,6 @@ export default function ContentGeneration() {
           </div>
         )}
 
-        {/* Generate More CTA */}
-        <div className="flex justify-center pt-4 animate-in slide-in-from-bottom-2 duration-500 delay-200">
-          <Button 
-            size="lg"
-            className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 px-8 rounded-xl"
-            onClick={() => setIsGenerateModalOpen(true)}
-          >
-            <IconZap className="h-4 w-4 mr-2" />
-            Generate New Content
-          </Button>
-        </div>
       </div>
 
       <PostCustomizationModal

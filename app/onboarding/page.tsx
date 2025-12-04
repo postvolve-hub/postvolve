@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Check, ChevronRight, Clock, Zap, ArrowRight } from "lucide-react";
+import { Check, ChevronRight, Clock, Zap, ArrowRight, User, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 
 // Platform Icons
@@ -172,11 +173,60 @@ const TIME_OPTIONS = [
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(0); // 0 = welcome, 1-3 = steps
+  const [currentStep, setCurrentStep] = useState(0); // 0 = welcome, 1 = username, 2-4 = steps
+  const [username, setUsername] = useState("");
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [preferredDraftTime, setPreferredDraftTime] = useState("09:00");
   const [autoPostingEnabled, setAutoPostingEnabled] = useState(false);
+
+  // Get email from localStorage and set default username
+  useEffect(() => {
+    const storedEmail = localStorage.getItem("postvolve_signup_email");
+    if (storedEmail) {
+      const defaultUsername = storedEmail.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "");
+      setUsername(defaultUsername);
+    }
+  }, []);
+
+  // Check username availability (simulated - will be replaced with real DB check)
+  const checkUsername = async (value: string) => {
+    if (!value || value.length < 3) {
+      setUsernameStatus("idle");
+      return;
+    }
+    
+    setUsernameStatus("checking");
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Simulate check - in real implementation, this will query the database
+    // For now, mark all usernames as available except "admin", "postvolve", "test"
+    const reservedUsernames = ["admin", "postvolve", "test", "user", "support"];
+    if (reservedUsernames.includes(value.toLowerCase())) {
+      setUsernameStatus("taken");
+    } else {
+      setUsernameStatus("available");
+    }
+  };
+
+  // Debounced username check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (username) {
+        checkUsername(username);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [username]);
+
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "");
+    setUsername(value);
+    setUsernameStatus("idle");
+  };
 
   const togglePlatform = (platformId: string) => {
     setSelectedPlatforms(prev =>
@@ -202,6 +252,7 @@ export default function OnboardingPage() {
   const handleFinish = () => {
     // Store preferences in localStorage for now (will be saved to database later)
     const onboardingData = {
+      username,
       platforms: selectedPlatforms,
       categories: selectedCategories,
       preferredDraftTime,
@@ -223,7 +274,7 @@ export default function OnboardingPage() {
   // Progress indicator
   const ProgressIndicator = () => (
     <div className="flex items-center justify-center gap-2 mb-8">
-      {[1, 2, 3].map((step) => (
+      {[1, 2, 3, 4].map((step) => (
         <div key={step} className="flex items-center">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
@@ -234,9 +285,9 @@ export default function OnboardingPage() {
           >
             {currentStep > step ? <Check className="w-4 h-4" /> : step}
           </div>
-          {step < 3 && (
+          {step < 4 && (
             <div
-              className={`w-12 h-1 mx-1 rounded-full transition-all duration-300 ${
+              className={`w-8 h-1 mx-1 rounded-full transition-all duration-300 ${
                 currentStep > step ? "bg-[#6D28D9]" : "bg-gray-200"
               }`}
             />
@@ -284,8 +335,94 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 1: Platform Selection */}
+        {/* Step 1: Username Setup */}
         {currentStep === 1 && (
+          <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <ProgressIndicator />
+            
+            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+              Choose Your Username
+            </h2>
+            <p className="text-gray-500 text-sm text-center mb-6">
+              This will be your unique identifier on PostVolve. You can change it later in settings.
+            </p>
+            
+            {/* Username Input */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <User className="inline-block w-4 h-4 mr-1.5 text-[#6D28D9]" />
+                Username
+              </label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">@</span>
+                <Input
+                  value={username}
+                  onChange={handleUsernameChange}
+                  placeholder="yourname"
+                  className={`h-12 pl-9 pr-12 bg-gray-50 border rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 transition-all duration-200 ${
+                    usernameStatus === "taken" 
+                      ? "border-red-300 focus:border-red-400" 
+                      : usernameStatus === "available"
+                      ? "border-emerald-300 focus:border-emerald-400"
+                      : "border-gray-200 focus:border-[#6D28D9]/30"
+                  }`}
+                  maxLength={20}
+                />
+                {/* Status Icon */}
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  {usernameStatus === "checking" && (
+                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                  )}
+                  {usernameStatus === "available" && (
+                    <CheckCircle className="w-5 h-5 text-emerald-500" />
+                  )}
+                  {usernameStatus === "taken" && (
+                    <AlertCircle className="w-5 h-5 text-red-500" />
+                  )}
+                </div>
+              </div>
+              
+              {/* Status Message */}
+              <div className="mt-2 min-h-[20px]">
+                {usernameStatus === "checking" && (
+                  <p className="text-xs text-gray-500">Checking availability...</p>
+                )}
+                {usernameStatus === "available" && (
+                  <p className="text-xs text-emerald-600">Username is available!</p>
+                )}
+                {usernameStatus === "taken" && (
+                  <p className="text-xs text-red-500">This username is already taken. Please try another.</p>
+                )}
+                {usernameStatus === "idle" && username.length > 0 && username.length < 3 && (
+                  <p className="text-xs text-gray-500">Username must be at least 3 characters</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Username Guidelines */}
+            <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-100 mb-6">
+              <p className="text-xs text-gray-600 mb-2 font-medium">Username guidelines:</p>
+              <ul className="text-xs text-gray-500 space-y-1">
+                <li>• 3-20 characters long</li>
+                <li>• Only lowercase letters, numbers, and underscores</li>
+                <li>• Cannot be changed frequently</li>
+              </ul>
+            </div>
+            
+            <Button
+              onClick={() => setCurrentStep(2)}
+              disabled={!username || username.length < 3 || usernameStatus !== "available"}
+              className="w-full h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+            >
+              Continue
+              <span className="ml-2 text-white/70">(1/4)</span>
+              <ChevronRight className="ml-1 h-5 w-5" />
+            </Button>
+          </div>
+        )}
+
+        {/* Step 2: Platform Selection */}
+        {currentStep === 2 && (
           <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 animate-in fade-in slide-in-from-right-4 duration-500">
             <ProgressIndicator />
             
@@ -337,20 +474,29 @@ export default function OnboardingPage() {
               You will authorize the actual connection in Settings later.
             </p>
             
-            <Button
-              onClick={() => setCurrentStep(2)}
-              disabled={selectedPlatforms.length === 0}
-              className="w-full h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
-            >
-              Continue
-              <span className="ml-2 text-white/70">(1/3)</span>
-              <ChevronRight className="ml-1 h-5 w-5" />
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentStep(1)}
+                className="flex-1 h-12 border-gray-200 text-gray-700 rounded-2xl transition-all duration-200"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={() => setCurrentStep(3)}
+                disabled={selectedPlatforms.length === 0}
+                className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
+              >
+                Continue
+                <span className="ml-2 text-white/70">(2/4)</span>
+                <ChevronRight className="ml-1 h-5 w-5" />
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Step 2: Category Selection */}
-        {currentStep === 2 && (
+        {/* Step 3: Category Selection */}
+        {currentStep === 3 && (
           <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 animate-in fade-in slide-in-from-right-4 duration-500">
             <ProgressIndicator />
             
@@ -405,26 +551,26 @@ export default function OnboardingPage() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep(1)}
+                onClick={() => setCurrentStep(2)}
                 className="flex-1 h-12 border-gray-200 text-gray-700 rounded-2xl transition-all duration-200"
               >
                 Back
               </Button>
               <Button
-                onClick={() => setCurrentStep(3)}
+                onClick={() => setCurrentStep(4)}
                 disabled={selectedCategories.length === 0}
                 className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 Continue
-                <span className="ml-2 text-white/70">(2/3)</span>
+                <span className="ml-2 text-white/70">(3/4)</span>
                 <ChevronRight className="ml-1 h-5 w-5" />
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Posting Schedule */}
-        {currentStep === 3 && (
+        {/* Step 4: Posting Schedule */}
+        {currentStep === 4 && (
           <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 animate-in fade-in slide-in-from-right-4 duration-500">
             <ProgressIndicator />
             
@@ -505,7 +651,7 @@ export default function OnboardingPage() {
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => setCurrentStep(2)}
+                onClick={() => setCurrentStep(3)}
                 className="flex-1 h-12 border-gray-200 text-gray-700 rounded-2xl transition-all duration-200"
               >
                 Back
