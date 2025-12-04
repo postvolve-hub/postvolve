@@ -47,6 +47,7 @@ export default function AccountPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [timezone, setTimezone] = useState("America/New_York");
+  const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState("");
   const [accountCode, setAccountCode] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -117,7 +118,8 @@ export default function AccountPage() {
 
         setName(profile.full_name || "");
         setEmail(profile.email || user.email || "");
-        setTimezone(profile.timezone || "America/New_York");
+        const dbTimezone = profile.timezone || "America/New_York";
+        setTimezone(dbTimezone);
         setAvatarUrl(profile.avatar_url || null);
         setAccountCode(profile.account_code || "");
 
@@ -131,6 +133,21 @@ export default function AccountPage() {
             day: "numeric",
           }) : ""
         );
+        // If the database is still on the default timezone, try to detect
+        // the user's local timezone from the browser and pre-fill it.
+        try {
+          const browserTz =
+            Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+          if (browserTz) {
+            setDetectedTimezone(browserTz);
+            // Only override if DB is on default and we haven't already
+            if (!profile.timezone || profile.timezone === "America/New_York") {
+              setTimezone(browserTz);
+            }
+          }
+        } catch {
+          // Silently ignore detection errors
+        }
       } catch (error: any) {
         console.error("Error loading account profile:", error);
         if (isMounted) {
@@ -347,6 +364,13 @@ export default function AccountPage() {
                 onChange={(e) => setTimezone(e.target.value)}
                 className="w-full h-11 px-3 pr-10 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 bg-white appearance-none"
               >
+                {/* If we have a detected timezone that is not in the preset list, show it on top */}
+                {detectedTimezone &&
+                  !TIMEZONES.some((tz) => tz.value === detectedTimezone) && (
+                    <option value={detectedTimezone}>
+                      {detectedTimezone} (Detected)
+                    </option>
+                  )}
                 {TIMEZONES.map((tz) => (
                   <option key={tz.value} value={tz.value}>
                     {tz.label}

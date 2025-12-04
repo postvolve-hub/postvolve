@@ -4,13 +4,14 @@ import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { 
-  Menu, 
+import {
+  Menu,
   X,
   HelpCircle,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Settings as GearIcon,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
@@ -57,10 +58,7 @@ const IconAnalytics = ({ className = "h-5 w-5" }: { className?: string }) => (
 );
 
 const IconSettings = ({ className = "h-5 w-5" }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <circle cx="12" cy="12" r="3" />
-    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-  </svg>
+  <GearIcon className={className} />
 );
 
 const IconBilling = ({ className = "h-5 w-5" }: { className?: string }) => (
