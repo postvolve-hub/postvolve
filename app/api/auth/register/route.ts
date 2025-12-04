@@ -100,7 +100,8 @@ export async function POST(request: NextRequest) {
       .insert({
         user_id: userId,
         auto_posting_enabled: false,
-        selected_categories: ["tech", "ai"],
+        // Start with no categories selected; user will choose them later
+        selected_categories: [],
         email_notifications: true,
         push_notifications: true,
         weekly_digest: false,

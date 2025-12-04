@@ -14,9 +14,14 @@ export async function middleware(req: NextRequest) {
   const isOnboardingPage = req.nextUrl.pathname.startsWith("/onboarding");
 
   // Check for Supabase auth cookies
-  const hasAuthCookie = req.cookies.getAll().some(cookie => 
-    cookie.name.includes("sb-") && cookie.name.includes("auth-token")
-  );
+  // Supabase typically sets cookies like:
+  // - sb-<project-ref>-auth-token
+  // - sb-<project-ref>-access-token / -refresh-token
+  // To avoid being too strict on the exact name, we treat the presence
+  // of ANY cookie starting with "sb-" as an authenticated session hint.
+  const hasAuthCookie = req.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith("sb-"));
 
   // If no auth cookie and trying to access protected routes
   if (!hasAuthCookie && (isDashboardPage || isOnboardingPage)) {

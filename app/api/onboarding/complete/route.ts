@@ -51,7 +51,8 @@ export async function POST(request: NextRequest) {
       .from("user_settings")
       .upsert({
         user_id: userId,
-        selected_categories: categories || ["tech", "ai"],
+        // If categories are not provided, keep as empty array – user will configure later
+        selected_categories: categories ?? [],
         default_platforms: platforms || ["linkedin"],
         preferred_draft_time: preferredDraftTime || "09:00:00",
         auto_posting_enabled: autoPostingEnabled || false,
