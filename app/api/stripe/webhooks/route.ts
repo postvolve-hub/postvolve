@@ -252,6 +252,13 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
   // Generate invoice number from Stripe invoice ID
   const invoiceNumber = `INV-${invoice.number || invoice.id.slice(-12).toUpperCase()}`;
 
+  // Extract payment intent ID safely (may not be in TypeScript types)
+  const paymentIntentId = (invoice as any).payment_intent 
+    ? (typeof (invoice as any).payment_intent === "string" 
+        ? (invoice as any).payment_intent 
+        : (invoice as any).payment_intent?.id || null)
+    : null;
+
   // Create invoice record matching database schema
   await supabaseAdmin.from("invoices").insert({
     user_id: sub.user_id,
@@ -261,9 +268,7 @@ async function handleInvoicePaid(invoice: Stripe.Invoice) {
     currency: invoice.currency || "USD",
     status: "paid",
     stripe_invoice_id: invoice.id,
-    stripe_payment_intent_id: typeof invoice.payment_intent === "string" 
-      ? invoice.payment_intent 
-      : invoice.payment_intent?.id || null,
+    stripe_payment_intent_id: paymentIntentId,
     hosted_invoice_url: invoice.hosted_invoice_url,
     invoice_pdf_url: invoice.invoice_pdf,
     invoice_date: invoice.created ? new Date(invoice.created * 1000).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
