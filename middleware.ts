@@ -2,36 +2,26 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(req: NextRequest) {
-  // For now, we'll do a simplified middleware
-  // The full auth checking is handled by the AuthProvider client-side
-  
-  const isAuthPage = req.nextUrl.pathname.startsWith("/signin") || 
-                     req.nextUrl.pathname.startsWith("/signup") ||
-                     req.nextUrl.pathname.startsWith("/forgot-password") ||
-                     req.nextUrl.pathname.startsWith("/reset-password");
-  
-  const isDashboardPage = req.nextUrl.pathname.startsWith("/dashboard");
+  // Keep middleware minimal: we only use it to prevent logged-in users
+  // from going back to auth pages. All other auth / onboarding logic
+  // is handled client-side (via Supabase auth state + database checks).
 
-  // Check for Supabase auth cookies
+  const isAuthPage =
+    req.nextUrl.pathname.startsWith("/signin") ||
+    req.nextUrl.pathname.startsWith("/signup") ||
+    req.nextUrl.pathname.startsWith("/forgot-password") ||
+    req.nextUrl.pathname.startsWith("/reset-password");
+
   // Supabase typically sets cookies like:
   // - sb-<project-ref>-auth-token
   // - sb-<project-ref>-access-token / -refresh-token
-  // To avoid being too strict on the exact name, we treat the presence
-  // of ANY cookie starting with "sb-" as an authenticated session hint.
   const hasAuthCookie = req.cookies
     .getAll()
     .some((cookie) => cookie.name.startsWith("sb-"));
 
-  // If no auth cookie and trying to access protected dashboard routes
-  // (Onboarding is handled client-side to avoid redirect loops)
-  if (!hasAuthCookie && isDashboardPage) {
-    const redirectUrl = new URL("/signin", req.url);
-    redirectUrl.searchParams.set("redirect", req.nextUrl.pathname);
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // If has auth cookie and trying to access auth pages, redirect to dashboard
-  // (The client-side will handle more specific redirects based on onboarding status)
+  // If already authenticated and trying to access auth pages,
+  // send user to dashboard. Onboarding vs dashboard is decided
+  // in client code after checking the database flag.
   if (hasAuthCookie && isAuthPage) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
@@ -40,12 +30,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/signin",
-    "/signup",
-    "/forgot-password",
-    "/reset-password",
-  ],
+  matcher: ["/signin", "/signup", "/forgot-password", "/reset-password"],
 };
 

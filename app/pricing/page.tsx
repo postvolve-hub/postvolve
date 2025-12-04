@@ -346,7 +346,8 @@ const FAQ = () => {
   const faqs = [
     {
       question: "How does the news card generation work?",
-      answer: "PostVolve uses AI to pull the latest news and trends from your selected categories (Tech, AI, Business, Motivation), then automatically generates visually compelling news cards with engaging captions. The entire process takes under 6 seconds, and you can review and customize before posting."
+      answer:
+        "PostVolve uses AI to pull the latest news and trends from your selected categories (Tech, AI, Business, Motivation, or a Custom content voice), then automatically generates visually compelling news cards with engaging captions. The entire process takes under 6 seconds, and you can review and customize before posting.",
     },
     {
       question: "Can I customize the generated news cards?",

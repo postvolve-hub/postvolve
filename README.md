@@ -2,7 +2,7 @@
 
 ## Overview
 
-PostVolve is a SaaS application designed to automate viral news card creation and distribution. The platform generates AI-powered "News Cards" - visually compelling social media graphics paired with engaging copy - across four content categories: Tech, AI, Business, and Motivation.
+PostVolve is a SaaS application designed to automate viral news card creation and distribution. The platform generates AI-powered "News Cards" - visually compelling social media graphics paired with engaging copy - across four core content categories (Tech, AI, Business, Motivation) plus an optional **Custom** voice where users can define their own niche.
 
 **Core Vision**: Move beyond simple topic-based automation by allowing users to provide specific, high-value source material for their posts. PostVolve is a **Content Repurposing and Curation Engine**, not just a scheduler.
 

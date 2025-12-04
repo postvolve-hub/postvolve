@@ -120,6 +120,17 @@ const IconMotivation = ({ className = "h-6 w-6" }: { className?: string }) => (
   </svg>
 );
 
+// Custom content voice icon
+const IconCustomVoice = ({ className = "h-6 w-6" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 4h16v4H4z" />
+    <path d="M4 10h10v4H4z" />
+    <path d="M4 16h7v4H4z" />
+    <path d="M18 10v10" />
+    <path d="M15 13h6" />
+  </svg>
+);
+
 // Category data
 const CATEGORIES = [
   { 
@@ -153,6 +164,14 @@ const CATEGORIES = [
     color: "text-amber-600",
     bgColor: "bg-amber-100",
     description: "Inspiration and personal growth" 
+  },
+  {
+    id: "custom",
+    label: "Custom",
+    icon: IconCustomVoice,
+    color: "text-slate-700",
+    bgColor: "bg-slate-100",
+    description: "Describe your own niche or hybrid voice in more detail."
   },
 ];
 
@@ -614,33 +633,47 @@ export default function OnboardingPage() {
               {CATEGORIES.map((category, index) => {
                 const isSelected = selectedCategories.includes(category.id);
                 const IconComponent = category.icon;
+                const isCustom = category.id === "custom";
                 
                 return (
                   <button
                     key={category.id}
                     onClick={() => toggleCategory(category.id)}
-                    className={`p-5 rounded-2xl border-2 text-center transition-all duration-200 ${
+                    className={`rounded-2xl border-2 text-center transition-all duration-200 ${
                       isSelected
                         ? "border-[#6D28D9] bg-[#6D28D9]/5"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    } ${selectedCategories.length >= 3 && !isSelected ? "opacity-50 cursor-not-allowed" : ""}`}
+                    } ${selectedCategories.length >= 3 && !isSelected ? "opacity-50 cursor-not-allowed" : ""} ${
+                      isCustom ? "col-span-2 py-3 px-4 min-h-[80px] flex items-center gap-4 text-left" : "p-5"
+                    }`}
                     style={{ animationDelay: `${index * 50}ms` }}
                     disabled={selectedCategories.length >= 3 && !isSelected}
                   >
-                    <div className="flex items-center justify-center mb-3 relative">
-                      <div className={`w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center transition-all duration-200 ${isSelected ? "bg-[#6D28D9]/10" : ""}`}>
-                        <IconComponent className={`h-6 w-6 transition-colors duration-200 ${isSelected ? "text-[#6D28D9]" : "text-gray-600"}`} />
+                    <div className={isCustom ? "flex items-center gap-3 w-full" : ""}>
+                      <div className={isCustom ? "flex items-center gap-3 flex-1" : ""}>
+                        <div className={`${
+                          isCustom ? "w-10 h-10" : "w-12 h-12 mb-3"
+                        } rounded-xl bg-gray-100 flex items-center justify-center transition-all duration-200 ${isSelected ? "bg-[#6D28D9]/10" : ""}`}>
+                          <IconComponent className={`h-6 w-6 transition-colors duration-200 ${isSelected ? "text-[#6D28D9]" : "text-gray-600"}`} />
+                        </div>
+                        <div className={isCustom ? "flex-1 min-w-0" : ""}>
+                          <h3 className={`font-semibold text-sm mb-1 ${isSelected ? "text-[#6D28D9]" : "text-gray-900"}`}>
+                            {category.label}
+                          </h3>
+                          <p className="text-xs text-gray-500 leading-relaxed">
+                            {category.description}
+                          </p>
+                        </div>
                       </div>
                       {isSelected && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#6D28D9] flex items-center justify-center shadow-sm">
+                        <div className={isCustom
+                          ? "w-5 h-5 rounded-full bg-[#6D28D9] flex items-center justify-center shadow-sm flex-shrink-0"
+                          : "absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#6D28D9] flex items-center justify-center shadow-sm"
+                        }>
                           <Check className="w-3 h-3 text-white" />
                         </div>
                       )}
                     </div>
-                    <h3 className={`font-semibold text-sm mb-1 ${isSelected ? "text-[#6D28D9]" : "text-gray-900"}`}>
-                      {category.label}
-                    </h3>
-                    <p className="text-xs text-gray-500 leading-relaxed">{category.description}</p>
                   </button>
                 );
               })}
