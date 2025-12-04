@@ -139,6 +139,43 @@ const IconX = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// Tech Partner Icons
+const IconOpenAI = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/>
+  </svg>
+);
+
+const IconGemini = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-.47 3.38h.94l6.15 10.65v6.59h-.94L12 13.97l-5.68 6.65h-.94v-6.59L11.53 3.38z"/>
+  </svg>
+);
+
+const IconVercel = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M12 1L24 21H0L12 1z"/>
+  </svg>
+);
+
+const IconSupabase = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M13.277 21.526c-.453.723-1.581.415-1.581-.432V12.82h7.64c.803 0 1.276.907.812 1.556l-6.871 7.15zm-2.554-19.052c.453-.723 1.581-.415 1.581.432v8.274H4.664c-.803 0-1.276-.907-.812-1.556l6.871-7.15z"/>
+  </svg>
+);
+
+const IconNextJS = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M11.572 0c-.176 0-.31.001-.358.007a19.76 19.76 0 0 0-.364.033C7.443.346 4.25 2.185 2.228 5.012a11.875 11.875 0 0 0-2.119 5.243c-.096.659-.108.854-.108 1.747s.012 1.089.108 1.748c.652 4.506 3.86 8.292 8.209 9.695.779.25 1.6.422 2.534.525.363.04 1.935.04 2.299 0 1.611-.178 2.977-.577 4.323-1.264.207-.106.247-.134.219-.158-.02-.013-.9-1.193-1.955-2.62l-1.919-2.592-2.404-3.558a338.739 338.739 0 0 0-2.422-3.556c-.009-.002-.018 1.579-.023 3.51-.007 3.38-.01 3.515-.052 3.595a.426.426 0 0 1-.206.214c-.075.037-.14.044-.495.044H7.81l-.108-.068a.438.438 0 0 1-.157-.171l-.05-.106.006-4.703.007-4.705.072-.092a.645.645 0 0 1 .174-.143c.096-.047.134-.051.54-.051.478 0 .558.018.682.154.035.038 1.337 1.999 2.895 4.361a10760.433 10760.433 0 0 0 4.735 7.17l1.9 2.879.096-.063a12.317 12.317 0 0 0 2.466-2.163 11.944 11.944 0 0 0 2.824-6.134c.096-.66.108-.854.108-1.748 0-.893-.012-1.088-.108-1.747-.652-4.506-3.859-8.292-8.208-9.695a12.597 12.597 0 0 0-2.499-.523A33.119 33.119 0 0 0 11.573 0zm4.069 7.217c.347 0 .408.005.486.047a.473.473 0 0 1 .237.277c.018.06.023 1.365.018 4.304l-.006 4.218-0.744-1.14-.746-1.14v-3.066c0-1.982.01-3.097.023-3.15a.478.478 0 0 1 .233-.296c.096-.05.13-.054.5-.054z"/>
+  </svg>
+);
+
+const IconStripe = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="currentColor">
+    <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.591-7.305z"/>
+  </svg>
+);
+
 // --- Components ---
 
 // Small floating icon component for hero section
@@ -460,15 +497,109 @@ const SocialProof = () => {
 
           <FadeIn delay={0.4}>
             <div className="mt-12 pt-8 border-t border-border/40">
-               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-6">
-                 As featured in
+               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-8 text-center">
+                 Powered By Industry-Leading Technology
                </p>
-               <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale transition-all duration-300 hover:grayscale-0 hover:opacity-80">
-                  {/* Placeholder Logos using simple text/shapes for now to keep it clean */}
-                  <div className="flex items-center gap-2"><div className="h-6 w-6 bg-foreground rounded-sm"></div><span className="font-bold text-lg">TechCrunch</span></div>
-                  <div className="flex items-center gap-2"><div className="h-6 w-6 bg-foreground rounded-sm"></div><span className="font-bold text-lg">Forbes</span></div>
-                  <div className="flex items-center gap-2"><div className="h-6 w-6 bg-foreground rounded-sm"></div><span className="font-bold text-lg">Fast Company</span></div>
-                  <div className="flex items-center gap-2"><div className="h-6 w-6 bg-foreground rounded-sm"></div><span className="font-bold text-lg">MIT Tech Review</span></div>
+               {/* Marquee Container with Blur Edges */}
+               <div className="relative overflow-hidden">
+                 {/* Left Blur */}
+                 <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none"></div>
+                 
+                 {/* Right Blur */}
+                 <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none"></div>
+                 
+                 {/* Marquee Content - Duplicated for seamless loop */}
+                 <div className="flex animate-marquee">
+                   {/* First Set */}
+                   <div className="flex items-center justify-around min-w-full gap-12 px-6">
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconOpenAI className="h-7 w-7 text-[#10A37F]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">OpenAI</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconGemini className="h-7 w-7 text-[#4285F4]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Google Gemini</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconVercel className="h-7 w-7 text-black" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Vercel</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconSupabase className="h-7 w-7 text-[#3ECF8E]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Supabase</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconNextJS className="h-7 w-7 text-black" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Next</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconStripe className="h-7 w-7 text-[#635BFF]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Stripe</span>
+                     </div>
+                   </div>
+                   
+                   {/* Second Set - Duplicate for seamless loop */}
+                   <div className="flex items-center justify-around min-w-full gap-12 px-6">
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconOpenAI className="h-7 w-7 text-[#10A37F]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">OpenAI</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconGemini className="h-7 w-7 text-[#4285F4]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Google Gemini</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconVercel className="h-7 w-7 text-black" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Vercel</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconSupabase className="h-7 w-7 text-[#3ECF8E]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Supabase</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconNextJS className="h-7 w-7 text-black" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Next.js</span>
+                     </div>
+                     
+                     <div className="flex flex-col items-center gap-3 group">
+                       <div className="w-14 h-14 rounded-full bg-white shadow-md flex items-center justify-center grayscale group-hover:grayscale-0 transition-all duration-300">
+                         <IconStripe className="h-7 w-7 text-[#635BFF]" />
+                       </div>
+                       <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">Stripe</span>
+                     </div>
+                   </div>
+                 </div>
                </div>
             </div>
           </FadeIn>
