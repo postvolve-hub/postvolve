@@ -13,6 +13,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
+import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { toast } from "@/hooks/use-toast";
 
 // Custom Icons
 const IconCalendar = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -58,6 +62,10 @@ const CATEGORY_BADGE_COLORS: Record<string, string> = {
 export default function Scheduler() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<number | null>(null);
+  const [scheduledPosts, setScheduledPosts] = useState(MOCK_SCHEDULED_POSTS);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -78,7 +86,33 @@ export default function Scheduler() {
   };
 
   const getPostsForDate = (dateStr: string) => {
-    return MOCK_SCHEDULED_POSTS.filter(post => post.date === dateStr);
+    return scheduledPosts.filter(post => post.date === dateStr);
+  };
+
+  const handleSchedulePost = (postId: number, date: string, time: string) => {
+    // In real app, this would add a new scheduled post
+    toast({
+      title: "Post Scheduled",
+      description: `Your post has been scheduled for ${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${time}.`,
+    });
+    setScheduleModalOpen(false);
+  };
+
+  const handleDeletePost = (postId: number) => {
+    setPostToDelete(postId);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeletePost = () => {
+    if (postToDelete !== null) {
+      setScheduledPosts(prev => prev.filter(post => post.id !== postToDelete));
+      toast({
+        title: "Post Deleted",
+        description: "The scheduled post has been removed.",
+      });
+    }
+    setDeleteModalOpen(false);
+    setPostToDelete(null);
   };
 
   const calendarDays = [];
@@ -98,7 +132,10 @@ export default function Scheduler() {
             <h2 className="text-xl font-bold text-gray-900">News Card Scheduler</h2>
             <p className="text-sm text-gray-500 mt-1">Plan and manage your news card calendar.</p>
           </div>
-          <Button className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl">
+          <Button 
+            onClick={() => setScheduleModalOpen(true)}
+            className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Schedule New Post
           </Button>
@@ -187,7 +224,7 @@ export default function Scheduler() {
               </button>
             </div>
             <div className="space-y-3">
-              {(selectedDate ? getPostsForDate(selectedDate) : MOCK_SCHEDULED_POSTS.slice(0, 5)).map((post, index) => (
+              {(selectedDate ? getPostsForDate(selectedDate) : scheduledPosts.slice(0, 5)).map((post, index) => (
                 <div
                   key={post.id}
                   className="p-3 border border-gray-100 rounded-xl hover:border-gray-200 hover:bg-gray-50/50 transition-all duration-200 group"
@@ -211,7 +248,10 @@ export default function Scheduler() {
                       <button className="p-1 rounded hover:bg-gray-100 transition-colors">
                         <Edit2 className="h-3.5 w-3.5 text-gray-500" />
                       </button>
-                      <button className="p-1 rounded hover:bg-red-50 transition-colors">
+                      <button 
+                        className="p-1 rounded hover:bg-red-50 transition-colors"
+                        onClick={() => handleDeletePost(post.id)}
+                      >
                         <Trash2 className="h-3.5 w-3.5 text-red-500" />
                       </button>
                     </div>
@@ -219,14 +259,16 @@ export default function Scheduler() {
                 </div>
               ))}
               {selectedDate && getPostsForDate(selectedDate).length === 0 && (
-                <div className="text-center py-8">
-                  <IconCalendar className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm text-gray-500">No posts scheduled</p>
-                  <Button variant="outline" size="sm" className="mt-3 rounded-xl">
-                    <Plus className="h-3.5 w-3.5 mr-2" />
-                    Add Post
-                  </Button>
-                </div>
+                <EmptyState 
+                  variant="scheduled"
+                  title="No posts for this day"
+                  description="Schedule a post to publish on this date."
+                  action={{
+                    label: "Schedule Post",
+                    onClick: () => setScheduleModalOpen(true)
+                  }}
+                  className="py-6"
+                />
               )}
             </div>
           </div>
@@ -252,7 +294,7 @@ export default function Scheduler() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {MOCK_SCHEDULED_POSTS.map((post, index) => (
+                {scheduledPosts.map((post, index) => (
                   <tr key={post.id} className="hover:bg-gray-50/50 transition-colors duration-200">
                     <td className="px-5 py-3">
                       <p className="text-sm font-medium text-gray-900">{post.title}</p>
@@ -278,7 +320,10 @@ export default function Scheduler() {
                         <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200">
                           <Edit2 className="h-3.5 w-3.5 text-gray-500" />
                         </button>
-                        <button className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-200">
+                        <button 
+                          className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-200"
+                          onClick={() => handleDeletePost(post.id)}
+                        >
                           <Trash2 className="h-3.5 w-3.5 text-red-500" />
                         </button>
                         <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200">
@@ -290,8 +335,42 @@ export default function Scheduler() {
                 ))}
               </tbody>
             </table>
+            {scheduledPosts.length === 0 && (
+              <EmptyState 
+                variant="scheduled"
+                title="No scheduled posts yet"
+                description="Schedule your content to start building your presence."
+                action={{
+                  label: "Schedule Your First Post",
+                  onClick: () => setScheduleModalOpen(true)
+                }}
+              />
+            )}
           </div>
         </div>
+
+        {/* Schedule Post Modal */}
+        <SchedulePostModal
+          isOpen={scheduleModalOpen}
+          onClose={() => setScheduleModalOpen(false)}
+          onSchedule={handleSchedulePost}
+          preselectedDate={selectedDate || undefined}
+        />
+
+        {/* Delete Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setPostToDelete(null);
+          }}
+          onConfirm={confirmDeletePost}
+          title="Delete Scheduled Post"
+          description="Are you sure you want to delete this scheduled post? This action cannot be undone."
+          confirmText="Delete Post"
+          cancelText="Keep Post"
+          variant="danger"
+        />
       </div>
     </DashboardLayout>
   );

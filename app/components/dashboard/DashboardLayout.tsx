@@ -7,15 +7,14 @@ import { usePathname, useRouter } from "next/navigation";
 import { 
   Menu, 
   X,
-  Bell,
-  Search,
   HelpCircle,
-  Command,
   ChevronLeft,
   ChevronRight,
   LogOut
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { NotificationDropdown } from "@/components/dashboard/NotificationDropdown";
+import { SearchDropdown } from "@/components/dashboard/SearchDropdown";
 
 // Custom SVG Icons for Dashboard Navigation
 const IconDashboard = ({ className = "h-5 w-5" }: { className?: string }) => (
@@ -64,11 +63,27 @@ const IconSettings = ({ className = "h-5 w-5" }: { className?: string }) => (
   </svg>
 );
 
+const IconBilling = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="14" x="2" y="5" rx="2" />
+    <path d="M2 10h20" />
+  </svg>
+);
+
+const IconAccount = ({ className = "h-5 w-5" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M20 21a8 8 0 0 0-16 0" />
+  </svg>
+);
+
 const NAVIGATION_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: IconDashboard, path: "/dashboard" },
   { id: "generate", label: "Content Generation", icon: IconSparkles, path: "/dashboard/generate" },
   { id: "scheduler", label: "Scheduler", icon: IconCalendar, path: "/dashboard/scheduler" },
   { id: "analytics", label: "Analytics", icon: IconAnalytics, path: "/dashboard/analytics" },
+  { id: "billing", label: "Billing", icon: IconBilling, path: "/dashboard/billing" },
+  { id: "account", label: "Account", icon: IconAccount, path: "/dashboard/account" },
   { id: "settings", label: "Settings", icon: IconSettings, path: "/dashboard/settings" },
 ];
 
@@ -196,6 +211,38 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             })}
           </nav>
 
+          {/* Current Plan Indicator */}
+          <div className={`${sidebarCollapsed ? "px-2" : "px-3"} py-3`}>
+            <Link href="/dashboard/billing">
+              {!sidebarCollapsed ? (
+                <div className="p-3 bg-gradient-to-r from-[#6D28D9]/10 to-[#6D28D9]/5 rounded-xl border border-[#6D28D9]/20 hover:border-[#6D28D9]/40 transition-all duration-200 cursor-pointer group">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-semibold text-[#6D28D9]">Professional</span>
+                    <span className="text-[10px] text-[#6D28D9]/70 bg-[#6D28D9]/10 px-1.5 py-0.5 rounded-full">PRO</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="h-1.5 bg-[#6D28D9]/20 rounded-full overflow-hidden">
+                        <div className="h-full w-1/2 bg-[#6D28D9] rounded-full transition-all duration-300"></div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-gray-500 ml-2">45/90</span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 mt-1.5 group-hover:text-[#6D28D9] transition-colors">
+                    Manage subscription →
+                  </p>
+                </div>
+              ) : (
+                <div 
+                  className="flex justify-center p-2.5 rounded-xl bg-gradient-to-r from-[#6D28D9]/10 to-[#6D28D9]/5 border border-[#6D28D9]/20 hover:border-[#6D28D9]/40 transition-all duration-200 cursor-pointer"
+                  title="Professional Plan - 45/90 posts"
+                >
+                  <span className="text-[10px] font-bold text-[#6D28D9]">PRO</span>
+                </div>
+              )}
+            </Link>
+          </div>
+
           {/* Bottom Links */}
           <div className={`${sidebarCollapsed ? "px-2" : "px-3"} py-4 border-t border-gray-100 space-y-1`}>
             {!sidebarCollapsed ? (
@@ -211,10 +258,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   <LogOut className="h-5 w-5 text-gray-400" />
                   <span className="text-sm">Logout</span>
                 </div>
-                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 transition-all duration-200 cursor-pointer">
-                  <HelpCircle className="h-5 w-5 text-gray-400" />
-                  <span className="text-sm">Help & Support</span>
-                </div>
+                <Link href="/dashboard/help">
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 transition-all duration-200 cursor-pointer">
+                    <HelpCircle className="h-5 w-5 text-gray-400" />
+                    <span className="text-sm">Help & Support</span>
+                  </div>
+                </Link>
               </>
             ) : (
               <>
@@ -229,12 +278,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 >
                   <LogOut className="h-5 w-5 text-gray-400" />
                 </div>
-                <div 
-                  className="flex justify-center p-2.5 rounded-xl text-gray-600 hover:bg-gray-50 transition-all duration-200 cursor-pointer"
-                  title="Help & Support"
-                >
-                  <HelpCircle className="h-5 w-5 text-gray-400" />
-                </div>
+                <Link href="/dashboard/help">
+                  <div 
+                    className="flex justify-center p-2.5 rounded-xl text-gray-600 hover:bg-gray-50 transition-all duration-200 cursor-pointer"
+                    title="Help & Support"
+                  >
+                    <HelpCircle className="h-5 w-5 text-gray-400" />
+                  </div>
+                </Link>
               </>
             )}
           </div>
@@ -272,29 +323,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
             {/* Center: Search Bar */}
             <div className="hidden md:flex flex-1 max-w-xl mx-8">
-              <div className="relative w-full group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 transition-colors group-focus-within:text-[#6D28D9]" />
-                <input 
-                  type="text"
-                  placeholder="Search or type a command"
-                  className="w-full h-11 pl-11 pr-16 bg-gray-50/80 border border-gray-200 rounded-2xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 transition-all duration-200"
-                />
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-gray-400 text-xs font-medium bg-white border border-gray-200 px-2 py-1 rounded-lg">
-                  <Command className="h-3 w-3" />
-                  <span>F</span>
-                </div>
-              </div>
+              <SearchDropdown className="w-full" />
             </div>
 
             {/* Right: Actions */}
             <div className="flex items-center gap-3">
-              <button className="relative p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200">
-                <Bell className="h-5 w-5 text-gray-600" />
-                <span className="absolute top-2 right-2 w-2 h-2 bg-[#6D28D9] rounded-full ring-2 ring-white"></span>
-              </button>
+              <NotificationDropdown />
               <div 
                 className="w-10 h-10 rounded-full overflow-hidden cursor-pointer ring-2 ring-gray-100 hover:ring-[#6D28D9]/30 transition-all duration-200"
-                onClick={() => router.push('/dashboard/settings')}
+                onClick={() => router.push('/dashboard/account')}
               >
                 <div className="w-full h-full bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] flex items-center justify-center text-white font-semibold text-sm">
                   {initials}

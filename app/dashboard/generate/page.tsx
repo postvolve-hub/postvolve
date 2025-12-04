@@ -13,6 +13,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { PostCustomizationModal } from "@/components/dashboard/PostCustomizationModal";
+import { GenerateNowModal } from "@/components/dashboard/GenerateNowModal";
+import { GenerationPipeline } from "@/components/dashboard/GenerationPipeline";
+import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { toast } from "@/hooks/use-toast";
 
 // Custom Icons
 const IconSparkles = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -31,6 +36,36 @@ const IconZap = ({ className = "h-4 w-4" }: { className?: string }) => (
 
 const CATEGORIES = ["All", "Tech", "AI", "Business", "Motivation"];
 
+// Lane Icons
+const IconRobot = ({ className = "h-3 w-3" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="18" height="10" x="3" y="11" rx="2" />
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v4" />
+    <line x1="8" x2="8" y1="16" y2="16" />
+    <line x1="16" x2="16" y1="16" y2="16" />
+  </svg>
+);
+
+const IconLink = ({ className = "h-3 w-3" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+  </svg>
+);
+
+const IconPencil = ({ className = "h-3 w-3" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+  </svg>
+);
+
+const LANE_CONFIG = {
+  auto: { label: "Auto", icon: IconRobot, color: "bg-purple-100 text-purple-700" },
+  url: { label: "URL", icon: IconLink, color: "bg-blue-100 text-blue-700" },
+  custom: { label: "Custom", icon: IconPencil, color: "bg-emerald-100 text-emerald-700" },
+};
+
 const MOCK_CONTENT = [
   {
     id: 1,
@@ -39,6 +74,7 @@ const MOCK_CONTENT = [
     description: "Discover how AI agents are revolutionizing task automation and decision-making across industries. From customer service to creative workflows, autonomous agents are becoming essential business tools.",
     imageUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop",
     status: "draft",
+    lane: "auto" as const,
   },
   {
     id: 2,
@@ -47,6 +83,7 @@ const MOCK_CONTENT = [
     description: "Cloud computing continues to evolve. Here are the top 5 technologies that will shape enterprise infrastructure in the coming years.",
     imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=600&fit=crop",
     status: "draft",
+    lane: "auto" as const,
   },
   {
     id: 3,
@@ -55,6 +92,7 @@ const MOCK_CONTENT = [
     description: "Success isn't about avoiding challenges—it's about developing the resilience to overcome them. Learn the mindset shifts that separate high performers from the rest.",
     imageUrl: "https://images.unsplash.com/photo-1519834785169-98be25ec3f84?w=800&h=600&fit=crop",
     status: "draft",
+    lane: "url" as const,
   },
   {
     id: 4,
@@ -63,6 +101,7 @@ const MOCK_CONTENT = [
     description: "Navigating the path from seed to Series A requires strategic planning. Here's what investors are looking for in 2025.",
     imageUrl: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=600&fit=crop",
     status: "draft",
+    lane: "custom" as const,
   },
 ];
 
@@ -77,14 +116,48 @@ export default function ContentGeneration() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedPost, setSelectedPost] = useState<typeof MOCK_CONTENT[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [isPipelineOpen, setIsPipelineOpen] = useState(false);
+  const [content, setContent] = useState(MOCK_CONTENT);
+  const [skipModalOpen, setSkipModalOpen] = useState(false);
+  const [postToSkip, setPostToSkip] = useState<number | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
 
   const filteredContent = selectedCategory === "All" 
-    ? MOCK_CONTENT 
-    : MOCK_CONTENT.filter(post => post.category === selectedCategory);
+    ? content 
+    : content.filter(post => post.category === selectedCategory);
 
   const handleEditPost = (post: typeof MOCK_CONTENT[0]) => {
     setSelectedPost(post);
     setIsModalOpen(true);
+  };
+
+  const handleSkipPost = (postId: number) => {
+    setPostToSkip(postId);
+    setSkipModalOpen(true);
+  };
+
+  const confirmSkipPost = () => {
+    if (postToSkip !== null) {
+      setContent(prev => prev.filter(p => p.id !== postToSkip));
+      toast({
+        title: "Draft Skipped",
+        description: "The draft has been removed from your queue.",
+      });
+    }
+    setSkipModalOpen(false);
+    setPostToSkip(null);
+  };
+
+  const handleRegeneratePost = async (postId: number) => {
+    setRegeneratingId(postId);
+    // Simulate regeneration
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setRegeneratingId(null);
+    toast({
+      title: "Content Regenerated",
+      description: "A new version has been generated for this draft.",
+    });
   };
 
   return (
@@ -96,10 +169,23 @@ export default function ContentGeneration() {
             <h2 className="text-xl font-bold text-gray-900">News Card Generation</h2>
             <p className="text-sm text-gray-500 mt-1">Review and customize AI-generated news cards for your audience.</p>
           </div>
-          <Button className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl">
-            <IconSparkles className="h-4 w-4 mr-2" />
-            Generate More
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              className="border-[#6D28D9]/30 text-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 rounded-xl"
+              onClick={() => setIsGenerateModalOpen(true)}
+            >
+              <IconSparkles className="h-4 w-4 mr-2" />
+              Quick Generate
+            </Button>
+            <Button 
+              className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
+              onClick={() => setIsPipelineOpen(true)}
+            >
+              <IconZap className="h-4 w-4 mr-2" />
+              Full Pipeline
+            </Button>
+          </div>
         </div>
 
         {/* Category Filter & Actions */}
@@ -145,11 +231,26 @@ export default function ContentGeneration() {
                     alt={post.title}
                     className="w-full h-48 md:h-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 flex gap-2">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${CATEGORY_COLORS[post.category]}`}>
                       {post.category}
                     </span>
                   </div>
+                  {/* Lane Badge */}
+                  {post.lane && (
+                    <div className="absolute top-3 right-3">
+                      {(() => {
+                        const laneConfig = LANE_CONFIG[post.lane];
+                        const LaneIcon = laneConfig.icon;
+                        return (
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${laneConfig.color}`}>
+                            <LaneIcon />
+                            {laneConfig.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div className="md:w-2/5 p-4 flex flex-col">
@@ -167,13 +268,25 @@ export default function ContentGeneration() {
                       <Edit3 className="h-3.5 w-3.5 mr-2" />
                       Review & Edit
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
-                    >
-                      <SkipForward className="h-3.5 w-3.5 mr-2" />
-                      Skip / Regenerate
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
+                        onClick={() => handleRegeneratePost(post.id)}
+                        disabled={regeneratingId === post.id}
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
+                        {regeneratingId === post.id ? "..." : "Regenerate"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="flex-1 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 text-sm"
+                        onClick={() => handleSkipPost(post.id)}
+                      >
+                        <SkipForward className="h-3.5 w-3.5 mr-1.5" />
+                        Skip
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -183,14 +296,19 @@ export default function ContentGeneration() {
 
         {/* Empty State */}
         {filteredContent.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 animate-in fade-in duration-300">
-            <ImageIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-base font-semibold text-gray-900 mb-2">No content in this category</h3>
-            <p className="text-sm text-gray-500 mb-6">Generate new news cards to see posts here.</p>
-            <Button className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl">
-              <IconSparkles className="h-4 w-4 mr-2" />
-              Generate News Cards
-            </Button>
+          <div className="bg-white rounded-2xl border border-gray-100">
+            <EmptyState 
+              variant="drafts"
+              title={selectedCategory !== "All" ? `No ${selectedCategory} drafts` : "No drafts yet"}
+              description={selectedCategory !== "All" 
+                ? `Generate new content in the ${selectedCategory} category to see posts here.`
+                : "Generate your first AI-powered content to get started."
+              }
+              action={{
+                label: "Generate Content",
+                onClick: () => setIsGenerateModalOpen(true)
+              }}
+            />
           </div>
         )}
 
@@ -199,9 +317,10 @@ export default function ContentGeneration() {
           <Button 
             size="lg"
             className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 px-8 rounded-xl"
+            onClick={() => setIsGenerateModalOpen(true)}
           >
             <IconZap className="h-4 w-4 mr-2" />
-            Generate More News Cards
+            Generate New Content
           </Button>
         </div>
       </div>
@@ -210,6 +329,36 @@ export default function ContentGeneration() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         post={selectedPost}
+      />
+
+      <GenerateNowModal
+        isOpen={isGenerateModalOpen}
+        onClose={() => setIsGenerateModalOpen(false)}
+      />
+
+      <ConfirmationModal
+        isOpen={skipModalOpen}
+        onClose={() => {
+          setSkipModalOpen(false);
+          setPostToSkip(null);
+        }}
+        onConfirm={confirmSkipPost}
+        title="Skip Draft"
+        description="Are you sure you want to skip this draft? It will be removed from your queue and you won't be able to recover it."
+        confirmText="Skip Draft"
+        cancelText="Keep Draft"
+        variant="warning"
+      />
+
+      <GenerationPipeline
+        isOpen={isPipelineOpen}
+        onClose={() => setIsPipelineOpen(false)}
+        onComplete={(result) => {
+          toast({
+            title: "Content Generated",
+            description: "Your new content has been added to drafts.",
+          });
+        }}
       />
     </DashboardLayout>
   );

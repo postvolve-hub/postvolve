@@ -7,8 +7,12 @@ import {
   Filter,
   MoreHorizontal
 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { DateRangePickerModal } from "@/components/dashboard/DateRangePickerModal";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { toast } from "@/hooks/use-toast";
 
 // Custom Icons
 const IconEye = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -123,6 +127,28 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function Analytics() {
+  const [dateRangeModalOpen, setDateRangeModalOpen] = useState(false);
+  const [selectedDateRange, setSelectedDateRange] = useState("Last 30 Days");
+
+  const handleDateRangeApply = (range: { start: Date | null; end: Date | null }, preset: string) => {
+    const presetLabels: Record<string, string> = {
+      today: "Today",
+      yesterday: "Yesterday",
+      "7days": "Last 7 Days",
+      "30days": "Last 30 Days",
+      "90days": "Last 90 Days",
+      thisMonth: "This Month",
+      lastMonth: "Last Month",
+      thisYear: "This Year",
+      custom: "Custom Range",
+    };
+    setSelectedDateRange(presetLabels[preset] || "Custom Range");
+    toast({
+      title: "Date Range Updated",
+      description: `Analytics now showing data for ${presetLabels[preset] || "custom range"}.`,
+    });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6 animate-in fade-in duration-500">
@@ -133,9 +159,13 @@ export default function Analytics() {
             <p className="text-sm text-gray-500 mt-1">Track your news card performance and growth metrics.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" className="border-gray-200 text-gray-600 rounded-xl h-9 text-sm transition-all duration-200">
+            <Button 
+              variant="outline" 
+              className="border-gray-200 text-gray-600 rounded-xl h-9 text-sm transition-all duration-200"
+              onClick={() => setDateRangeModalOpen(true)}
+            >
               <Calendar className="h-4 w-4 mr-2" />
-              Last 30 Days
+              {selectedDateRange}
             </Button>
             <Button variant="outline" className="border-gray-200 text-gray-600 rounded-xl h-9 text-sm transition-all duration-200">
               <Filter className="h-4 w-4 mr-2" />
@@ -218,60 +248,82 @@ export default function Analytics() {
               Export Data
             </Button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50/50">
-                <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Post</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Impressions</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Engagement</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {MOCK_POST_HISTORY.map((post, index) => (
-                  <tr key={post.id} className="hover:bg-gray-50/50 transition-colors duration-200">
-                    <td className="px-5 py-3">
-                      <p className="text-sm font-medium text-gray-900">{post.title}</p>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-gray-500">{post.date}</td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[post.category]}`}>
-                        {post.category}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <IconEye className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                        {post.impressions}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <IconHeart className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                        {post.engagement}
-                      </div>
-                    </td>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[post.status]}`}>
-                        {post.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
-            <p className="text-xs text-gray-500">Showing 6 of 156 posts</p>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" className="border-gray-200 rounded-xl h-8 text-xs transition-all duration-200">Previous</Button>
-              <Button variant="outline" size="sm" className="border-gray-200 rounded-xl h-8 text-xs transition-all duration-200">Next</Button>
-            </div>
-          </div>
+          {MOCK_POST_HISTORY.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50/50">
+                    <tr>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Post</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Impressions</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Engagement</th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {MOCK_POST_HISTORY.map((post, index) => (
+                      <tr key={post.id} className="hover:bg-gray-50/50 transition-colors duration-200">
+                        <td className="px-5 py-3">
+                          <p className="text-sm font-medium text-gray-900">{post.title}</p>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-gray-500">{post.date}</td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[post.category]}`}>
+                            {post.category}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <IconEye className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
+                            {post.impressions}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3">
+                          <div className="flex items-center text-sm text-gray-900">
+                            <IconHeart className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
+                            {post.engagement}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[post.status]}`}>
+                            {post.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-xs text-gray-500">Showing 6 of 156 posts</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="border-gray-200 rounded-xl h-8 text-xs transition-all duration-200">Previous</Button>
+                  <Button variant="outline" size="sm" className="border-gray-200 rounded-xl h-8 text-xs transition-all duration-200">Next</Button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <EmptyState 
+              variant="analytics"
+              title="No analytics data yet"
+              description="Start posting to see your performance metrics here."
+              action={{
+                label: "Go to Content",
+                onClick: () => window.location.href = "/dashboard/generate"
+              }}
+            />
+          )}
         </div>
+
+        {/* Date Range Picker Modal */}
+        <DateRangePickerModal
+          isOpen={dateRangeModalOpen}
+          onClose={() => setDateRangeModalOpen(false)}
+          onApply={handleDateRangeApply}
+          initialPreset="30days"
+        />
       </div>
     </DashboardLayout>
   );

@@ -7,11 +7,18 @@ import {
   Bell, 
   Check,
   ExternalLink,
-  MoreHorizontal
+  MoreHorizontal,
+  Plus,
+  Trash2,
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ConnectAccountModal } from "@/components/dashboard/ConnectAccountModal";
+import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
+import { toast } from "@/hooks/use-toast";
 
 // Custom Icons
 const IconZap = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -59,21 +66,55 @@ const CATEGORIES = [
   { id: "motivation", label: "Motivation", description: "Inspirational content" },
 ];
 
-const CONNECTED_ACCOUNTS = [
-  { id: 1, name: "LinkedIn", icon: IconLinkedIn, connected: true, username: "@johndoe", color: "text-blue-600" },
-  { id: 2, name: "Twitter/X", icon: IconX, connected: true, username: "@johndoe", color: "text-gray-900" },
-  { id: 3, name: "Facebook", icon: IconFacebook, connected: false, username: null, color: "text-blue-600" },
-  { id: 4, name: "Instagram", icon: IconInstagram, connected: false, username: null, color: "text-pink-600" },
+const CONNECTED_ACCOUNTS_INIT = [
+  { id: 1, platformId: "linkedin" as const, name: "LinkedIn", icon: IconLinkedIn, connected: true, username: "@johndoe", color: "text-blue-600" },
+  { id: 2, platformId: "twitter" as const, name: "Twitter/X", icon: IconX, connected: true, username: "@johndoe", color: "text-gray-900" },
+  { id: 3, platformId: "facebook" as const, name: "Facebook", icon: IconFacebook, connected: false, username: null, color: "text-blue-600" },
+  { id: 4, platformId: "instagram" as const, name: "Instagram", icon: IconInstagram, connected: false, username: null, color: "text-pink-600" },
 ];
+
+// Time options for schedule dropdown
+const TIME_OPTIONS = [
+  "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"
+];
+
+const DAYS_OF_WEEK = [
+  { id: "mon", label: "M", fullName: "Monday" },
+  { id: "tue", label: "T", fullName: "Tuesday" },
+  { id: "wed", label: "W", fullName: "Wednesday" },
+  { id: "thu", label: "T", fullName: "Thursday" },
+  { id: "fri", label: "F", fullName: "Friday" },
+  { id: "sat", label: "S", fullName: "Saturday" },
+  { id: "sun", label: "S", fullName: "Sunday" },
+];
+
+interface Schedule {
+  id: string;
+  time: string;
+  days: string[];
+  platforms: string[];
+  enabled: boolean;
+}
+
+type Platform = "linkedin" | "twitter" | "facebook" | "instagram";
 
 export default function Settings() {
   const [autoPosting, setAutoPosting] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState(["tech", "ai", "business"]);
+  const [connectedAccounts, setConnectedAccounts] = useState(CONNECTED_ACCOUNTS_INIT);
+  const [connectModalOpen, setConnectModalOpen] = useState(false);
+  const [disconnectModalOpen, setDisconnectModalOpen] = useState(false);
+  const [selectedPlatform, setSelectedPlatform] = useState<Platform | null>(null);
   const [notifications, setNotifications] = useState({
     email: true,
     push: true,
     weekly: false,
   });
+  const [schedules, setSchedules] = useState<Schedule[]>([
+    { id: "1", time: "9:00 AM", days: ["mon", "tue", "wed", "thu", "fri"], platforms: ["linkedin"], enabled: true },
+    { id: "2", time: "3:00 PM", days: ["mon", "wed", "fri"], platforms: ["twitter"], enabled: true },
+  ]);
 
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories(prev => 
@@ -81,6 +122,77 @@ export default function Settings() {
         ? prev.filter(id => id !== categoryId)
         : [...prev, categoryId]
     );
+  };
+
+  const addSchedule = () => {
+    const newSchedule: Schedule = {
+      id: Date.now().toString(),
+      time: "12:00 PM",
+      days: ["mon", "tue", "wed", "thu", "fri"],
+      platforms: ["linkedin"],
+      enabled: true,
+    };
+    setSchedules(prev => [...prev, newSchedule]);
+  };
+
+  const removeSchedule = (scheduleId: string) => {
+    if (schedules.length > 1) {
+      setSchedules(prev => prev.filter(s => s.id !== scheduleId));
+    }
+  };
+
+  const updateSchedule = (scheduleId: string, updates: Partial<Schedule>) => {
+    setSchedules(prev => prev.map(s => 
+      s.id === scheduleId ? { ...s, ...updates } : s
+    ));
+  };
+
+  const toggleScheduleDay = (scheduleId: string, dayId: string) => {
+    setSchedules(prev => prev.map(s => {
+      if (s.id !== scheduleId) return s;
+      const newDays = s.days.includes(dayId)
+        ? s.days.filter(d => d !== dayId)
+        : [...s.days, dayId];
+      return { ...s, days: newDays.length > 0 ? newDays : s.days };
+    }));
+  };
+
+  const handleConnectAccount = (platform: Platform) => {
+    setSelectedPlatform(platform);
+    setConnectModalOpen(true);
+  };
+
+  const handleConnectSuccess = (platform: Platform) => {
+    setConnectedAccounts(prev => prev.map(acc => 
+      acc.platformId === platform 
+        ? { ...acc, connected: true, username: "@connected_user" }
+        : acc
+    ));
+    toast({
+      title: "Account Connected",
+      description: `Your ${platform} account has been connected successfully.`,
+    });
+  };
+
+  const handleDisconnectAccount = (platform: Platform) => {
+    setSelectedPlatform(platform);
+    setDisconnectModalOpen(true);
+  };
+
+  const handleDisconnectConfirm = () => {
+    if (selectedPlatform) {
+      setConnectedAccounts(prev => prev.map(acc => 
+        acc.platformId === selectedPlatform 
+          ? { ...acc, connected: false, username: null }
+          : acc
+      ));
+      toast({
+        title: "Account Disconnected",
+        description: `Your ${selectedPlatform} account has been disconnected.`,
+      });
+    }
+    setDisconnectModalOpen(false);
+    setSelectedPlatform(null);
   };
 
   return (
@@ -94,41 +206,161 @@ export default function Settings() {
 
         {/* Auto Posting */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom-2 duration-500 delay-75">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
-            <div className="p-2 bg-[#6D28D9]/10 rounded-xl">
-              <IconZap className="text-[#6D28D9]" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">Auto Posting</h3>
-              <p className="text-xs text-gray-500">Automatically publish approved drafts</p>
-            </div>
-          </div>
-          <div className="p-5">
-            <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-[#6D28D9]/10 rounded-xl">
+                <IconZap className="text-[#6D28D9]" />
+              </div>
               <div>
-                <h4 className="text-sm font-medium text-gray-900">Enable Auto Posting</h4>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Approved posts will be published at the scheduled time.
-                </p>
+                <h3 className="text-sm font-semibold text-gray-900">Auto Posting</h3>
+                <p className="text-xs text-gray-500">Automatically publish approved drafts</p>
               </div>
-              <Switch
-                checked={autoPosting}
-                onCheckedChange={setAutoPosting}
-                className="data-[state=checked]:bg-[#6D28D9]"
-              />
             </div>
-            {autoPosting && (
-              <div className="mt-3 p-4 border border-[#6D28D9]/20 bg-[#6D28D9]/5 rounded-xl transition-all duration-300">
-                <div className="flex items-center gap-2 text-[#6D28D9]">
-                  <Clock className="h-3.5 w-3.5" />
-                  <span className="text-xs font-medium">Posting Schedule</span>
+            <Switch
+              checked={autoPosting}
+              onCheckedChange={setAutoPosting}
+              className="data-[state=checked]:bg-[#6D28D9]"
+            />
+          </div>
+          
+          {autoPosting && (
+            <div className="p-5 space-y-4">
+              {/* Schedules Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-900">Posting Schedules</span>
+                  <Badge variant="outline" className="text-xs text-[#6D28D9] border-[#6D28D9]/20 bg-[#6D28D9]/5">
+                    {schedules.length} active
+                  </Badge>
                 </div>
-                <p className="text-xs text-gray-600 mt-1.5">
-                  Posts will be automatically published at <strong>3:00 PM</strong> daily.
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-xs rounded-xl h-8 border-[#6D28D9]/30 text-[#6D28D9] hover:bg-[#6D28D9]/5"
+                  onClick={addSchedule}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Add Schedule
+                </Button>
+              </div>
+
+              {/* Schedule Cards */}
+              <div className="space-y-3">
+                {schedules.map((schedule, index) => (
+                  <div 
+                    key={schedule.id}
+                    className={`p-4 border rounded-xl transition-all duration-200 ${
+                      schedule.enabled 
+                        ? "border-[#6D28D9]/20 bg-[#6D28D9]/5" 
+                        : "border-gray-200 bg-gray-50 opacity-60"
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      {/* Time & Days */}
+                      <div className="flex-1 space-y-3">
+                        {/* Time Selector */}
+                        <div className="flex items-center gap-3">
+                          <Clock className={`h-4 w-4 ${schedule.enabled ? "text-[#6D28D9]" : "text-gray-400"}`} />
+                          <select
+                            value={schedule.time}
+                            onChange={(e) => updateSchedule(schedule.id, { time: e.target.value })}
+                            disabled={!schedule.enabled}
+                            className="h-9 px-3 text-sm font-medium border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 disabled:opacity-50"
+                          >
+                            {TIME_OPTIONS.map(time => (
+                              <option key={time} value={time}>{time}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Days Selector */}
+                        <div className="flex items-center gap-1">
+                          {DAYS_OF_WEEK.map((day) => {
+                            const isActive = schedule.days.includes(day.id);
+                            return (
+                              <button
+                                key={day.id}
+                                onClick={() => toggleScheduleDay(schedule.id, day.id)}
+                                disabled={!schedule.enabled}
+                                title={day.fullName}
+                                className={`w-8 h-8 rounded-full text-xs font-medium transition-all duration-200 disabled:opacity-50 ${
+                                  isActive
+                                    ? "bg-[#6D28D9] text-white"
+                                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                }`}
+                              >
+                                {day.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Platform Tags */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Post to:</span>
+                          <div className="flex gap-1">
+                            {["linkedin", "twitter"].map(platform => {
+                              const isSelected = schedule.platforms.includes(platform);
+                              return (
+                                <button
+                                  key={platform}
+                                  onClick={() => {
+                                    const newPlatforms = isSelected
+                                      ? schedule.platforms.filter(p => p !== platform)
+                                      : [...schedule.platforms, platform];
+                                    if (newPlatforms.length > 0) {
+                                      updateSchedule(schedule.id, { platforms: newPlatforms });
+                                    }
+                                  }}
+                                  disabled={!schedule.enabled}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 disabled:opacity-50 ${
+                                    isSelected
+                                      ? platform === "linkedin" 
+                                        ? "bg-blue-100 text-blue-700" 
+                                        : "bg-gray-900 text-white"
+                                      : "bg-gray-100 text-gray-500"
+                                  }`}
+                                >
+                                  {platform === "linkedin" ? "LinkedIn" : "X"}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Controls */}
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={schedule.enabled}
+                          onCheckedChange={(checked) => updateSchedule(schedule.id, { enabled: checked })}
+                          className="data-[state=checked]:bg-[#6D28D9]"
+                        />
+                        {schedules.length > 1 && (
+                          <button
+                            onClick={() => removeSchedule(schedule.id)}
+                            className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                            title="Remove schedule"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pro tip */}
+              <div className="p-3 bg-amber-50 border border-amber-200/50 rounded-xl">
+                <p className="text-xs text-amber-700">
+                  <strong>Pro tip:</strong> Posting at different times increases your reach across time zones. 
+                  LinkedIn performs best between 9-11 AM, while X/Twitter sees higher engagement around 12-3 PM.
                 </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Content Categories */}
@@ -191,7 +423,7 @@ export default function Settings() {
           </div>
           <div className="p-5">
             <div className="space-y-3">
-              {CONNECTED_ACCOUNTS.map((account, index) => {
+              {connectedAccounts.map((account, index) => {
                 const IconComponent = account.icon;
                 return (
                   <div
@@ -218,12 +450,22 @@ export default function Settings() {
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                           Connected
                         </span>
-                        <Button variant="ghost" size="sm" className="text-xs text-gray-500 hover:text-red-500 rounded-xl h-7 transition-all duration-200">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs text-gray-500 hover:text-red-500 rounded-xl h-7 transition-all duration-200"
+                          onClick={() => handleDisconnectAccount(account.platformId)}
+                        >
                           Disconnect
                         </Button>
                       </div>
                     ) : (
-                      <Button variant="outline" size="sm" className="border-[#6D28D9] text-[#6D28D9] hover:bg-[#6D28D9]/5 rounded-xl h-7 text-xs transition-all duration-200">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-[#6D28D9] text-[#6D28D9] hover:bg-[#6D28D9]/5 rounded-xl h-7 text-xs transition-all duration-200"
+                        onClick={() => handleConnectAccount(account.platformId)}
+                      >
                         <ExternalLink className="h-3 w-3 mr-1.5" />
                         Connect
                       </Button>
@@ -234,6 +476,32 @@ export default function Settings() {
             </div>
           </div>
         </div>
+
+        {/* Connect Account Modal */}
+        <ConnectAccountModal
+          isOpen={connectModalOpen}
+          onClose={() => {
+            setConnectModalOpen(false);
+            setSelectedPlatform(null);
+          }}
+          platform={selectedPlatform}
+          onSuccess={handleConnectSuccess}
+        />
+
+        {/* Disconnect Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={disconnectModalOpen}
+          onClose={() => {
+            setDisconnectModalOpen(false);
+            setSelectedPlatform(null);
+          }}
+          onConfirm={handleDisconnectConfirm}
+          title="Disconnect Account"
+          description={`Are you sure you want to disconnect your ${selectedPlatform} account? You won't be able to post to this platform until you reconnect.`}
+          confirmText="Disconnect"
+          cancelText="Keep Connected"
+          variant="danger"
+        />
 
         {/* Notifications */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden animate-in slide-in-from-bottom-2 duration-500 delay-200">

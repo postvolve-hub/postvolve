@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Progress } from "@/components/ui/progress";
+import { EmptyState } from "@/components/dashboard/EmptyState";
 
 // Custom Icons for Categories - Smaller size (h-4 w-4)
 const IconAI = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -288,18 +289,31 @@ export default function DashboardHome() {
             </button>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="divide-y divide-gray-100">
-              {DRAFT_POSTS.map((post, index) => (
-                <PostRow key={post.id} post={post} index={index} />
-              ))}
-            </div>
-            {/* Add New Post Row */}
-            <Link href="/dashboard/generate">
-              <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-dashed border-gray-200 text-gray-400 hover:text-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 cursor-pointer">
-                <Plus className="h-4 w-4" />
-                <span className="text-sm font-medium">Add New Post</span>
-              </div>
-            </Link>
+            {DRAFT_POSTS.length > 0 ? (
+              <>
+                <div className="divide-y divide-gray-100">
+                  {DRAFT_POSTS.map((post, index) => (
+                    <PostRow key={post.id} post={post} index={index} />
+                  ))}
+                </div>
+                {/* Add New Post Row */}
+                <Link href="/dashboard/generate">
+                  <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-dashed border-gray-200 text-gray-400 hover:text-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 cursor-pointer">
+                    <Plus className="h-4 w-4" />
+                    <span className="text-sm font-medium">Add New Post</span>
+                  </div>
+                </Link>
+              </>
+            ) : (
+              <EmptyState 
+                variant="drafts"
+                action={{
+                  label: "Generate Content",
+                  onClick: () => window.location.href = "/dashboard/generate"
+                }}
+                className="py-8"
+              />
+            )}
           </div>
         </section>
 
@@ -312,11 +326,24 @@ export default function DashboardHome() {
             </button>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="divide-y divide-gray-100">
-              {ACTIVE_POSTS.map((post, index) => (
-                <PostRow key={post.id} post={post} index={index} />
-              ))}
-            </div>
+            {ACTIVE_POSTS.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {ACTIVE_POSTS.map((post, index) => (
+                  <PostRow key={post.id} post={post} index={index} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState 
+                variant="scheduled"
+                title="No active projects"
+                description="Schedule posts to see them appear here."
+                action={{
+                  label: "Go to Scheduler",
+                  onClick: () => window.location.href = "/dashboard/scheduler"
+                }}
+                className="py-8"
+              />
+            )}
           </div>
         </section>
       </div>
