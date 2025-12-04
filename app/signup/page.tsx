@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +12,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2, Mail, Lock, ArrowRight, Check, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function SignUp() {
+function SignUpContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, registerMutation, googleLoginMutation } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isCreatingProfile, setIsCreatingProfile] = useState(false);
+  
+  // Get selected plan from URL or localStorage
+  const selectedPlan = searchParams.get("plan") || localStorage.getItem("postvolve_selected_plan") || "starter";
 
   // Handle redirect after successful signup
   useEffect(() => {
@@ -48,8 +52,9 @@ export default function SignUp() {
       return;
     }
     
-    // Store email for onboarding to use as default username
+    // Store email and selected plan for onboarding
     localStorage.setItem("postvolve_signup_email", email);
+    localStorage.setItem("postvolve_selected_plan", selectedPlan);
     
     const derivedUsername = email.split("@")[0].toLowerCase().replace(/[^a-z0-9_]/g, "") || "user";
     
@@ -412,6 +417,18 @@ export default function SignUp() {
         </motion.div>
       </div>
     </div>
+  );
+}
+
+export default function SignUp() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <SignUpContent />
+    </Suspense>
   );
 }
 

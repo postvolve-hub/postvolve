@@ -20,9 +20,11 @@ const Pricing = () => {
   const [processingPlan, setProcessingPlan] = useState<string | null>(null);
 
   const handlePlanSelect = async (planId: "starter" | "plus" | "pro") => {
-    // If not logged in, go to signup
+    // If not logged in, store selected plan and go to signup
     if (!user) {
-      router.push("/signup");
+      // Store selected plan in localStorage and pass in URL
+      localStorage.setItem("postvolve_selected_plan", planId);
+      router.push(`/signup?plan=${planId}`);
       return;
     }
 
@@ -150,7 +152,7 @@ const Pricing = () => {
                     ) : user ? (
                       "Subscribe to Starter"
                     ) : (
-                      "Get Started"
+                      "Start Free Trial"
                     )}
                   </Button>
                 )}

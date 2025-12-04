@@ -116,7 +116,9 @@ function BillingPageContent() {
           .from("subscriptions")
           .select("*")
           .eq("user_id", user.id)
-          .single();
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
         if (subError && subError.code !== "PGRST116") {
           console.error("Error fetching subscription:", subError);
@@ -253,8 +255,21 @@ function BillingPageContent() {
   const currentPlan = subscription?.plan_type || "starter";
   const planName = PLAN_NAMES[currentPlan] || "Starter";
   const planPrice = PLAN_PRICES[currentPlan] || 39;
+  
+  // Check if user is on trial
+  const isOnTrial = subscription?.status === "trialing" || 
+    (subscription?.trial_end && new Date(subscription.trial_end) > new Date());
+  const trialEndDate = subscription?.trial_end 
+    ? new Date(subscription.trial_end).toLocaleDateString()
+    : null;
+  
+  // Determine next billing date
   const nextBillingDate = subscription?.current_period_end
     ? new Date(subscription.current_period_end).toLocaleDateString()
+    : subscription?.status === "active" && !subscription?.stripe_subscription_id
+    ? "Free Plan" // For Starter plan users without Stripe subscription
+    : isOnTrial && trialEndDate
+    ? `Trial ends: ${trialEndDate}`
     : "N/A";
 
   const postsPercentage = usage
@@ -281,9 +296,7 @@ function BillingPageContent() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <IconCrown className="h-5 w-5 text-yellow-300" />
-                <Badge className="bg-white/20 text-white hover:bg-white/30 border-0">
                   Current Plan
-                </Badge>
               </div>
               <h3 className="text-2xl font-bold mb-1">{planName} Plan</h3>
               <p className="text-white/80 text-sm">
@@ -318,17 +331,39 @@ function BillingPageContent() {
             </div>
           </div>
 
-          {/* Next billing info */}
-          <div className="mt-6 pt-4 border-t border-white/20 flex flex-wrap items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-white/60" />
-              <span className="text-white/80">Next billing: <strong className="text-white">{nextBillingDate}</strong></span>
+          {/* Trial Status or Next billing info */}
+          {isOnTrial && trialEndDate ? (
+            <div className="mt-6 pt-4 border-t border-white/20">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="px-3 py-1 bg-yellow-400/20 border border-yellow-400/30 rounded-full">
+                  <span className="text-yellow-300 text-xs font-semibold uppercase tracking-wide">Free Trial Active</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-white/60" />
+                  <span className="text-white/80">Trial ends: <strong className="text-white">{trialEndDate}</strong></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  <span className="text-white/80">Auto-renewal enabled</span>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-green-400" />
-              <span className="text-white/80">Auto-renewal enabled</span>
+          ) : (
+            <div className="mt-6 pt-4 border-t border-white/20 flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-white/60" />
+                <span className="text-white/80">Next billing: <strong className="text-white">{nextBillingDate}</strong></span>
+              </div>
+              {subscription?.stripe_subscription_id && (
+                <div className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-green-400" />
+                  <span className="text-white/80">Auto-renewal enabled</span>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
 
         {/* Usage Overview */}
