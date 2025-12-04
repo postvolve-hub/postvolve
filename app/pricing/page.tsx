@@ -291,6 +291,7 @@ const Pricing = () => {
 };
 
 const CompareAllPlans = () => {
+  const { user } = useAuth();
   const features = [
     {
       category: "Core Features",
