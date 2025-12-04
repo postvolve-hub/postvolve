@@ -301,8 +301,8 @@ export default function DashboardHome() {
                   <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-dashed border-gray-200 text-gray-400 hover:text-[#6D28D9] hover:bg-[#6D28D9]/5 transition-all duration-200 cursor-pointer">
                     <Plus className="h-4 w-4" />
                     <span className="text-sm font-medium">Add New Post</span>
-                  </div>
-                </Link>
+                </div>
+              </Link>
               </>
             ) : (
               <EmptyState 
@@ -344,7 +344,7 @@ export default function DashboardHome() {
                 className="py-8"
               />
             )}
-          </div>
+        </div>
         </section>
       </div>
     </DashboardLayout>

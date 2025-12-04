@@ -243,65 +243,96 @@ postvolve/
 - Smooth transitions (300ms ease-in-out)
 - Infinite marquee for partner logos
 
-## Database Schema (Planned)
+## Database Schema ✅ IMPLEMENTED
 
-### users
-- id, email, name, avatar_url
-- plan_type, onboarding_complete
-- created_at, updated_at
+**Full PostgreSQL schema with 12 tables, RLS policies, and helper functions.**
 
-### user_settings
-- user_id, auto_posting_enabled
-- selected_categories[], preferred_platforms[]
-- posting_schedule, timezone
+📁 **Migration Files**: `supabase/migrations/001_initial_schema.sql`  
+📁 **TypeScript Types**: `shared/types/database.types.ts`  
+📁 **Helper Functions**: `app/lib/database.ts`
 
-### posts
-- id, user_id, title, content
-- image_url, category, platforms[]
-- status (draft/scheduled/posted/error)
-- generation_lane (auto/url/custom)
-- source_url (for Lane 2)
-- scheduled_at, posted_at
-- created_at, updated_at
+### Core Tables (12 total)
 
-### connected_accounts
-- user_id, platform, access_token
-- refresh_token, username, connected_at
+| Table | Description | Status |
+|-------|-------------|--------|
+| `users` | User profiles & auth | ✅ Ready |
+| `subscriptions` | Billing plans & limits | ✅ Ready |
+| `invoices` | Payment history | ✅ Ready |
+| `user_settings` | User preferences | ✅ Ready |
+| `posting_schedules` | Auto-post schedules | ✅ Ready |
+| `connected_accounts` | Social OAuth tokens | ✅ Ready |
+| `posts` | Content drafts & published | ✅ Ready |
+| `post_platforms` | Platform-specific content | ✅ Ready |
+| `post_analytics` | Performance metrics | ✅ Ready |
+| `daily_analytics` | Aggregated stats | ✅ Ready |
+| `usage_tracking` | Monthly usage for billing | ✅ Ready |
+| `activity_log` | Audit trail | ✅ Ready |
 
-### analytics
-- post_id, impressions, engagements
-- clicks, shares, recorded_at
+### Key Features
+- ✅ Row Level Security (RLS) on all tables
+- ✅ Automated `updated_at` timestamps
+- ✅ Helper functions for common operations
+- ✅ Full TypeScript type definitions
+- ✅ Optimized indexes for performance
+- ✅ Soft delete for posts
+- ✅ Auto-calculated engagement rates
+
+### Setup Instructions
+See detailed migration guide: `supabase/README.md`
 
 ## Development
 
 ### Getting Started
 
-1. Install dependencies:
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. Set up environment variables in `.env.local`:
-   ```
+2. **Set up environment variables:**
+   - Copy `env.example.txt` to `.env.local`
+   - Fill in your Supabase credentials and API keys
+   ```bash
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key  # For admin operations
    GEMINI_API_KEY=your_gemini_api_key
    ```
 
-3. Start development server:
+3. **Run database migration:**
+   - Open Supabase Dashboard → SQL Editor
+   - Copy contents of `supabase/migrations/001_initial_schema.sql`
+   - Paste and run the migration
+   - See `supabase/README.md` for detailed instructions
+
+4. **Test database connection:**
    ```bash
    npm run dev
+   # Visit http://localhost:3000/api/test-db
+   ```
+
+5. **Start development:**
+   ```bash
+   npm run dev
+   # Visit http://localhost:3000
    ```
 
 ### Scripts
-- `npm run dev` - Development server
+- `npm run dev` - Development server (http://localhost:3000)
 - `npm run build` - Production build
 - `npm run start` - Production server
-- `npm run lint` - Run linter
+- `npm run lint` - Run ESLint
+
+### Testing Database
+After migration, test your database connection:
+- API Route: `GET /api/test-db` (development only)
+- Helper functions: See `app/lib/database.ts`
+- Type safety: All queries are fully typed with TypeScript
 
 ## Notes
 
-- UI-first approach: Complete UI before backend integration
-- Authentication currently mocked pending Supabase setup
-- All dashboard pages display mock data
-- Three Lanes architecture designed for scalability
+- ✅ **UI Complete**: All 90+ screens designed and implemented
+- ✅ **Database Schema**: Full PostgreSQL schema with RLS ready
+- 🚧 **AI Integration**: Gemini API setup pending
+- 🚧 **OAuth**: Social media platform connections pending
+- 🚧 **Payments**: Stripe integration for billing pending

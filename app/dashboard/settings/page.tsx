@@ -228,20 +228,20 @@ export default function Settings() {
             <div className="flex items-center gap-3">
               <div className="p-2 bg-[#6D28D9]/10 rounded-xl">
                 <IconZap className="text-[#6D28D9]" />
-              </div>
+          </div>
               <div>
                 <h3 className="text-sm font-semibold text-gray-900">Auto Posting</h3>
                 <p className="text-xs text-gray-500">Automatically publish approved drafts</p>
               </div>
+              </div>
+              <Switch
+                checked={autoPosting}
+                onCheckedChange={setAutoPosting}
+                className="data-[state=checked]:bg-[#6D28D9]"
+              />
             </div>
-            <Switch
-              checked={autoPosting}
-              onCheckedChange={setAutoPosting}
-              className="data-[state=checked]:bg-[#6D28D9]"
-            />
-          </div>
           
-          {autoPosting && (
+            {autoPosting && (
             <div className="p-5 space-y-4">
               {/* Schedules Header */}
               <div className="flex items-center justify-between">
@@ -377,8 +377,8 @@ export default function Settings() {
                   LinkedIn performs best between 9-11 AM, while X/Twitter sees higher engagement around 12-3 PM.
                 </p>
               </div>
-            </div>
-          )}
+              </div>
+            )}
         </div>
 
         {/* Content Categories */}
@@ -444,40 +444,40 @@ export default function Settings() {
               {connectedAccounts.map((account, index) => {
                 const IconComponent = account.icon;
                 return (
-                  <div
-                    key={account.id}
+                <div
+                  key={account.id}
                     className="flex items-center justify-between p-3 border border-gray-200 rounded-xl hover:border-gray-300 transition-all duration-200"
                     style={{ animationDelay: `${index * 50}ms` }}
-                  >
+                >
                     <div className="flex items-center gap-3">
                       <div className={account.color}>
                         <IconComponent />
                       </div>
-                      <div>
+                    <div>
                         <h4 className="text-sm font-medium text-gray-900">{account.name}</h4>
-                        {account.connected ? (
+                      {account.connected ? (
                           <p className="text-xs text-gray-500">{account.username}</p>
-                        ) : (
+                      ) : (
                           <p className="text-xs text-gray-400">Not connected</p>
-                        )}
-                      </div>
+                      )}
                     </div>
-                    {account.connected ? (
+                  </div>
+                  {account.connected ? (
                       <div className="flex items-center gap-2">
                         <span className="flex items-center gap-1 text-xs text-emerald-600">
                           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                          Connected
-                        </span>
+                        Connected
+                      </span>
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className="text-xs text-gray-500 hover:text-red-500 rounded-xl h-7 transition-all duration-200"
                           onClick={() => handleDisconnectAccount(account.platformId)}
                         >
-                          Disconnect
-                        </Button>
-                      </div>
-                    ) : (
+                        Disconnect
+                      </Button>
+                    </div>
+                  ) : (
                       <Button 
                         variant="outline" 
                         size="sm" 
@@ -485,10 +485,10 @@ export default function Settings() {
                         onClick={() => handleConnectAccount(account.platformId)}
                       >
                         <ExternalLink className="h-3 w-3 mr-1.5" />
-                        Connect
-                      </Button>
-                    )}
-                  </div>
+                      Connect
+                    </Button>
+                  )}
+                </div>
                 );
               })}
             </div>

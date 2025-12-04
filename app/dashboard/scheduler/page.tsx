@@ -217,8 +217,8 @@ export default function Scheduler() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 animate-in slide-in-from-bottom-2 duration-500 delay-100">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-900">
-                {selectedDate ? `Posts for ${new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Upcoming Posts'}
-              </h3>
+              {selectedDate ? `Posts for ${new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : 'Upcoming Posts'}
+            </h3>
               <button className="p-1 rounded hover:bg-gray-100 transition-all duration-200">
                 <MoreHorizontal className="h-4 w-4 text-gray-400" />
               </button>

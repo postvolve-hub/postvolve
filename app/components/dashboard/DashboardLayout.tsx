@@ -147,7 +147,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               {!sidebarCollapsed && (
                 <span className="font-heading text-xl font-bold tracking-tight text-foreground transition-colors group-hover:text-primary/80">
                   Post<span className="text-primary">Volve</span>
-                </span>
+              </span>
               )}
             </Link>
             
@@ -170,7 +170,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <X className="h-5 w-5 text-gray-500" />
             </button>
           </div>
-          
+
           {/* Expand button when collapsed - on the right edge (dividing line) */}
           {sidebarCollapsed && (
             <button
@@ -227,7 +227,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       </div>
                     </div>
                     <span className="text-[10px] text-gray-500 ml-2">45/90</span>
-                  </div>
+              </div>
                   <p className="text-[10px] text-gray-500 mt-1.5 group-hover:text-[#6D28D9] transition-colors">
                     Manage subscription →
                   </p>
@@ -277,14 +277,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   title="Logout"
                 >
                   <LogOut className="h-5 w-5 text-gray-400" />
-                </div>
+              </div>
                 <Link href="/dashboard/help">
                   <div 
                     className="flex justify-center p-2.5 rounded-xl text-gray-600 hover:bg-gray-50 transition-all duration-200 cursor-pointer"
                     title="Help & Support"
                   >
                     <HelpCircle className="h-5 w-5 text-gray-400" />
-                  </div>
+            </div>
                 </Link>
               </>
             )}
@@ -313,13 +313,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               >
                 <Menu className="h-5 w-5 text-gray-600" />
               </button>
-              <h1 className="text-lg font-semibold text-gray-900">
-                {NAVIGATION_ITEMS.find(item => 
-                  pathname === item.path || 
-                  (item.path !== "/dashboard" && pathname.startsWith(item.path))
-                )?.label || "Dashboard"}
-              </h1>
-            </div>
+                <h1 className="text-lg font-semibold text-gray-900">
+                  {NAVIGATION_ITEMS.find(item => 
+                    pathname === item.path || 
+                    (item.path !== "/dashboard" && pathname.startsWith(item.path))
+                  )?.label || "Dashboard"}
+                </h1>
+              </div>
 
             {/* Center: Search Bar */}
             <div className="hidden md:flex flex-1 max-w-xl mx-8">

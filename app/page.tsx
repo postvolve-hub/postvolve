@@ -198,7 +198,7 @@ const Hero = () => {
   const rotateX = useTransform(scrollYProgress, [0, 0.5], [25, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.5], [0.9, 1]);
   const opacity = useTransform(scrollYProgress, [0, 0.3], [0.6, 1]);
-  
+
   return (
     <section className="relative overflow-hidden pt-16 md:pt-24 lg:pt-32 pb-8 md:pb-16">
       {/* Smooth Wavy Background */}
@@ -340,17 +340,17 @@ const Hero = () => {
               
               {/* Dashboard Screenshot */}
               <div className="relative">
-                <img 
-                  src={dashboardImage} 
-                  alt="PostVolve Dashboard Interface" 
+            <img 
+              src={dashboardImage} 
+              alt="PostVolve Dashboard Interface" 
                   className="w-full h-auto block"
-                />
+            />
                 {/* Subtle bottom fade */}
                 <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/80 to-transparent pointer-events-none"></div>
               </div>
             </div>
           </motion.div>
-        </div>
+          </div>
 
       </div>
     </section>

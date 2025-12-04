@@ -30,6 +30,7 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+env.example.txt
 
 # Vercel
 .vercel
@@ -47,3 +48,11 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Migration
+supabase/migrations/001_initial_schema.sql
+
+#Readme
+QUICK_START_GUIDE.md
+DATABASE_SETUP_COMPLETE.md
+DATABASE_TEST_RESULTS.md
