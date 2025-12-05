@@ -110,17 +110,41 @@ export function ConnectAccountModal({
     setConnectionState("connecting");
     setError(null);
 
-    // Simulate OAuth flow
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Get current user session
+      const { supabase } = await import("@/lib/supabaseClient");
+      const { data: { session } } = await supabase.auth.getSession();
 
-    // Simulate success (in real app, this would redirect to OAuth)
-    setConnectionState("success");
-    
-    // Auto-close after success
-    setTimeout(() => {
-      onSuccess?.(platform);
-      handleClose();
-    }, 1500);
+      if (!session?.access_token) {
+        setError("Please sign in to connect accounts");
+        setConnectionState("error");
+        return;
+      }
+
+      // Redirect to OAuth initiation endpoint
+      if (platform === "linkedin") {
+        // Get user ID from session
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setError("Please sign in to connect accounts");
+          setConnectionState("error");
+          return;
+        }
+        
+        // Redirect to LinkedIn OAuth with user ID
+        window.location.href = `/api/auth/linkedin?userId=${user.id}`;
+        // The redirect will happen, so we don't need to handle success here
+        return;
+      }
+
+      // For other platforms (will be implemented later)
+      setError("Platform not yet implemented");
+      setConnectionState("error");
+    } catch (err: any) {
+      console.error("Connection error:", err);
+      setError(err.message || "Failed to initiate connection");
+      setConnectionState("error");
+    }
   };
 
   const handleClose = () => {

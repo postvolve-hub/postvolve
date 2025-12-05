@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Clock,
   Link2,
@@ -80,8 +80,8 @@ const CONNECTED_ACCOUNTS_INIT: Array<{
   username: string | null;
   color: string;
 }> = [
-  { id: 1, platformId: "linkedin", name: "LinkedIn", icon: IconLinkedIn, connected: true, username: "@johndoe", color: "text-blue-600" },
-  { id: 2, platformId: "twitter", name: "Twitter/X", icon: IconX, connected: true, username: "@johndoe", color: "text-gray-900" },
+  { id: 1, platformId: "linkedin", name: "LinkedIn", icon: IconLinkedIn, connected: false, username: null, color: "text-blue-600" },
+  { id: 2, platformId: "twitter", name: "Twitter/X", icon: IconX, connected: false, username: null, color: "text-gray-900" },
   { id: 3, platformId: "facebook", name: "Facebook", icon: IconFacebook, connected: false, username: null, color: "text-blue-600" },
   { id: 4, platformId: "instagram", name: "Instagram", icon: IconInstagram, connected: false, username: null, color: "text-pink-600" },
 ];
@@ -170,6 +170,103 @@ export default function Settings() {
     fetchSubscription();
   }, [user]);
 
+  // Helper function to update connected accounts from database
+  const updateConnectedAccountsFromDB = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const { data: accounts, error } = await supabase
+        .from("connected_accounts")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "connected");
+
+      if (error) {
+        console.error("Error fetching connected accounts:", error);
+        return;
+      }
+
+      console.log("Fetched connected accounts from DB:", accounts);
+
+      // Update connected accounts state - reset all to disconnected first, then update with database data
+      setConnectedAccounts(prev => prev.map(acc => {
+        const dbAccount = accounts?.find(a => a.platform === acc.platformId);
+        if (dbAccount && dbAccount.status === "connected") {
+          // Format username for display
+          let displayUsername = dbAccount.platform_username || dbAccount.platform_display_name;
+          if (!displayUsername) {
+            // Fallback: use platform_user_id or a default
+            const userId = dbAccount.platform_user_id;
+            displayUsername = userId && userId.length > 8 
+              ? `@${userId.slice(-8)}` 
+              : "@connected";
+          } else if (!displayUsername.startsWith("@")) {
+            // Ensure username starts with @
+            displayUsername = `@${displayUsername}`;
+          }
+          
+          console.log(`Updating ${acc.platformId} to connected with username: ${displayUsername}`);
+          
+          return {
+            ...acc,
+            connected: true,
+            username: displayUsername,
+          };
+        }
+        // Reset to disconnected if not found in database
+        return {
+          ...acc,
+          connected: false,
+          username: null,
+        };
+      }));
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  }, [user]);
+
+  // Fetch connected accounts from database on mount
+  useEffect(() => {
+    updateConnectedAccountsFromDB();
+  }, [updateConnectedAccountsFromDB]);
+
+  // Handle OAuth callback success/error
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+
+    if (connected === "linkedin") {
+      toast({
+        title: "Account Connected",
+        description: "Your LinkedIn account has been connected successfully.",
+      });
+      // Clear URL params
+      window.history.replaceState({}, "", window.location.pathname);
+      // Refresh connected accounts
+      updateConnectedAccountsFromDB();
+    }
+
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        linkedin_auth_failed: "LinkedIn authorization was cancelled or failed.",
+        missing_params: "Missing required parameters. Please try again.",
+        invalid_state: "Invalid authorization state. Please try again.",
+        oauth_not_configured: "OAuth is not properly configured.",
+        token_exchange_failed: "Failed to exchange authorization code. Please try again.",
+        no_access_token: "No access token received. Please try again.",
+        callback_failed: "Connection failed. Please try again.",
+      };
+
+      toast({
+        title: "Connection Failed",
+        description: errorMessages[error] || "An error occurred during connection.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [updateConnectedAccountsFromDB]);
+
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories(prev => 
       prev.includes(categoryId)
@@ -224,16 +321,9 @@ export default function Settings() {
     setConnectModalOpen(true);
   };
 
-  const handleConnectSuccess = (platform: Platform) => {
-    setConnectedAccounts(prev => prev.map(acc => 
-      acc.platformId === platform 
-        ? { ...acc, connected: true, username: "@connected_user" }
-        : acc
-    ));
-    toast({
-      title: "Account Connected",
-      description: `Your ${platform} account has been connected successfully.`,
-    });
+  const handleConnectSuccess = async (platform: Platform) => {
+    // Refresh accounts from database
+    await updateConnectedAccountsFromDB();
   };
 
   const handleDisconnectAccount = (platform: Platform) => {
@@ -241,18 +331,58 @@ export default function Settings() {
     setDisconnectModalOpen(true);
   };
 
-  const handleDisconnectConfirm = () => {
-    if (selectedPlatform) {
+  const handleDisconnectConfirm = async () => {
+    if (!selectedPlatform || !user) return;
+
+    try {
+      // Update account status in database
+      const { error } = await supabase
+        .from("connected_accounts")
+        .update({ 
+          status: "disconnected",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id)
+        .eq("platform", selectedPlatform);
+
+      if (error) {
+        console.error("Error disconnecting account:", error);
+        toast({
+          title: "Error",
+          description: "Failed to disconnect account. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Account Disconnected",
+        description: `Your ${selectedPlatform} account has been disconnected successfully.`,
+      });
+
+      // Update local state immediately
       setConnectedAccounts(prev => prev.map(acc => 
         acc.platformId === selectedPlatform 
           ? { ...acc, connected: false, username: null }
           : acc
       ));
+
+      // Log activity
+      await supabase.from("activity_log").insert({
+        user_id: user.id,
+        activity_type: "account_disconnected",
+        description: `${selectedPlatform} account disconnected`,
+        metadata: { platform: selectedPlatform },
+      } as any);
+    } catch (error) {
+      console.error("Disconnect error:", error);
       toast({
-        title: "Account Disconnected",
-        description: `Your ${selectedPlatform} account has been disconnected.`,
+        title: "Error",
+        description: "An error occurred. Please try again.",
+        variant: "destructive",
       });
     }
+
     setDisconnectModalOpen(false);
     setSelectedPlatform(null);
   };
