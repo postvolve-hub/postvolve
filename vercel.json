@@ -1,11 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/check-expired-tokens",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/refresh-tokens",
+      "path": "/api/cron/token-maintenance",
       "schedule": "0 */6 * * *"
     }
   ]
