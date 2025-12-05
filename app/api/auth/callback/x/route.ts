@@ -65,7 +65,9 @@ export async function GET(request: NextRequest) {
     // Exchange authorization code for access token
     const clientId = process.env.TWITTER_CLIENT_ID;
     const clientSecret = process.env.TWITTER_CLIENT_SECRET;
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback/x`;
+    // Ensure no trailing slash in base URL to avoid double slashes
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+    const redirectUri = `${baseUrl}/api/auth/callback/x`;
 
     if (!clientId || !clientSecret) {
       return NextResponse.redirect(
@@ -73,8 +75,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Exchange code for token
-    const tokenResponse = await fetch("https://api.twitter.com/2/oauth2/token", {
+    // Exchange code for token (using api.x.com domain per X API docs)
+    const tokenResponse = await fetch("https://api.x.com/2/oauth2/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -106,8 +108,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch user profile from X
-    const profileResponse = await fetch("https://api.twitter.com/2/users/me?user.fields=username,name,profile_image_url", {
+    // Fetch user profile from X (using api.x.com domain per X API docs)
+    const profileResponse = await fetch("https://api.x.com/2/users/me?user.fields=username,name,profile_image_url", {
       headers: {
         Authorization: `Bearer ${access_token}`,
       },

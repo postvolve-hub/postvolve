@@ -61,7 +61,9 @@ export async function GET(request: NextRequest) {
     // Exchange authorization code for access token
     const clientId = process.env.LINKEDIN_CLIENT_ID;
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback/linkedin`;
+    // Ensure no trailing slash in base URL to avoid double slashes
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+    const redirectUri = `${baseUrl}/api/auth/callback/linkedin`;
 
     if (!clientId || !clientSecret) {
       return NextResponse.redirect(

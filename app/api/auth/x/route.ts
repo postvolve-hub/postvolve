@@ -41,7 +41,12 @@ export async function GET(request: NextRequest) {
 
     // Get X OAuth credentials
     const clientId = process.env.TWITTER_CLIENT_ID;
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/auth/callback/x`;
+    // Ensure no trailing slash in base URL to avoid double slashes
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+    const redirectUri = `${baseUrl}/api/auth/callback/x`;
+    
+    console.log("X OAuth - Base URL:", baseUrl);
+    console.log("X OAuth - Redirect URI:", redirectUri);
     
     if (!clientId) {
       return NextResponse.redirect(
@@ -72,8 +77,8 @@ export async function GET(request: NextRequest) {
       "offline.access",
     ].join(" ");
 
-    // Build X authorization URL
-    const authUrl = new URL("https://twitter.com/i/oauth2/authorize");
+    // Build X authorization URL (using x.com domain per X API docs)
+    const authUrl = new URL("https://x.com/i/oauth2/authorize");
     authUrl.searchParams.set("response_type", "code");
     authUrl.searchParams.set("client_id", clientId);
     authUrl.searchParams.set("redirect_uri", redirectUri);
