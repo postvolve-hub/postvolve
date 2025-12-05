@@ -270,10 +270,6 @@ const Pricing = () => {
             <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-primary" />
-                <span>No credit card required</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-primary" />
                 <span>7-day free trial</span>
               </div>
               <div className="flex items-center gap-2">
@@ -283,6 +279,10 @@ const Pricing = () => {
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-primary" />
                 <span>No hidden fees</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-primary" />
+                <span>Card required for trial</span>
               </div>
             </div>
           </div>
@@ -480,7 +480,7 @@ const FAQ = () => {
     },
     {
       question: "What happens during the free trial?",
-      answer: "The 7-day free trial gives you full access to all features. You can generate unlimited news cards, connect your social accounts, schedule posts, and access analytics. No credit card required, and you can cancel anytime."
+      answer: "The 7-day free trial gives you full access to all features. You can generate unlimited news cards, connect your social accounts, schedule posts, and access analytics. A card is required to start your trial, but you won't be charged until the trial ends. You can cancel anytime during the trial."
     },
     {
       question: "How does the auto-posting scheduler work?",
@@ -611,15 +611,15 @@ const FinalCTA = () => {
             <div className="flex flex-wrap items-center justify-center gap-8 text-white/80 text-sm">
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-white" />
-                <span>No credit card required</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-white" />
                 <span>7-day free trial</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-white" />
                 <span>Cancel anytime</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-white" />
+                <span>Card required for trial</span>
               </div>
             </div>
           </FadeIn>

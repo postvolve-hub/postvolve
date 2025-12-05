@@ -165,7 +165,7 @@ function SignUpContent() {
           </motion.p>
           <div className="space-y-4">
             {[
-              "7-day free trial, no credit card required",
+              "7-day free trial (card required)",
               "Connect unlimited social accounts",
               "AI-generated content suggestions",
               "Advanced analytics dashboard",

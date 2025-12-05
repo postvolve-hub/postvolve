@@ -311,7 +311,7 @@ const Hero = () => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            No credit card required. Connect accounts instantly.
+            7-day free trial. Connect accounts instantly.
           </p>
         </FadeIn>
 
@@ -764,15 +764,15 @@ const FinalCTA = () => {
             <div className="flex flex-wrap items-center justify-center gap-8 text-white/80 text-sm">
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-white" />
-                <span>No credit card required</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-white" />
                 <span>7-day free trial</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-white" />
                 <span>Cancel anytime</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-white" />
+                <span>Card required for trial</span>
               </div>
             </div>
           </FadeIn>
