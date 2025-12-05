@@ -734,25 +734,13 @@ export default function Settings() {
                       {account.connected ? (
                           <>
                             <p className="text-xs text-gray-500">{account.username}</p>
-                            {/* Token expiration warnings */}
+                            {/* Token expiration warnings - only show for expired tokens */}
+                            {/* X tokens auto-refresh, LinkedIn shows reconnect button when expiresSoon */}
                             {account.isExpired && (
                               <div className="flex items-center gap-1 mt-1">
                                 <AlertCircle className="h-3 w-3 text-red-500" />
                                 <p className="text-xs text-red-600 font-medium">Token expired - Reconnect required</p>
                               </div>
-                            )}
-                            {account.expiresSoon && !account.isExpired && account.tokenExpiresAt && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <AlertTriangle className="h-3 w-3 text-amber-500" />
-                                <p className="text-xs text-amber-600">
-                                  Token expires in {checkTokenExpiration(account.tokenExpiresAt).daysUntilExpiry} {checkTokenExpiration(account.tokenExpiresAt).daysUntilExpiry === 1 ? 'day' : 'days'}
-                                </p>
-                              </div>
-                            )}
-                            {account.tokenExpiresAt && !account.isExpired && !account.expiresSoon && (
-                              <p className="text-xs text-gray-400 mt-0.5">
-                                Expires {new Date(account.tokenExpiresAt).toLocaleDateString()}
-                              </p>
                             )}
                           </>
                       ) : (
@@ -763,6 +751,18 @@ export default function Settings() {
                   {account.connected ? (
                       <div className="flex items-center gap-2">
                         {account.isExpired ? (
+                          // Expired token - show reconnect for all platforms
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="border-amber-500 text-amber-600 hover:bg-amber-50 rounded-xl h-7 text-xs transition-all duration-200"
+                            onClick={() => handleConnectAccount(account.platformId)}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1.5" />
+                            Reconnect
+                          </Button>
+                        ) : account.expiresSoon && account.platformId === "linkedin" ? (
+                          // LinkedIn expiring soon - show reconnect button (X auto-refreshes)
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -773,17 +773,10 @@ export default function Settings() {
                             Reconnect
                           </Button>
                         ) : (
+                          // Connected and not expiring soon (or X which auto-refreshes)
                           <>
-                            <span className={`flex items-center gap-1 text-xs ${
-                              account.expiresSoon 
-                                ? "text-amber-600" 
-                                : "text-emerald-600"
-                            }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${
-                                account.expiresSoon 
-                                  ? "bg-amber-500" 
-                                  : "bg-emerald-500"
-                              }`}></div>
+                            <span className="flex items-center gap-1 text-xs text-emerald-600">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                               Connected
                             </span>
                             <Button 

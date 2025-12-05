@@ -3,6 +3,7 @@ node_modules
 /.pnp
 .pnp.js
 
+
 # Testing
 /coverage
 
@@ -54,7 +55,5 @@ supabase/migrations/001_initial_schema.sql
 
 #Readme
 QUICK_START_GUIDE.md
-DATABASE_SETUP_COMPLETE.md
-DATABASE_TEST_RESULTS.md
-PHASE_1_COMPLETE.md
-PHASE_4_COMPLETE.md
+
+READMES

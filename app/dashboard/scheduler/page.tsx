@@ -195,9 +195,9 @@ export default function Scheduler() {
               className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white shadow-sm hover:shadow-md transition-all duration-200 rounded-xl"
               disabled={!permissions?.canSchedulePosts}
             >
-              <Plus className="h-4 w-4 mr-2" />
-              Schedule New Post
-            </Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Schedule New Post
+          </Button>
           </div>
         </div>
 
