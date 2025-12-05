@@ -34,6 +34,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Check if this webhook event has already been processed (idempotency)
+  const { data: existingEvent } = await supabaseAdmin
+    .from("webhook_events")
+    .select("id, processed_successfully")
+    .eq("stripe_event_id", event.id)
+    .maybeSingle();
+
+  if (existingEvent) {
+    // Event already processed
+    console.log(`Webhook event ${event.id} already processed, skipping`);
+    return NextResponse.json({ received: true, message: "Event already processed" });
+  }
+
+  // Mark event as being processed (insert with processed_successfully = false initially)
+  await supabaseAdmin
+    .from("webhook_events")
+    .insert({
+      stripe_event_id: event.id,
+      event_type: event.type,
+      processed_successfully: false, // Will update to true if successful
+    } as any);
+
   try {
     switch (event.type) {
       case "checkout.session.completed": {
@@ -88,9 +110,29 @@ export async function POST(request: NextRequest) {
         console.log(`Unhandled event type: ${event.type}`);
     }
 
+    // Mark event as successfully processed
+    await supabaseAdmin
+      .from("webhook_events")
+      .update({
+        processed_successfully: true,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("stripe_event_id", event.id);
+
     return NextResponse.json({ received: true });
   } catch (error: any) {
     console.error("Error processing webhook:", error);
+    
+    // Mark event as failed
+    await supabaseAdmin
+      .from("webhook_events")
+      .update({
+        processed_successfully: false,
+        error_message: error.message,
+        processed_at: new Date().toISOString(),
+      })
+      .eq("stripe_event_id", event.id);
+    
     return NextResponse.json(
       { error: error.message },
       { status: 500 }
@@ -168,8 +210,47 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  if (existingSub) {
-    // Update existing subscription (including placeholder subscriptions)
+  // Check if subscription with this stripe_subscription_id already exists (prevent duplicates)
+  const { data: existingSubByStripeId } = await supabaseAdmin
+    .from("subscriptions")
+    .select("id, user_id")
+    .eq("stripe_subscription_id", subscriptionId)
+    .maybeSingle();
+
+  if (existingSubByStripeId) {
+    // Subscription already exists with this Stripe ID, update it
+    if (existingSubByStripeId.user_id !== userId) {
+      console.error(`Stripe subscription ${subscriptionId} already exists for different user`);
+      return;
+    }
+    
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        plan_type: planId as any,
+        status: dbStatus,
+        stripe_customer_id: customerId,
+        posts_per_day: plan.features.postsPerDay,
+        social_accounts_limit: plan.features.socialAccountsLimit,
+        categories_limit: plan.features.categoriesLimit,
+        current_period_start: periodStart !== undefined && periodStart !== null
+          ? new Date(periodStart * 1000).toISOString()
+          : null,
+        current_period_end: periodEnd !== undefined && periodEnd !== null
+          ? new Date(periodEnd * 1000).toISOString()
+          : null,
+        trial_start: trialStart !== undefined && trialStart !== null
+          ? new Date(trialStart * 1000).toISOString()
+          : null,
+        trial_end: trialEnd !== undefined && trialEnd !== null
+          ? new Date(trialEnd * 1000).toISOString()
+          : null,
+        cancel_at_period_end: cancelAtPeriodEnd || false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscriptionId);
+  } else if (existingSub) {
+    // Update existing subscription by user_id (including placeholder subscriptions)
     await supabaseAdmin
       .from("subscriptions")
       .update({
@@ -293,35 +374,78 @@ async function handleSubscriptionCreated(subscription: Stripe.Subscription) {
     return;
   }
 
-  // Update subscription in database with all dates
-  await supabaseAdmin
+  // Check if subscription with this stripe_subscription_id already exists
+  const { data: existingSubByStripeId } = await supabaseAdmin
     .from("subscriptions")
-    .update({
-      plan_type: planId as any,
-      status: dbStatus,
-      stripe_subscription_id: subscription.id,
-      stripe_customer_id: typeof subscription.customer === "string" 
-        ? subscription.customer 
-        : subscription.customer?.id || null,
-      posts_per_day: plan.features.postsPerDay,
-      social_accounts_limit: plan.features.socialAccountsLimit,
-      categories_limit: plan.features.categoriesLimit,
-      current_period_start: periodStart !== undefined && periodStart !== null
-        ? new Date(periodStart * 1000).toISOString()
-        : null,
-      current_period_end: periodEnd !== undefined && periodEnd !== null
-        ? new Date(periodEnd * 1000).toISOString()
-        : null,
-      trial_start: trialStart !== undefined && trialStart !== null
-        ? new Date(trialStart * 1000).toISOString()
-        : null,
-      trial_end: trialEnd !== undefined && trialEnd !== null
-        ? new Date(trialEnd * 1000).toISOString()
-        : null,
-      cancel_at_period_end: cancelAtPeriodEnd || false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
+    .select("id, user_id")
+    .eq("stripe_subscription_id", subscription.id)
+    .maybeSingle();
+
+  if (existingSubByStripeId) {
+    // Already exists, update it
+    if (existingSubByStripeId.user_id !== userId) {
+      console.error(`Stripe subscription ${subscription.id} already exists for different user`);
+      return;
+    }
+    
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        plan_type: planId as any,
+        status: dbStatus,
+        stripe_customer_id: typeof subscription.customer === "string" 
+          ? subscription.customer 
+          : subscription.customer?.id || null,
+        posts_per_day: plan.features.postsPerDay,
+        social_accounts_limit: plan.features.socialAccountsLimit,
+        categories_limit: plan.features.categoriesLimit,
+        current_period_start: periodStart !== undefined && periodStart !== null
+          ? new Date(periodStart * 1000).toISOString()
+          : null,
+        current_period_end: periodEnd !== undefined && periodEnd !== null
+          ? new Date(periodEnd * 1000).toISOString()
+          : null,
+        trial_start: trialStart !== undefined && trialStart !== null
+          ? new Date(trialStart * 1000).toISOString()
+          : null,
+        trial_end: trialEnd !== undefined && trialEnd !== null
+          ? new Date(trialEnd * 1000).toISOString()
+          : null,
+        cancel_at_period_end: cancelAtPeriodEnd || false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("stripe_subscription_id", subscription.id);
+  } else {
+    // Update by user_id (for placeholder subscriptions)
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        plan_type: planId as any,
+        status: dbStatus,
+        stripe_subscription_id: subscription.id,
+        stripe_customer_id: typeof subscription.customer === "string" 
+          ? subscription.customer 
+          : subscription.customer?.id || null,
+        posts_per_day: plan.features.postsPerDay,
+        social_accounts_limit: plan.features.socialAccountsLimit,
+        categories_limit: plan.features.categoriesLimit,
+        current_period_start: periodStart !== undefined && periodStart !== null
+          ? new Date(periodStart * 1000).toISOString()
+          : null,
+        current_period_end: periodEnd !== undefined && periodEnd !== null
+          ? new Date(periodEnd * 1000).toISOString()
+          : null,
+        trial_start: trialStart !== undefined && trialStart !== null
+          ? new Date(trialStart * 1000).toISOString()
+          : null,
+        trial_end: trialEnd !== undefined && trialEnd !== null
+          ? new Date(trialEnd * 1000).toISOString()
+          : null,
+        cancel_at_period_end: cancelAtPeriodEnd || false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+  }
 
   // Log activity
   await supabaseAdmin.from("activity_log").insert({
@@ -430,6 +554,18 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  // Use stripe_subscription_id for precise update
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("id, user_id")
+    .eq("stripe_subscription_id", subscription.id)
+    .maybeSingle();
+
+  if (!sub) {
+    console.warn(`Subscription ${subscription.id} not found in database for deletion`);
+    return;
+  }
+
   await supabaseAdmin
     .from("subscriptions")
     .update({
@@ -439,18 +575,11 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     })
     .eq("stripe_subscription_id", subscription.id);
 
-  const { data: sub } = await supabaseAdmin
-    .from("subscriptions")
-    .select("user_id")
-    .eq("stripe_subscription_id", subscription.id)
-    .single();
-
-  if (sub) {
-    await supabaseAdmin.from("activity_log").insert({
-      user_id: sub.user_id,
-      activity_type: "subscription_canceled",
-    } as any);
-  }
+  // Log activity using the sub we already fetched
+  await supabaseAdmin.from("activity_log").insert({
+    user_id: sub.user_id,
+    activity_type: "subscription_canceled",
+  } as any);
 }
 
 async function handleInvoicePaid(invoice: Stripe.Invoice) {

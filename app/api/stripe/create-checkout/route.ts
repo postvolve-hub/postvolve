@@ -2,10 +2,48 @@ import { NextRequest, NextResponse } from "next/server";
 import { stripe, PLAN_CONFIG } from "@/lib/stripe";
 import { supabaseAdmin } from "@/lib/supabaseServer";
 
+// In-memory cache for request deduplication (prevents race conditions)
+// In production, consider using Redis or similar
+const pendingCheckouts = new Map<string, Promise<NextResponse>>();
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { planId, userId } = body;
+
+    // Create a unique key for this request (userId + planId + timestamp within 5 seconds)
+    // This prevents duplicate requests within a short window
+    const requestKey = `${userId}-${planId}-${Math.floor(Date.now() / 5000)}`;
+    
+    // Check if there's already a pending request for this user+plan
+    if (pendingCheckouts.has(requestKey)) {
+      console.log(`Duplicate checkout request detected for ${requestKey}, returning existing promise`);
+      return await pendingCheckouts.get(requestKey)!;
+    }
+
+    // Create the checkout promise
+    const checkoutPromise = createCheckoutSession(planId, userId);
+    
+    // Store it in cache
+    pendingCheckouts.set(requestKey, checkoutPromise);
+    
+    // Remove from cache after 10 seconds (request should complete by then)
+    setTimeout(() => {
+      pendingCheckouts.delete(requestKey);
+    }, 10000);
+
+    return await checkoutPromise;
+  } catch (error: any) {
+    console.error("Error in checkout route:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create checkout session" },
+      { status: 500 }
+    );
+  }
+}
+
+async function createCheckoutSession(planId: string, userId: string) {
+  try {
 
     // Validation
     if (!planId || !userId) {
@@ -53,12 +91,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get existing subscription
+    // Get existing subscription (use maybeSingle to handle no subscription case)
     const { data: subscription, error: subError } = await supabaseAdmin
       .from("subscriptions")
       .select("stripe_customer_id, plan_type, stripe_subscription_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     // Handle subscription query errors
     // PGRST116 = no rows found (user has no subscription yet) - this is fine
@@ -87,10 +125,12 @@ export async function POST(request: NextRequest) {
           subscription.stripe_subscription_id
         );
         
-        // If subscription is active and user is trying to upgrade/downgrade
-        if (existingSubscription.status === "active") {
-          // For upgrades/downgrades, we should use subscription update, not new checkout
-          // But for now, we'll allow it and handle in webhook
+        // If subscription is active/trialing, block new checkout - user should use subscription update
+        if (existingSubscription.status === "active" || existingSubscription.status === "trialing") {
+          return NextResponse.json(
+            { error: "You already have an active subscription. Please use the billing page to change your plan." },
+            { status: 400 }
+          );
         }
       } catch (error) {
         // Subscription might not exist in Stripe, continue with checkout
@@ -101,20 +141,45 @@ export async function POST(request: NextRequest) {
     let customerId = subscription?.stripe_customer_id;
 
     if (!customerId) {
-      // Create Stripe customer
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          userId: userId,
-        },
-      });
-      customerId = customer.id;
+      // Check if customer already exists in Stripe by email (prevent duplicates)
+      try {
+        const existingCustomers = await stripe.customers.list({
+          email: user.email,
+          limit: 1,
+        });
+        
+        if (existingCustomers.data.length > 0) {
+          // Customer already exists, use it
+          customerId = existingCustomers.data[0].id;
+          
+          // Update subscription with customer ID
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ stripe_customer_id: customerId })
+            .eq("user_id", userId);
+        } else {
+          // Create new Stripe customer
+          const customer = await stripe.customers.create({
+            email: user.email,
+            metadata: {
+              userId: userId,
+            },
+          });
+          customerId = customer.id;
 
-      // Update subscription with customer ID
-      await supabaseAdmin
-        .from("subscriptions")
-        .update({ stripe_customer_id: customerId })
-        .eq("user_id", userId);
+          // Update subscription with customer ID
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ stripe_customer_id: customerId })
+            .eq("user_id", userId);
+        }
+      } catch (error) {
+        console.error("Error checking/creating Stripe customer:", error);
+        return NextResponse.json(
+          { error: "Failed to set up payment method. Please try again." },
+          { status: 500 }
+        );
+      }
     }
 
     // Get app URL for redirects

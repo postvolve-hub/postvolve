@@ -571,7 +571,7 @@ export default function OnboardingPage() {
               className="w-full h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
               Continue
-              <span className="ml-2 text-white/70">(1/4)</span>
+              <span className="ml-2 text-white/70">(1/5)</span>
               <ChevronRight className="ml-1 h-5 w-5" />
             </Button>
           </div>
@@ -644,7 +644,7 @@ export default function OnboardingPage() {
                 className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 Continue
-                <span className="ml-2 text-white/70">(2/4)</span>
+                <span className="ml-2 text-white/70">(2/5)</span>
                 <ChevronRight className="ml-1 h-5 w-5" />
               </Button>
             </div>
@@ -732,7 +732,7 @@ export default function OnboardingPage() {
                 className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
               >
                 Continue
-                <span className="ml-2 text-white/70">(3/4)</span>
+                <span className="ml-2 text-white/70">(3/5)</span>
                 <ChevronRight className="ml-1 h-5 w-5" />
               </Button>
             </div>
@@ -831,6 +831,7 @@ export default function OnboardingPage() {
                 className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300"
               >
                 Continue
+                <span className="ml-2 text-white/70">(4/5)</span>
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>

@@ -78,26 +78,40 @@ export async function POST(request: NextRequest) {
     // 2. Create placeholder subscription (starter plan)
     // This will be replaced by Stripe subscription after checkout
     // Status is set to "trialing" as placeholder - will be updated by webhook
-    const { error: subscriptionError } = await supabaseAdmin
+    // Check if subscription already exists (prevent duplicates)
+    const { data: existingSub } = await supabaseAdmin
       .from("subscriptions")
-      .insert({
-        user_id: userId,
-        plan_type: "starter",
-        status: "trialing", // Placeholder - will be updated by Stripe webhook
-        posts_per_day: 1,
-        social_accounts_limit: 1,
-        categories_limit: 2,
-        // Don't set dates here - Stripe webhook will set them properly
-        current_period_start: null,
-        current_period_end: null,
-        trial_start: null,
-        trial_end: null,
-      } as any);
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
 
-    if (subscriptionError) {
-      console.error("Error creating placeholder subscription:", subscriptionError);
-      // Don't fail the request, just log it
-      // User will still be able to go through checkout
+    if (!existingSub) {
+      const { error: subscriptionError } = await supabaseAdmin
+        .from("subscriptions")
+        .insert({
+          user_id: userId,
+          plan_type: "starter",
+          status: "trialing", // Placeholder - will be updated by Stripe webhook
+          posts_per_day: 1,
+          social_accounts_limit: 1,
+          categories_limit: 2,
+          // Don't set dates here - Stripe webhook will set them properly
+          current_period_start: null,
+          current_period_end: null,
+          trial_start: null,
+          trial_end: null,
+        } as any);
+
+      if (subscriptionError) {
+        console.error("Error creating placeholder subscription:", subscriptionError);
+        // If it's a unique constraint violation, that's okay (subscription already exists)
+        if (subscriptionError.code !== "23505") {
+          // For other errors, log but don't fail - user can still go through checkout
+          console.warn("Non-unique error creating subscription, continuing anyway");
+        }
+      }
+    } else {
+      console.log("Placeholder subscription already exists for user, skipping creation");
     }
 
     // 3. Create default user settings
