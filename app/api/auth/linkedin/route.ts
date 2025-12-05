@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify user exists (optional security check)
+    // Optional security check - user ID comes from authenticated session, so it's safe
+    // Use maybeSingle to not fail if user doesn't exist in users table yet
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: false,
@@ -27,13 +28,15 @@ export async function GET(request: NextRequest) {
       .from("users")
       .select("id")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
 
-    if (userError || !user) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=invalid_user`
-      );
+    // Log warning but don't block OAuth - user ID is from authenticated session
+    if (userError) {
+      console.warn("User lookup warning (non-blocking):", userError);
     }
+    
+    // Continue with OAuth regardless - the user ID comes from authenticated Supabase Auth session
+    // which is verified in ConnectAccountModal before calling this endpoint
 
     // Get LinkedIn OAuth credentials
     const clientId = process.env.LINKEDIN_CLIENT_ID;

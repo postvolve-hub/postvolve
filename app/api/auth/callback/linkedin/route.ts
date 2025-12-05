@@ -4,6 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+if (!supabaseUrl || !serviceRoleKey) {
+  console.error("Missing Supabase configuration:", {
+    hasUrl: !!supabaseUrl,
+    hasServiceRoleKey: !!serviceRoleKey,
+  });
+}
+
 const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
     autoRefreshToken: false,
@@ -13,6 +20,14 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify Supabase configuration
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error("Missing Supabase configuration in callback");
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=oauth_not_configured`
+      );
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get("code");
     const state = searchParams.get("state");
@@ -109,12 +124,20 @@ export async function GET(request: NextRequest) {
       : null;
 
     // Check if account already exists
-    const { data: existingAccount } = await supabaseAdmin
+    const { data: existingAccount, error: checkError } = await supabaseAdmin
       .from("connected_accounts")
       .select("id")
       .eq("user_id", userId)
       .eq("platform", "linkedin")
       .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking existing account:", checkError);
+      console.error("Check error details:", JSON.stringify(checkError, null, 2));
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=database_error`
+      );
+    }
 
     const accountData = {
       user_id: userId,
@@ -131,21 +154,55 @@ export async function GET(request: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
+    console.log("Saving LinkedIn account to database:", {
+      userId,
+      platform: accountData.platform,
+      platform_user_id: accountData.platform_user_id,
+      username: accountData.platform_username,
+      existingAccount: existingAccount?.id || null,
+    });
+
     if (existingAccount) {
       // Update existing account
-      await supabaseAdmin
+      const { error: updateError } = await supabaseAdmin
         .from("connected_accounts")
         .update(accountData)
         .eq("id", existingAccount.id);
+
+      if (updateError) {
+        console.error("Error updating connected account:", updateError);
+        console.error("Update error details:", JSON.stringify(updateError, null, 2));
+        console.error("Account data being updated:", JSON.stringify(accountData, null, 2));
+        return NextResponse.redirect(
+          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=database_error`
+        );
+      }
+      console.log("Successfully updated existing LinkedIn account");
     } else {
       // Create new account
-      await supabaseAdmin
+      const { data: insertedAccount, error: insertError } = await supabaseAdmin
         .from("connected_accounts")
-        .insert(accountData);
+        .insert(accountData)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("Error inserting connected account:", insertError);
+        console.error("Insert error details:", JSON.stringify(insertError, null, 2));
+        console.error("Account data being inserted:", JSON.stringify({
+          ...accountData,
+          access_token: "[REDACTED]",
+          refresh_token: accountData.refresh_token ? "[REDACTED]" : null,
+        }, null, 2));
+        return NextResponse.redirect(
+          `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=database_error`
+        );
+      }
+      console.log("Successfully created new LinkedIn account:", insertedAccount?.id);
     }
 
     // Log activity
-    await supabaseAdmin.from("activity_log").insert({
+    const { error: activityError } = await supabaseAdmin.from("activity_log").insert({
       user_id: userId,
       activity_type: "account_connected",
       description: "LinkedIn account connected successfully",
@@ -155,14 +212,30 @@ export async function GET(request: NextRequest) {
       },
     } as any);
 
+    if (activityError) {
+      console.error("Error logging activity:", activityError);
+      // Don't fail the whole flow if activity logging fails
+    }
+
     // Redirect back to settings with success
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?connected=linkedin`
     );
   } catch (error: any) {
     console.error("LinkedIn callback error:", error);
+    console.error("Error stack:", error?.stack);
+    console.error("Error message:", error?.message);
+    
+    // Try to provide more specific error message
+    let errorCode = "callback_failed";
+    if (error?.message?.includes("database") || error?.message?.includes("supabase")) {
+      errorCode = "database_error";
+    } else if (error?.message?.includes("token") || error?.message?.includes("oauth")) {
+      errorCode = "token_error";
+    }
+    
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=callback_failed`
+      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=${errorCode}`
     );
   }
 }

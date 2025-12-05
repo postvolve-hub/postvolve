@@ -12,6 +12,8 @@ import {
   Trash2,
   Calendar,
   Settings as GearIcon,
+  AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -118,6 +120,9 @@ interface ConnectedAccount {
   connected: boolean;
   username: string | null;
   color: string;
+  tokenExpiresAt?: string | null;
+  isExpired?: boolean;
+  expiresSoon?: boolean; // Expires within 7 days
 }
 
 export default function Settings() {
@@ -170,16 +175,31 @@ export default function Settings() {
     fetchSubscription();
   }, [user]);
 
+  // Helper function to check if token is expired or expiring soon
+  const checkTokenExpiration = (tokenExpiresAt: string | null | undefined) => {
+    if (!tokenExpiresAt) return { isExpired: false, expiresSoon: false, daysUntilExpiry: null };
+    
+    const expiresAt = new Date(tokenExpiresAt);
+    const now = new Date();
+    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    
+    const isExpired = expiresAt < now;
+    const expiresSoon = !isExpired && expiresAt < sevenDaysFromNow;
+    const daysUntilExpiry = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    return { isExpired, expiresSoon, daysUntilExpiry };
+  };
+
   // Helper function to update connected accounts from database
   const updateConnectedAccountsFromDB = useCallback(async () => {
     if (!user) return;
 
     try {
+      // Fetch all accounts (including expired ones) to check expiration
       const { data: accounts, error } = await supabase
         .from("connected_accounts")
         .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "connected");
+        .eq("user_id", user.id);
 
       if (error) {
         console.error("Error fetching connected accounts:", error);
@@ -188,10 +208,47 @@ export default function Settings() {
 
       console.log("Fetched connected accounts from DB:", accounts);
 
+      // Check for expired tokens and update status if needed
+      if (accounts) {
+        for (const account of accounts) {
+          if (account.status === "connected" && account.token_expires_at) {
+            const { isExpired } = checkTokenExpiration(account.token_expires_at);
+            
+            if (isExpired) {
+              // Update status to expired in database
+              await supabase
+                .from("connected_accounts")
+                .update({ 
+                  status: "expired",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", account.id);
+              
+              console.log(`Token expired for ${account.platform}, updating status to expired`);
+            }
+          }
+        }
+      }
+
+      // Now fetch only connected accounts for display
+      const { data: connectedAccounts, error: connectedError } = await supabase
+        .from("connected_accounts")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("status", "connected");
+
+      if (connectedError) {
+        console.error("Error fetching connected accounts:", connectedError);
+        return;
+      }
+
       // Update connected accounts state - reset all to disconnected first, then update with database data
       setConnectedAccounts(prev => prev.map(acc => {
-        const dbAccount = accounts?.find(a => a.platform === acc.platformId);
+        const dbAccount = connectedAccounts?.find(a => a.platform === acc.platformId);
         if (dbAccount && dbAccount.status === "connected") {
+          // Check token expiration
+          const { isExpired, expiresSoon } = checkTokenExpiration(dbAccount.token_expires_at);
+          
           // Format username for display
           let displayUsername = dbAccount.platform_username || dbAccount.platform_display_name;
           if (!displayUsername) {
@@ -205,12 +262,15 @@ export default function Settings() {
             displayUsername = `@${displayUsername}`;
           }
           
-          console.log(`Updating ${acc.platformId} to connected with username: ${displayUsername}`);
+          console.log(`Updating ${acc.platformId} to connected with username: ${displayUsername}, expired: ${isExpired}, expiresSoon: ${expiresSoon}`);
           
           return {
             ...acc,
             connected: true,
             username: displayUsername,
+            tokenExpiresAt: dbAccount.token_expires_at,
+            isExpired,
+            expiresSoon,
           };
         }
         // Reset to disconnected if not found in database
@@ -218,6 +278,9 @@ export default function Settings() {
           ...acc,
           connected: false,
           username: null,
+          tokenExpiresAt: null,
+          isExpired: false,
+          expiresSoon: false,
         };
       }));
     } catch (error) {
@@ -255,7 +318,9 @@ export default function Settings() {
         oauth_not_configured: "OAuth is not properly configured.",
         token_exchange_failed: "Failed to exchange authorization code. Please try again.",
         no_access_token: "No access token received. Please try again.",
-        callback_failed: "Connection failed. Please try again.",
+        callback_failed: "Connection failed. Please check server logs and try again.",
+        database_error: "Database error occurred. Please check server logs.",
+        token_error: "Token processing error. Please try again.",
       };
 
       toast({
@@ -642,10 +707,32 @@ export default function Settings() {
                       <div className={account.color}>
                         <IconComponent />
                       </div>
-                    <div>
+                    <div className="flex-1">
                         <h4 className="text-sm font-medium text-gray-900">{account.name}</h4>
                       {account.connected ? (
-                          <p className="text-xs text-gray-500">{account.username}</p>
+                          <>
+                            <p className="text-xs text-gray-500">{account.username}</p>
+                            {/* Token expiration warnings */}
+                            {account.isExpired && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <AlertCircle className="h-3 w-3 text-red-500" />
+                                <p className="text-xs text-red-600 font-medium">Token expired - Reconnect required</p>
+                              </div>
+                            )}
+                            {account.expiresSoon && !account.isExpired && account.tokenExpiresAt && (
+                              <div className="flex items-center gap-1 mt-1">
+                                <AlertTriangle className="h-3 w-3 text-amber-500" />
+                                <p className="text-xs text-amber-600">
+                                  Token expires in {checkTokenExpiration(account.tokenExpiresAt).daysUntilExpiry} {checkTokenExpiration(account.tokenExpiresAt).daysUntilExpiry === 1 ? 'day' : 'days'}
+                                </p>
+                              </div>
+                            )}
+                            {account.tokenExpiresAt && !account.isExpired && !account.expiresSoon && (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                Expires {new Date(account.tokenExpiresAt).toLocaleDateString()}
+                              </p>
+                            )}
+                          </>
                       ) : (
                           <p className="text-xs text-gray-400">Not connected</p>
                       )}
@@ -653,18 +740,40 @@ export default function Settings() {
                   </div>
                   {account.connected ? (
                       <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1 text-xs text-emerald-600">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                        Connected
-                      </span>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-xs text-gray-500 hover:text-red-500 rounded-xl h-7 transition-all duration-200"
-                          onClick={() => handleDisconnectAccount(account.platformId)}
-                        >
-                        Disconnect
-                      </Button>
+                        {account.isExpired ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="border-amber-500 text-amber-600 hover:bg-amber-50 rounded-xl h-7 text-xs transition-all duration-200"
+                            onClick={() => handleConnectAccount(account.platformId)}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1.5" />
+                            Reconnect
+                          </Button>
+                        ) : (
+                          <>
+                            <span className={`flex items-center gap-1 text-xs ${
+                              account.expiresSoon 
+                                ? "text-amber-600" 
+                                : "text-emerald-600"
+                            }`}>
+                              <div className={`w-1.5 h-1.5 rounded-full ${
+                                account.expiresSoon 
+                                  ? "bg-amber-500" 
+                                  : "bg-emerald-500"
+                              }`}></div>
+                              Connected
+                            </span>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-xs text-gray-500 hover:text-red-500 rounded-xl h-7 transition-all duration-200"
+                              onClick={() => handleDisconnectAccount(account.platformId)}
+                            >
+                              Disconnect
+                            </Button>
+                          </>
+                        )}
                     </div>
                   ) : (
                       <Button 
