@@ -79,7 +79,7 @@ export async function updateExpiredTokens() {
           console.log(`Updated ${account.platform} account (${account.id}) to expired status`);
           
           // Log activity
-          await supabaseAdmin.from("activity_log").insert({
+          const { error: activityError } = await supabaseAdmin.from("activity_log").insert({
             user_id: account.user_id,
             activity_type: "account_disconnected",
             description: `${account.platform} account token expired`,
@@ -87,9 +87,12 @@ export async function updateExpiredTokens() {
               platform: account.platform,
               reason: "token_expired",
             },
-          } as any).catch(err => {
-            console.error("Error logging expiration activity:", err);
-          });
+          } as any);
+
+          if (activityError) {
+            console.error("Error logging expiration activity:", activityError);
+            // Don't fail the whole flow if activity logging fails
+          }
         }
       }
     }
