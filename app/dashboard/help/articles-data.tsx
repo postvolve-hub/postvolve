@@ -29,7 +29,7 @@ export const ARTICLES: Record<string, Article> = {
         <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-6">
           <li><strong>Choose Your Username:</strong> Pick a unique username that will be your identifier on PostVolve</li>
           <li><strong>Select Platforms:</strong> Choose which social media platforms you want to post to (LinkedIn, X/Twitter, Facebook, Instagram)</li>
-          <li><strong>Define Your Content Voice:</strong> Select 1-3 categories that align with your brand (Tech, AI, Business, Motivation, or Custom)</li>
+          <li><strong>Define Your Content Voice:</strong> Select the categories that align with your brand (Tech, AI, Business, Motivation, or Custom). All plans include access to all 4 standard categories.</li>
           <li><strong>Set Your Schedule:</strong> Choose when you want fresh drafts delivered and whether to enable auto-posting</li>
         </ul>
 

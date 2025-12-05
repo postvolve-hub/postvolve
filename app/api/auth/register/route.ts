@@ -89,12 +89,12 @@ export async function POST(request: NextRequest) {
       const { error: subscriptionError } = await supabaseAdmin
         .from("subscriptions")
         .insert({
-          user_id: userId,
-          plan_type: "starter",
-          status: "trialing", // Placeholder - will be updated by Stripe webhook
-          posts_per_day: 1,
-          social_accounts_limit: 1,
-          categories_limit: 2,
+        user_id: userId,
+        plan_type: "starter",
+        status: "trialing", // Placeholder - will be updated by Stripe webhook
+        posts_per_day: 1,
+        social_accounts_limit: 1,
+        categories_limit: -1, // -1 means unlimited (all categories)
           // Don't set dates here - Stripe webhook will set them properly
           current_period_start: null,
           current_period_end: null,

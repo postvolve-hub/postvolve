@@ -159,7 +159,7 @@ postvolve/
 | Feature | Starter ($39/mo) | Plus ($99/mo) | Pro ($299/mo) |
 |---------|------------------|------------------------|---------------------|
 | Daily Auto-Posts | 1 per day | 3 per day | Unlimited |
-| Content Categories | 2 | All 4 | All 4 + Custom |
+| Content Categories | All 4 | All 4 | All 4 + Custom |
 | Social Accounts | 1 | 5 | Unlimited |
 | Post Scheduling | ✓ | ✓ | ✓ |
 | Content Customization | - | ✓ | ✓ |

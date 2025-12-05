@@ -311,10 +311,7 @@ export default function OnboardingPage() {
       if (prev.includes(categoryId)) {
         return prev.filter(id => id !== categoryId);
       }
-      // Limit to 3 categories
-      if (prev.length >= 3) {
-        return prev;
-      }
+      // No limit - users can select all categories
       return [...prev, categoryId];
     });
   };
@@ -660,7 +657,7 @@ export default function OnboardingPage() {
               Define Your Content Voice
             </h2>
             <p className="text-gray-500 text-sm text-center mb-6">
-              Select 1-3 categories that align with your brand. The AI engine will only generate content within these niches.
+              Select the categories that align with your brand. The AI engine will generate content within your selected niches.
             </p>
             
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -677,11 +674,10 @@ export default function OnboardingPage() {
                       isSelected
                         ? "border-[#6D28D9] bg-[#6D28D9]/5"
                         : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    } ${selectedCategories.length >= 3 && !isSelected ? "opacity-50 cursor-not-allowed" : ""} ${
+                    } ${
                       isCustom ? "col-span-2 py-3 px-4 min-h-[80px] flex items-center gap-4 text-left" : "p-5"
                     }`}
                     style={{ animationDelay: `${index * 50}ms` }}
-                    disabled={selectedCategories.length >= 3 && !isSelected}
                   >
                     <div className={isCustom ? "flex items-center gap-3 w-full" : ""}>
                       <div className={isCustom ? "flex items-center gap-3 flex-1" : ""}>
@@ -714,7 +710,7 @@ export default function OnboardingPage() {
             </div>
             
             <p className="text-xs text-gray-500 text-center mb-6">
-              {selectedCategories.length} of 3 categories selected
+              {selectedCategories.length} {selectedCategories.length === 1 ? "category" : "categories"} selected
               {selectedCategories.length === 0 && " • Select at least one to continue"}
             </p>
             

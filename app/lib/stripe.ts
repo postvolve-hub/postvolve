@@ -18,7 +18,7 @@ export const PLAN_CONFIG = {
     features: {
       postsPerDay: 1,
       socialAccountsLimit: 1,
-      categoriesLimit: 2,
+      categoriesLimit: -1, // -1 means unlimited (all 4 standard categories)
     },
   },
   plus: {
@@ -28,7 +28,7 @@ export const PLAN_CONFIG = {
     features: {
       postsPerDay: 3,
       socialAccountsLimit: 5,
-      categoriesLimit: 4,
+      categoriesLimit: -1, // -1 means unlimited (all 4 standard categories)
     },
   },
   pro: {
@@ -38,7 +38,7 @@ export const PLAN_CONFIG = {
     features: {
       postsPerDay: -1, // -1 means unlimited
       socialAccountsLimit: -1,
-      categoriesLimit: -1,
+      categoriesLimit: -1, // -1 means unlimited (all 4 standard + custom category)
     },
   },
 } as const;

@@ -125,7 +125,7 @@ const Pricing = () => {
               <CardContent className="flex-grow">
                 <ul className="space-y-3 text-sm text-muted-foreground">
                   <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> Daily Auto-Posts</li>
-                  <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> 2 Categories</li>
+                  <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> All 4 Categories</li>
                   <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> Basic Analytics</li>
                   <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> 1 Social Account</li>
                   <li className="flex items-center"><Check className="h-4 w-4 text-green-500 mr-2" /> Email Support</li>
@@ -299,7 +299,7 @@ const CompareAllPlans = () => {
       category: "Core Features",
       items: [
         { name: "Daily Auto-Posts", starter: "1 per day", plus: "3 per day", pro: "Unlimited" },
-        { name: "Content Categories", starter: "2", plus: "All 4", pro: "All 4 + Custom" },
+        { name: "Content Categories", starter: "All 4", plus: "All 4", pro: "All 4 + Custom" },
         { name: "Social Accounts", starter: "1", plus: "5", pro: "Unlimited" },
         { name: "Post Scheduling", starter: true, plus: true, pro: true },
         { name: "Content Customization", starter: false, plus: true, pro: true },

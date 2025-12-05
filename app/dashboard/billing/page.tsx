@@ -52,7 +52,7 @@ const PLANS = [
     name: "Starter",
     price: 39,
     description: "For consistent content creators",
-    features: ["1 post per day", "2 categories", "1 social account", "Basic analytics"],
+    features: ["1 post per day", "All 4 categories", "1 social account", "Basic analytics"],
     popular: false
   },
   {
@@ -134,7 +134,7 @@ function BillingPageContent() {
           accountsUsed: 3,
           accountsLimit: subData?.social_accounts_limit === -1 ? 999 : (subData?.social_accounts_limit || 1),
           categoriesUsed: 4,
-          categoriesLimit: subData?.categories_limit === -1 ? 999 : (subData?.categories_limit || 2),
+          categoriesLimit: subData?.categories_limit === -1 ? 999 : (subData?.categories_limit || 999), // Default to unlimited if not set
         });
 
         // Fetch invoices
@@ -513,7 +513,7 @@ function BillingPageContent() {
               <span className="text-2xl font-bold text-gray-900">{usage?.categoriesUsed || 0}</span>
               <span className="text-gray-500 text-sm"> / {usage?.categoriesLimit === 999 ? "∞" : usage?.categoriesLimit || 0}</span>
             </div>
-            <Progress value={usage ? (usage.categoriesUsed / usage.categoriesLimit) * 100 : 0} className="h-2 bg-gray-100" />
+            <Progress value={usage && usage.categoriesLimit !== 999 ? (usage.categoriesUsed / usage.categoriesLimit) * 100 : 0} className="h-2 bg-gray-100" />
             <p className="text-xs text-gray-500 mt-2">
               {usage?.categoriesLimit === 999 ? "Unlimited" : usage?.categoriesUsed === usage?.categoriesLimit ? "All categories unlocked" : `${(usage?.categoriesLimit || 0) - (usage?.categoriesUsed || 0)} available`}
             </p>

@@ -37,7 +37,7 @@ const PLANS: Plan[] = [
     icon: <Sparkles className="h-5 w-5" />,
     features: [
       "1 post per day",
-      "2 categories",
+      "All 4 categories",
       "1 social account",
       "Basic analytics",
       "Email support",
