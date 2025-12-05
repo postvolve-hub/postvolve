@@ -62,7 +62,7 @@ interface PostCustomizationModalProps {
 
 const PLATFORMS = [
   { id: "linkedin", name: "LinkedIn", icon: IconLinkedIn, color: "text-[#0A66C2]", bgColor: "bg-[#0A66C2]", charLimit: 3000 },
-  { id: "twitter", name: "X", icon: IconX, color: "text-black", bgColor: "bg-black", charLimit: 280 },
+  { id: "x", name: "X", icon: IconX, color: "text-black", bgColor: "bg-black", charLimit: 280 },
   { id: "facebook", name: "Facebook", icon: IconFacebook, color: "text-[#1877F2]", bgColor: "bg-[#1877F2]", charLimit: 63206 },
   { id: "instagram", name: "Instagram", icon: IconInstagram, color: "text-[#E4405F]", bgColor: "bg-[#E4405F]", charLimit: 2200 },
 ];
@@ -83,7 +83,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizationModalProps) {
   const [postContent, setPostContent] = useState("");
   const [postTitle, setPostTitle] = useState("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "twitter"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "x"]);
   const [previewPlatform, setPreviewPlatform] = useState("linkedin");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [imageUploadOpen, setImageUploadOpen] = useState(false);

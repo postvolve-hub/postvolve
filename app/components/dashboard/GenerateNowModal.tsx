@@ -54,7 +54,7 @@ type GenerationStep = "select" | "input" | "generating" | "preview";
 
 const PLATFORMS = [
   { id: "linkedin", name: "LinkedIn", icon: IconLinkedIn, color: "text-[#0A66C2]", charLimit: 3000 },
-  { id: "twitter", name: "X (Twitter)", icon: IconX, color: "text-black", charLimit: 280 },
+  { id: "x", name: "X", icon: IconX, color: "text-black", charLimit: 280 },
   { id: "facebook", name: "Facebook", icon: IconFacebook, color: "text-[#1877F2]", charLimit: 63206 },
   { id: "instagram", name: "Instagram", icon: IconInstagram, color: "text-[#E4405F]", charLimit: 2200 },
 ];
@@ -73,7 +73,7 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
   const [prompt, setPrompt] = useState("");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "twitter"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "x"]);
   const [selectedCategory, setSelectedCategory] = useState("ai");
   const [isGenerating, setIsGenerating] = useState(false);
   const [urlPreview, setUrlPreview] = useState<{ title: string; domain: string } | null>(null);
@@ -96,7 +96,7 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
     setPrompt("");
     setUploadedFile(null);
     setImagePreviewUrl(null);
-    setSelectedPlatforms(["linkedin", "twitter"]);
+    setSelectedPlatforms(["linkedin", "x"]);
     setSelectedCategory("ai");
     setIsGenerating(false);
     setUrlPreview(null);

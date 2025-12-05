@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,9 @@ import { Loader2, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function SignIn() {
+function SignInContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loginMutation, googleLoginMutation } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,13 +49,15 @@ export default function SignIn() {
           // User hasn't completed onboarding
           router.push("/onboarding");
         } else {
-          // User has completed onboarding, go to dashboard
-          router.push("/dashboard");
+          // User has completed onboarding, redirect to original page or dashboard
+          const redirectTo = searchParams.get("redirect") || "/dashboard";
+          router.push(redirectTo);
         }
       } catch (err) {
         console.error("Error checking onboarding status:", err);
-        // Default to dashboard on error
-        router.push("/dashboard");
+        // Default to dashboard on error (or redirect if provided)
+        const redirectTo = searchParams.get("redirect") || "/dashboard";
+        router.push(redirectTo);
       } finally {
         setIsCheckingOnboarding(false);
       }
@@ -356,6 +359,18 @@ export default function SignIn() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6D28D9]"></div>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
 

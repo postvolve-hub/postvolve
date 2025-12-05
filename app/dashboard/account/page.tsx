@@ -95,7 +95,12 @@ export default function AccountPage() {
         }
 
         if (!user) {
-          setProfileError("No authenticated user found.");
+          setProfileError("Auth session missing! Redirecting to sign in...");
+          // Redirect to signin after a brief delay
+          setTimeout(() => {
+            const redirectUrl = encodeURIComponent(window.location.pathname);
+            window.location.href = `/signin?redirect=${redirectUrl}`;
+          }, 2000);
           return;
         }
 

@@ -38,7 +38,7 @@ const MOCK_DRAFTS = [
     id: 1,
     title: "The Rise of Autonomous AI Agents",
     category: "AI",
-    platforms: ["linkedin", "twitter"],
+    platforms: ["linkedin", "x"],
     preview: "Discover how AI agents are revolutionizing task automation...",
   },
   {
@@ -52,7 +52,7 @@ const MOCK_DRAFTS = [
     id: 3,
     title: "Building Resilience in Uncertain Times",
     category: "Motivation",
-    platforms: ["twitter"],
+    platforms: ["x"],
     preview: "Success isn't about avoiding challenges...",
   },
 ];
@@ -195,7 +195,7 @@ export function SchedulePostModal({
                           {draft.platforms.includes("linkedin") && (
                             <IconLinkedIn className="h-3.5 w-3.5 text-[#0A66C2]" />
                           )}
-                          {draft.platforms.includes("twitter") && (
+                          {draft.platforms.includes("x") && (
                             <IconX className="h-3.5 w-3.5 text-black" />
                           )}
                         </div>

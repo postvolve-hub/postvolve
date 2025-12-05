@@ -59,8 +59,8 @@ const PLATFORMS = [
     description: "Professional networking & thought leadership"
   },
   { 
-    id: "twitter", 
-    name: "X (Twitter)", 
+    id: "x", 
+    name: "X", 
     icon: IconX, 
     color: "text-gray-900",
     bgColor: "bg-gray-100",

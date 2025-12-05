@@ -71,7 +71,7 @@ const CATEGORIES = [
   { id: "motivation", label: "Motivation", description: "Inspirational content" },
 ];
 
-type Platform = "linkedin" | "twitter" | "facebook" | "instagram";
+type Platform = "linkedin" | "x" | "facebook" | "instagram";
 
 const CONNECTED_ACCOUNTS_INIT: Array<{
   id: number;
@@ -83,7 +83,7 @@ const CONNECTED_ACCOUNTS_INIT: Array<{
   color: string;
 }> = [
   { id: 1, platformId: "linkedin", name: "LinkedIn", icon: IconLinkedIn, connected: false, username: null, color: "text-blue-600" },
-  { id: 2, platformId: "twitter", name: "Twitter/X", icon: IconX, connected: false, username: null, color: "text-gray-900" },
+  { id: 2, platformId: "x", name: "X", icon: IconX, connected: false, username: null, color: "text-gray-900" },
   { id: 3, platformId: "facebook", name: "Facebook", icon: IconFacebook, connected: false, username: null, color: "text-blue-600" },
   { id: 4, platformId: "instagram", name: "Instagram", icon: IconInstagram, connected: false, username: null, color: "text-pink-600" },
 ];
@@ -140,7 +140,7 @@ export default function Settings() {
   });
   const [schedules, setSchedules] = useState<Schedule[]>([
     { id: "1", time: "9:00 AM", days: ["mon", "tue", "wed", "thu", "fri"], platforms: ["linkedin"], enabled: true },
-    { id: "2", time: "3:00 PM", days: ["mon", "wed", "fri"], platforms: ["twitter"], enabled: true },
+    { id: "2", time: "3:00 PM", days: ["mon", "wed", "fri"], platforms: ["x"], enabled: true },
   ]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
@@ -244,7 +244,10 @@ export default function Settings() {
 
       // Update connected accounts state - reset all to disconnected first, then update with database data
       setConnectedAccounts(prev => prev.map(acc => {
-        const dbAccount = connectedAccounts?.find(a => a.platform === acc.platformId);
+        // Map UI platform ID to database platform value
+        // 'x' in UI maps to 'twitter' in database
+        const dbPlatform = acc.platformId === "x" ? "twitter" : acc.platformId;
+        const dbAccount = connectedAccounts?.find(a => a.platform === dbPlatform);
         if (dbAccount && dbAccount.status === "connected") {
           // Check token expiration
           const { isExpired, expiresSoon } = checkTokenExpiration(dbAccount.token_expires_at);
@@ -310,9 +313,21 @@ export default function Settings() {
       updateConnectedAccountsFromDB();
     }
 
+    if (connected === "x") {
+      toast({
+        title: "Account Connected",
+        description: "Your X account has been connected successfully.",
+      });
+      // Clear URL params
+      window.history.replaceState({}, "", window.location.pathname);
+      // Refresh connected accounts
+      updateConnectedAccountsFromDB();
+    }
+
     if (error) {
       const errorMessages: Record<string, string> = {
         linkedin_auth_failed: "LinkedIn authorization was cancelled or failed.",
+        x_auth_failed: "X authorization was cancelled or failed.",
         missing_params: "Missing required parameters. Please try again.",
         invalid_state: "Invalid authorization state. Please try again.",
         oauth_not_configured: "OAuth is not properly configured.",
@@ -400,6 +415,10 @@ export default function Settings() {
     if (!selectedPlatform || !user) return;
 
     try {
+      // Map UI platform ID to database platform value
+      // 'x' in UI maps to 'twitter' in database
+      const dbPlatform = selectedPlatform === "x" ? "twitter" : selectedPlatform;
+      
       // Update account status in database
       const { error } = await supabase
         .from("connected_accounts")
@@ -408,7 +427,7 @@ export default function Settings() {
           updated_at: new Date().toISOString(),
         })
         .eq("user_id", user.id)
-        .eq("platform", selectedPlatform);
+        .eq("platform", dbPlatform);
 
       if (error) {
         console.error("Error disconnecting account:", error);
@@ -420,9 +439,12 @@ export default function Settings() {
         return;
       }
 
+      // Get display name for platform
+      const platformName = selectedPlatform === "x" ? "X" : selectedPlatform.charAt(0).toUpperCase() + selectedPlatform.slice(1);
+      
       toast({
         title: "Account Disconnected",
-        description: `Your ${selectedPlatform} account has been disconnected successfully.`,
+        description: `Your ${platformName} account has been disconnected successfully.`,
       });
 
       // Update local state immediately
@@ -436,7 +458,7 @@ export default function Settings() {
       await supabase.from("activity_log").insert({
         user_id: user.id,
         activity_type: "account_disconnected",
-        description: `${selectedPlatform} account disconnected`,
+        description: `${platformName} account disconnected`,
         metadata: { platform: selectedPlatform },
       } as any);
     } catch (error) {

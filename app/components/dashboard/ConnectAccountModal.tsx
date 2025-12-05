@@ -29,7 +29,7 @@ const IconInstagram = ({ className = "h-6 w-6" }: { className?: string }) => (
   </svg>
 );
 
-type Platform = "linkedin" | "twitter" | "facebook" | "instagram";
+type Platform = "linkedin" | "x" | "facebook" | "instagram";
 type ConnectionState = "idle" | "connecting" | "success" | "error";
 
 interface ConnectAccountModalProps {
@@ -57,8 +57,8 @@ const PLATFORM_CONFIG: Record<Platform, {
       "Access your connections (read-only)",
     ],
   },
-  twitter: {
-    name: "X (Twitter)",
+  x: {
+    name: "X",
     icon: IconX,
     color: "text-black",
     bgColor: "bg-black",
@@ -122,17 +122,24 @@ export function ConnectAccountModal({
       }
 
       // Redirect to OAuth initiation endpoint
+      // Get user ID from session
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("Please sign in to connect accounts");
+        setConnectionState("error");
+        return;
+      }
+
       if (platform === "linkedin") {
-        // Get user ID from session
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          setError("Please sign in to connect accounts");
-          setConnectionState("error");
-          return;
-        }
-        
         // Redirect to LinkedIn OAuth with user ID
         window.location.href = `/api/auth/linkedin?userId=${user.id}`;
+        // The redirect will happen, so we don't need to handle success here
+        return;
+      }
+
+      if (platform === "x") {
+        // Redirect to X OAuth with user ID
+        window.location.href = `/api/auth/x?userId=${user.id}`;
         // The redirect will happen, so we don't need to handle success here
         return;
       }
