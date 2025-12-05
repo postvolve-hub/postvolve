@@ -368,37 +368,39 @@ export default function OnboardingPage() {
       };
       localStorage.setItem("postvolve_onboarding", JSON.stringify(onboardingData));
 
-      // Check if user selected a plan from pricing page
-      const selectedPlan = localStorage.getItem("postvolve_selected_plan");
+      // Check if user selected a plan from pricing page, or default to starter
+      const selectedPlan = localStorage.getItem("postvolve_selected_plan") || "starter";
       
-      // If user selected a plan (not starter), redirect to Stripe checkout
-      if (selectedPlan && selectedPlan !== "starter") {
-        try {
-          const checkoutResponse = await fetch("/api/stripe/create-checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              planId: selectedPlan,
-              userId: user.id,
-            }),
-          });
+      // ALL users (including Starter) must go through Stripe checkout to get trial period
+      try {
+        const checkoutResponse = await fetch("/api/stripe/create-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planId: selectedPlan,
+            userId: user.id,
+          }),
+        });
 
-          const checkoutData = await checkoutResponse.json();
+        const checkoutData = await checkoutResponse.json();
 
-          if (checkoutResponse.ok && checkoutData.url) {
-            // Clear selected plan from localStorage
-            localStorage.removeItem("postvolve_selected_plan");
-            // Redirect to Stripe Checkout
-            window.location.href = checkoutData.url;
-            return;
-          }
-        } catch (error) {
-          console.error("Error initiating checkout:", error);
-          // Fall through to dashboard if checkout fails
+        if (checkoutResponse.ok && checkoutData.url) {
+          // Clear selected plan from localStorage
+          localStorage.removeItem("postvolve_selected_plan");
+          // Redirect to Stripe Checkout
+          window.location.href = checkoutData.url;
+          return;
+        } else {
+          // If checkout fails, show error but still redirect to dashboard
+          console.error("Checkout failed:", checkoutData);
+          alert(`Failed to initiate checkout: ${checkoutData.error || "Unknown error"}`);
         }
+      } catch (error) {
+        console.error("Error initiating checkout:", error);
+        alert("An error occurred. Please try again from the billing page.");
       }
       
-      // If starter plan or checkout failed, redirect to dashboard
+      // If checkout failed, redirect to dashboard (user can retry from billing page)
       localStorage.removeItem("postvolve_selected_plan");
       router.push("/dashboard");
     } catch (error) {

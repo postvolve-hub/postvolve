@@ -161,33 +161,70 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   else if (subscriptionStatus === "canceled" || subscriptionStatus === "unpaid") dbStatus = "canceled";
   else if (subscriptionStatus === "paused") dbStatus = "paused";
 
-  // Update subscription in database
-  await supabaseAdmin
+  // Check if subscription exists, if not create it (edge case)
+  const { data: existingSub } = await supabaseAdmin
     .from("subscriptions")
-    .update({
-      plan_type: planId as any,
-      status: dbStatus,
-      stripe_subscription_id: subscriptionId,
-      stripe_customer_id: customerId,
-      posts_per_day: plan.features.postsPerDay,
-      social_accounts_limit: plan.features.socialAccountsLimit,
-      categories_limit: plan.features.categoriesLimit,
-      current_period_start: periodStart !== undefined && periodStart !== null
-        ? new Date(periodStart * 1000).toISOString()
-        : null,
-      current_period_end: periodEnd !== undefined && periodEnd !== null
-        ? new Date(periodEnd * 1000).toISOString()
-        : null,
-      trial_start: trialStart !== undefined && trialStart !== null
-        ? new Date(trialStart * 1000).toISOString()
-        : null,
-      trial_end: trialEnd !== undefined && trialEnd !== null
-        ? new Date(trialEnd * 1000).toISOString()
-        : null,
-      cancel_at_period_end: cancelAtPeriodEnd || false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("user_id", userId);
+    .select("id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (existingSub) {
+    // Update existing subscription (including placeholder subscriptions)
+    await supabaseAdmin
+      .from("subscriptions")
+      .update({
+        plan_type: planId as any,
+        status: dbStatus,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: customerId,
+        posts_per_day: plan.features.postsPerDay,
+        social_accounts_limit: plan.features.socialAccountsLimit,
+        categories_limit: plan.features.categoriesLimit,
+        current_period_start: periodStart !== undefined && periodStart !== null
+          ? new Date(periodStart * 1000).toISOString()
+          : null,
+        current_period_end: periodEnd !== undefined && periodEnd !== null
+          ? new Date(periodEnd * 1000).toISOString()
+          : null,
+        trial_start: trialStart !== undefined && trialStart !== null
+          ? new Date(trialStart * 1000).toISOString()
+          : null,
+        trial_end: trialEnd !== undefined && trialEnd !== null
+          ? new Date(trialEnd * 1000).toISOString()
+          : null,
+        cancel_at_period_end: cancelAtPeriodEnd || false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+  } else {
+    // Edge case: subscription doesn't exist, create it
+    console.warn(`Subscription not found for user ${userId}, creating new subscription`);
+    await supabaseAdmin
+      .from("subscriptions")
+      .insert({
+        user_id: userId,
+        plan_type: planId as any,
+        status: dbStatus,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: customerId,
+        posts_per_day: plan.features.postsPerDay,
+        social_accounts_limit: plan.features.socialAccountsLimit,
+        categories_limit: plan.features.categoriesLimit,
+        current_period_start: periodStart !== undefined && periodStart !== null
+          ? new Date(periodStart * 1000).toISOString()
+          : null,
+        current_period_end: periodEnd !== undefined && periodEnd !== null
+          ? new Date(periodEnd * 1000).toISOString()
+          : null,
+        trial_start: trialStart !== undefined && trialStart !== null
+          ? new Date(trialStart * 1000).toISOString()
+          : null,
+        trial_end: trialEnd !== undefined && trialEnd !== null
+          ? new Date(trialEnd * 1000).toISOString()
+          : null,
+        cancel_at_period_end: cancelAtPeriodEnd || false,
+      } as any);
+  }
 
   // Log activity
   await supabaseAdmin.from("activity_log").insert({

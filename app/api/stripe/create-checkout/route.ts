@@ -71,8 +71,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is already on this plan
-    if (subscription && subscription.plan_type === planId) {
+    // Check if user is already on this plan AND has an active Stripe subscription
+    // Allow checkout if they have a placeholder subscription (no stripe_subscription_id)
+    if (subscription && subscription.plan_type === planId && subscription.stripe_subscription_id) {
       return NextResponse.json(
         { error: `You are already on the ${plan.name} plan` },
         { status: 400 }

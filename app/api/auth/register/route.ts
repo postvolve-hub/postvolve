@@ -75,23 +75,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Create default subscription (starter plan)
+    // 2. Create placeholder subscription (starter plan)
+    // This will be replaced by Stripe subscription after checkout
+    // Status is set to "trialing" as placeholder - will be updated by webhook
     const { error: subscriptionError } = await supabaseAdmin
       .from("subscriptions")
       .insert({
         user_id: userId,
         plan_type: "starter",
-        status: "active",
+        status: "trialing", // Placeholder - will be updated by Stripe webhook
         posts_per_day: 1,
         social_accounts_limit: 1,
         categories_limit: 2,
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+        // Don't set dates here - Stripe webhook will set them properly
+        current_period_start: null,
+        current_period_end: null,
+        trial_start: null,
+        trial_end: null,
       } as any);
 
     if (subscriptionError) {
-      console.error("Error creating subscription:", subscriptionError);
+      console.error("Error creating placeholder subscription:", subscriptionError);
       // Don't fail the request, just log it
+      // User will still be able to go through checkout
     }
 
     // 3. Create default user settings
