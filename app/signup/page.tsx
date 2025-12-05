@@ -153,7 +153,11 @@ function SignUpContent() {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="text-4xl font-bold mb-6"
           >
-            Start Your Free Trial Today
+            {selectedPlan === "starter" 
+              ? "Start Your Free Trial Today"
+              : selectedPlan === "plus"
+              ? "Start with Plus Plan"
+              : "Start with Pro Plan"}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -164,13 +168,41 @@ function SignUpContent() {
             Join thousands of thought leaders who use PostVolve to grow their social media presence with viral news cards.
           </motion.p>
           <div className="space-y-4">
-            {[
-              "7-day free trial (card required)",
-              "Connect unlimited social accounts",
-              "AI-generated content suggestions",
-              "Advanced analytics dashboard",
-              "Cancel anytime",
-            ].map((text, index) => (
+            {(() => {
+              const planFeatures = {
+                starter: [
+                  "7-day free trial (card required)",
+                  "1 post per day",
+                  "Connect 1 social account",
+                  "All 4 content categories",
+                  "AI-generated content suggestions",
+                  "Analytics dashboard",
+                  "Cancel anytime",
+                ],
+                plus: [
+                  "$99/month (billed immediately)",
+                  "3 posts per day",
+                  "Connect 5 social accounts",
+                  "All 4 content categories",
+                  "AI-generated content suggestions",
+                  "Advanced analytics dashboard",
+                  "Priority support",
+                  "Cancel anytime",
+                ],
+                pro: [
+                  "$299/month (billed immediately)",
+                  "Unlimited posts",
+                  "Unlimited social accounts",
+                  "All 4 + Custom categories",
+                  "AI-generated content suggestions",
+                  "Advanced analytics dashboard",
+                  "Team collaboration",
+                  "Dedicated account manager",
+                  "Cancel anytime",
+                ],
+              };
+              return planFeatures[selectedPlan as keyof typeof planFeatures] || planFeatures.starter;
+            })().map((text, index) => (
               <motion.div
                 key={text}
                 initial={{ opacity: 0, x: 20 }}
@@ -232,7 +264,11 @@ function SignUpContent() {
             >
               <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
               <CardDescription>
-                Enter your details to start your free trial
+                {selectedPlan === "starter" 
+                  ? "Enter your details to start your free trial"
+                  : selectedPlan === "plus"
+                  ? "Enter your details to start with Plus plan"
+                  : "Enter your details to start with Pro plan"}
               </CardDescription>
             </motion.div>
           </CardHeader>
@@ -344,7 +380,11 @@ function SignUpContent() {
                     </>
                   ) : (
                     <>
-                      Start Free Trial
+                      {selectedPlan === "starter" 
+                        ? "Start Free Trial"
+                        : selectedPlan === "plus"
+                        ? "Start with Plus"
+                        : "Start with Pro"}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}
