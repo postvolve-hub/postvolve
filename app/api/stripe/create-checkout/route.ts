@@ -142,8 +142,8 @@ export async function POST(request: NextRequest) {
           userId: userId,
           planId: planId,
         },
-        // Enable 7-day free trial for all plans
-        trial_period_days: 7,
+        // Enable 7-day free trial only for Starter plan
+        ...(planId === "starter" && { trial_period_days: 7 }),
       },
       // Allow promotion codes
       allow_promotion_codes: true,

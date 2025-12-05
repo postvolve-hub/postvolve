@@ -13,7 +13,8 @@ import {
   BarChart3,
   ChevronRight,
   Sparkles,
-  Loader2
+  Loader2,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -167,8 +168,8 @@ function BillingPageContent() {
       return;
     }
 
-    // Check if user is already on this plan
-    if (subscription?.plan_type === newPlan) {
+    // Check if user is already on this plan (only if they have a real Stripe subscription)
+    if (subscription?.plan_type === newPlan && subscription?.stripe_subscription_id) {
       toast({
         title: "Already on this plan",
         description: `You are already subscribed to the ${PLAN_NAMES[newPlan] || newPlan} plan`,
@@ -257,6 +258,9 @@ function BillingPageContent() {
     ? new Date(subscription.current_period_end).toLocaleDateString()
     : "N/A";
 
+  // Check if subscription is incomplete (placeholder - no Stripe subscription ID)
+  const isIncompleteSubscription = subscription && !subscription.stripe_subscription_id;
+
   const postsPercentage = usage
     ? (usage.postsUsed / usage.postsLimit) * 100
     : 0;
@@ -275,58 +279,178 @@ function BillingPageContent() {
           </div>
         </div>
 
-        {/* Current Plan Card */}
-        <div className="bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] rounded-2xl p-6 text-white shadow-xl shadow-primary/20 animate-in slide-in-from-bottom-2 duration-500 delay-75">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                  Current Plan
+        {/* Current Plan Card or Incomplete Subscription Card */}
+        {isIncompleteSubscription ? (
+          // Incomplete Subscription Card (Placeholder - checkout not completed)
+          <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl shadow-amber-500/20 animate-in slide-in-from-bottom-2 duration-500 delay-75">
+            <div className="flex flex-col gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="text-sm font-medium">Subscription Pending</span>
+                </div>
+                <h3 className="text-2xl font-bold mb-1">{planName} Plan</h3>
+                <p className="text-white/90 text-sm mb-2">
+                  Your subscription is pending. Complete checkout to activate your plan and access all features.
+                </p>
+                <p className="text-white/80 text-sm">
+                  <span className="text-2xl font-bold text-white">${planPrice}</span>
+                  <span className="text-white/60">/month</span>
+                  {currentPlan !== "starter" && (
+                    <span className="text-white/60 ml-2">(billed immediately)</span>
+                  )}
+                </p>
               </div>
-              <h3 className="text-2xl font-bold mb-1">{planName} Plan</h3>
-              <p className="text-white/80 text-sm">
-                <span className="text-3xl font-bold text-white">${planPrice}</span>
-                <span className="text-white/60">/month</span>
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                variant="outline" 
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl"
-                onClick={() => setChangePlanModalOpen(true)}
-                disabled={processing}
-              >
-                {processing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  "Change Plan"
+              
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/20">
+                <Button 
+                  className="flex-1 bg-white text-amber-600 hover:bg-white/90 rounded-xl font-medium h-11"
+                  onClick={async () => {
+                    if (!user) return;
+                    setProcessing(true);
+                    try {
+                      const response = await fetch("/api/stripe/create-checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          planId: currentPlan,
+                          userId: user.id,
+                        }),
+                      });
+                      const data = await response.json();
+                      if (response.ok && data.url) {
+                        window.location.href = data.url;
+                      } else {
+                        throw new Error(data.error || "Failed to create checkout session");
+                      }
+                    } catch (error: any) {
+                      toast({
+                        title: "Error",
+                        description: error.message || "Failed to initiate checkout",
+                        variant: "destructive",
+                      });
+                      setProcessing(false);
+                    }
+                  }}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Complete Checkout
+                    </>
+                  )}
+                </Button>
+                
+                {currentPlan !== "starter" && (
+                  <Button 
+                    variant="outline"
+                    className="flex-1 bg-white/10 border-white/30 text-white hover:bg-white/20 rounded-xl font-medium h-11"
+                    onClick={async () => {
+                      if (!user) return;
+                      setProcessing(true);
+                      try {
+                        const response = await fetch("/api/stripe/create-checkout", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            planId: "starter",
+                            userId: user.id,
+                          }),
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.url) {
+                          window.location.href = data.url;
+                        } else {
+                          throw new Error(data.error || "Failed to create checkout session");
+                        }
+                      } catch (error: any) {
+                        toast({
+                          title: "Error",
+                          description: error.message || "Failed to initiate checkout",
+                          variant: "destructive",
+                        });
+                        setProcessing(false);
+                      }
+                    }}
+                    disabled={processing}
+                  >
+                    {processing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Switch to Starter (7-day trial)
+                      </>
+                    )}
+                  </Button>
                 )}
-              </Button>
-              <Button 
-                className="bg-white text-[#6D28D9] hover:bg-white/90 rounded-xl font-medium"
-                onClick={handleManagePayment}
-                disabled={processing || !subscription?.stripe_customer_id}
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Manage Payment
-              </Button>
+              </div>
             </div>
           </div>
+        ) : (
+          // Active Subscription Card
+          <div className="bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] rounded-2xl p-6 text-white shadow-xl shadow-primary/20 animate-in slide-in-from-bottom-2 duration-500 delay-75">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Check className="h-5 w-5" />
+                  <span className="text-sm font-medium">Current Plan</span>
+                </div>
+                <h3 className="text-2xl font-bold mb-1">{planName} Plan</h3>
+                <p className="text-white/80 text-sm">
+                  <span className="text-3xl font-bold text-white">${planPrice}</span>
+                  <span className="text-white/60">/month</span>
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button 
+                  variant="outline" 
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-xl"
+                  onClick={() => setChangePlanModalOpen(true)}
+                  disabled={processing}
+                >
+                  {processing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    "Change Plan"
+                  )}
+                </Button>
+                <Button 
+                  className="bg-white text-[#6D28D9] hover:bg-white/90 rounded-xl font-medium"
+                  onClick={handleManagePayment}
+                  disabled={processing || !subscription?.stripe_customer_id}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Manage Payment
+                </Button>
+              </div>
+            </div>
 
-          {/* Next billing info */}
-          <div className="mt-6 pt-4 border-t border-white/20 flex flex-wrap items-center gap-6 text-sm">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-white/60" />
-              <span className="text-white/80">Next billing: <strong className="text-white">{nextBillingDate}</strong></span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-green-400" />
-              <span className="text-white/80">Auto-renewal enabled</span>
+            {/* Next billing info */}
+            <div className="mt-6 pt-4 border-t border-white/20 flex flex-wrap items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-white/60" />
+                <span className="text-white/80">Next billing: <strong className="text-white">{nextBillingDate}</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-400" />
+                <span className="text-white/80">Auto-renewal enabled</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Usage Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-100">

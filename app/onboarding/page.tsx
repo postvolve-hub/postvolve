@@ -7,6 +7,7 @@ import { Check, ChevronRight, Clock, Zap, ArrowRight, User, Loader2, AlertCircle
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 
 // Platform Icons
 const IconLinkedIn = ({ className = "h-6 w-6" }: { className?: string }) => (
@@ -417,7 +418,7 @@ export default function OnboardingPage() {
   // Progress indicator
   const ProgressIndicator = () => (
     <div className="flex items-center justify-center gap-2 mb-8">
-      {[1, 2, 3, 4].map((step) => (
+      {[1, 2, 3, 4, 5].map((step) => (
         <div key={step} className="flex items-center">
           <div
             className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 ${
@@ -428,7 +429,7 @@ export default function OnboardingPage() {
           >
             {currentStep > step ? <Check className="w-4 h-4" /> : step}
           </div>
-          {step < 4 && (
+          {step < 5 && (
             <div
               className={`w-8 h-1 mx-1 rounded-full transition-all duration-300 ${
                 currentStep > step ? "bg-[#6D28D9]" : "bg-gray-200"
@@ -826,23 +827,159 @@ export default function OnboardingPage() {
                 Back
               </Button>
               <Button
-                onClick={handleFinish}
-                disabled={isSubmitting}
-                className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setCurrentStep(5)}
+                className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300"
               >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    Finish Setup
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </>
-                )}
+                Continue
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Step 5: Billing Preview */}
+        {currentStep === 5 && (
+          <div className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 p-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <ProgressIndicator />
+            
+            <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">
+              Complete Your Subscription
+            </h2>
+            <p className="text-gray-500 text-sm text-center mb-6">
+              Review your plan details and proceed to secure checkout
+            </p>
+
+            {/* Get selected plan */}
+            {(() => {
+              const selectedPlan = localStorage.getItem("postvolve_selected_plan") || "starter";
+              const planConfigs = {
+                starter: { name: "Starter", price: 0, amount: 39, trial: true },
+                plus: { name: "Plus", price: 99, amount: 99, trial: false },
+                pro: { name: "Pro", price: 299, amount: 299, trial: false },
+              };
+              const planConfig = planConfigs[selectedPlan as keyof typeof planConfigs] || planConfigs.starter;
+
+              return (
+                <div className="space-y-6">
+                  {/* Plan Card */}
+                  <div className="p-6 bg-gradient-to-br from-[#6D28D9]/5 to-purple-50/50 border-2 border-[#6D28D9]/20 rounded-2xl">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{planConfig.name} Plan</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {selectedPlan === "starter" 
+                            ? "Perfect for getting started"
+                            : selectedPlan === "plus"
+                            ? "For scaling your influence"
+                            : "For teams & agencies"}
+                        </p>
+                      </div>
+                      {selectedPlan === "plus" && (
+                        <Badge className="bg-[#6D28D9] text-white">Popular</Badge>
+                      )}
+                    </div>
+
+                    {/* Pricing Display */}
+                    <div className="space-y-3">
+                      {selectedPlan === "starter" ? (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold text-gray-900">$0.00</span>
+                          <span className="text-sm text-gray-600">for 7 days</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-3xl font-bold text-gray-900">${planConfig.price}</span>
+                          <span className="text-sm text-gray-600">/month</span>
+                        </div>
+                      )}
+                      
+                      {planConfig.trial && (
+                        <div className="flex items-center gap-2 text-sm text-[#6D28D9] font-medium">
+                          <Check className="w-4 h-4" />
+                          <span>7-day free trial included</span>
+                        </div>
+                      )}
+
+                      {selectedPlan === "starter" && (
+                        <div className="pt-2 border-t border-gray-200">
+                          <p className="text-xs text-gray-600">
+                            After your 7-day free trial, you'll be charged <strong>${planConfig.amount}/month</strong>. 
+                            Cancel anytime during the trial with no charges.
+                          </p>
+                        </div>
+                      )}
+
+                      {(selectedPlan === "plus" || selectedPlan === "pro") && (
+                        <div className="pt-2 border-t border-gray-200 space-y-2">
+                          <p className="text-xs text-gray-600">
+                            Billed <strong>${planConfig.amount}/month</strong> starting immediately.
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {selectedPlan === "plus" 
+                              ? "Includes 3 posts/day, 5 social accounts, all categories, and advanced analytics."
+                              : "Includes unlimited posts, unlimited accounts, custom categories, and team collaboration."}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Security & Info */}
+                  <div className="p-4 bg-gray-50/80 rounded-2xl border border-gray-100 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Secure Checkout</p>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          Your payment information is encrypted and secure. Powered by Stripe.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <Check className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">Cancel Anytime</p>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          No long-term commitments. Cancel your subscription at any time.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentStep(4)}
+                      className="flex-1 h-12 border-gray-200 text-gray-700 rounded-2xl transition-all duration-200"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      onClick={handleFinish}
+                      disabled={isSubmitting}
+                      className="flex-[2] h-12 bg-[#6D28D9] hover:bg-[#5B21B6] text-white font-medium rounded-2xl shadow-lg shadow-[#6D28D9]/25 hover:shadow-xl hover:shadow-[#6D28D9]/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          Proceed to Checkout
+                          <ArrowRight className="ml-2 h-5 w-5" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

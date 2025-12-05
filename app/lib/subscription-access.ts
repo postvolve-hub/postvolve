@@ -11,6 +11,7 @@ export interface Subscription {
   user_id: string;
   status: SubscriptionStatus;
   plan_type: "starter" | "plus" | "pro";
+  stripe_subscription_id?: string | null;
   current_period_start?: string | null;
   current_period_end?: string | null;
   cancel_at_period_end?: boolean;
@@ -55,7 +56,13 @@ function calculateDaysPastDue(subscription: Subscription): number {
 export function hasActiveAccess(subscription: Subscription | null): boolean {
   if (!subscription) return false;
 
-  // Active or trialing = full access
+  // Placeholder subscriptions (no stripe_subscription_id) should not grant access
+  // User must complete checkout to get a real Stripe subscription
+  if (!subscription.stripe_subscription_id) {
+    return false;
+  }
+
+  // Active or trialing = full access (only if real Stripe subscription exists)
   if (subscription.status === "active" || subscription.status === "trialing") {
     return true;
   }
@@ -104,10 +111,28 @@ export function getAccessPermissions(subscription: Subscription | null): AccessP
     };
   }
 
+  // Placeholder subscription (no Stripe subscription ID) - no access
+  // User must complete checkout to get a real subscription
+  if (!subscription.stripe_subscription_id) {
+    return {
+      canGenerateContent: false,
+      canPublishPosts: false,
+      canSchedulePosts: false,
+      canConnectAccounts: false,
+      canViewAnalytics: true, // Historical data always viewable
+      canEditSettings: false,
+      canViewDrafts: true, // Read-only access
+      canUseAutoPosting: false,
+      accessLevel: "locked",
+      message: "Please complete checkout to activate your subscription and access all features.",
+      actionRequired: true,
+    };
+  }
+
   const status = subscription.status;
   const daysPastDue = calculateDaysPastDue(subscription);
 
-  // Active or Trialing - Full Access
+  // Active or Trialing - Full Access (only if real Stripe subscription exists)
   if (status === "active" || status === "trialing") {
     return {
       canGenerateContent: true,
