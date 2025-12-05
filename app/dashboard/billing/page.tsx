@@ -254,9 +254,26 @@ function BillingPageContent() {
   const currentPlan = subscription?.plan_type || "starter";
   const planName = PLAN_NAMES[currentPlan] || "Starter";
   const planPrice = PLAN_PRICES[currentPlan] || 39;
-  const nextBillingDate = subscription?.current_period_end
-    ? new Date(subscription.current_period_end).toLocaleDateString()
-    : "N/A";
+  
+  // Calculate next billing date based on subscription status
+  let nextBillingDate = "N/A";
+  let nextBillingLabel = "Next billing";
+  
+  if (subscription) {
+    if (subscription.status === "trialing" && subscription.trial_end) {
+      // For trialing subscriptions, show when trial ends
+      nextBillingDate = new Date(subscription.trial_end).toLocaleDateString();
+      nextBillingLabel = "Trial ends";
+    } else if (subscription.status === "active" && subscription.current_period_end) {
+      // For active subscriptions, show next billing date
+      nextBillingDate = new Date(subscription.current_period_end).toLocaleDateString();
+      nextBillingLabel = "Next billing";
+    } else if (subscription.current_period_end) {
+      // Fallback to current_period_end if available
+      nextBillingDate = new Date(subscription.current_period_end).toLocaleDateString();
+      nextBillingLabel = "Next billing";
+    }
+  }
 
   // Check if subscription is incomplete (placeholder - no Stripe subscription ID)
   const isIncompleteSubscription = subscription && !subscription.stripe_subscription_id;
@@ -442,7 +459,9 @@ function BillingPageContent() {
             <div className="mt-6 pt-4 border-t border-white/20 flex flex-wrap items-center gap-6 text-sm">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-white/60" />
-                <span className="text-white/80">Next billing: <strong className="text-white">{nextBillingDate}</strong></span>
+                <span className="text-white/80">
+                  {nextBillingLabel}: <strong className="text-white">{nextBillingDate}</strong>
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-400" />
