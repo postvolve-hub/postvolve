@@ -203,29 +203,29 @@ export default function Analytics() {
           {MOCK_METRICS.map((metric, index) => {
             const IconComponent = metric.icon;
             return (
-              <div
-                key={metric.id}
+            <div
+              key={metric.id}
                 className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:scale-[1.01]"
                 style={{ animationDelay: `${index * 50}ms` }}
-              >
+            >
                 <div className="flex items-center justify-between mb-2">
                   <div className={`p-2 rounded-xl ${metric.color}`}>
                     <IconComponent />
-                  </div>
-                  <span className={`flex items-center text-xs font-medium ${
-                    metric.trend === 'up' ? 'text-emerald-600' : 'text-red-500'
-                  }`}>
-                    {metric.trend === 'up' ? (
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    ) : (
-                      <ArrowDownRight className="h-3.5 w-3.5" />
-                    )}
-                    {metric.change}
-                  </span>
                 </div>
+                  <span className={`flex items-center text-xs font-medium ${
+                  metric.trend === 'up' ? 'text-emerald-600' : 'text-red-500'
+                }`}>
+                  {metric.trend === 'up' ? (
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                  ) : (
+                      <ArrowDownRight className="h-3.5 w-3.5" />
+                  )}
+                  {metric.change}
+                </span>
+              </div>
                 <p className="text-xl font-bold text-gray-900">{metric.value}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{metric.label}</p>
-              </div>
+            </div>
             );
           })}
         </div>
@@ -360,21 +360,21 @@ export default function Analytics() {
                       animationDelay: `${1000 + i * 100}ms`
                     }}
                     title={`${Math.round((100 - parseFloat(pos.top)) * 150)} engagements`}
-                  />
+                />
                 ))}
               </div>
               
               {/* X-axis labels */}
               <div className="absolute bottom-0 left-0 right-0 flex justify-between text-[10px] text-gray-400">
-                <span>Nov 4</span>
-                <span>Nov 11</span>
-                <span>Nov 18</span>
-                <span>Nov 25</span>
-                <span>Dec 3</span>
+            <span>Nov 4</span>
+            <span>Nov 11</span>
+            <span>Nov 18</span>
+            <span>Nov 25</span>
+            <span>Dec 3</span>
               </div>
-            </div>
           </div>
-          
+        </div>
+
           {/* Chart Stats Summary */}
           <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-4">
             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2 duration-500 delay-300">
@@ -408,59 +408,59 @@ export default function Analytics() {
           </div>
           {MOCK_POST_HISTORY.length > 0 ? (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full">
+          <div className="overflow-x-auto">
+            <table className="w-full">
                   <thead className="bg-gray-50/50">
-                    <tr>
+                <tr>
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Post</th>
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Impressions</th>
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Engagement</th>
                       <th className="px-5 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
+                </tr>
+              </thead>
                   <tbody className="divide-y divide-gray-100">
                     {MOCK_POST_HISTORY.map((post, index) => (
                       <tr key={post.id} className="hover:bg-gray-50/50 transition-colors duration-200">
                         <td className="px-5 py-3">
-                          <p className="text-sm font-medium text-gray-900">{post.title}</p>
-                        </td>
+                      <p className="text-sm font-medium text-gray-900">{post.title}</p>
+                    </td>
                         <td className="px-5 py-3 text-sm text-gray-500">{post.date}</td>
                         <td className="px-5 py-3">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${CATEGORY_COLORS[post.category]}`}>
-                            {post.category}
-                          </span>
-                        </td>
+                        {post.category}
+                      </span>
+                    </td>
                         <td className="px-5 py-3">
-                          <div className="flex items-center text-sm text-gray-900">
+                      <div className="flex items-center text-sm text-gray-900">
                             <IconEye className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                            {post.impressions}
-                          </div>
-                        </td>
+                        {post.impressions}
+                      </div>
+                    </td>
                         <td className="px-5 py-3">
-                          <div className="flex items-center text-sm text-gray-900">
+                      <div className="flex items-center text-sm text-gray-900">
                             <IconHeart className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                            {post.engagement}
-                          </div>
-                        </td>
+                        {post.engagement}
+                      </div>
+                    </td>
                         <td className="px-5 py-3">
                           <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${STATUS_STYLES[post.status]}`}>
-                            {post.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        {post.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
               <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between">
                 <p className="text-xs text-gray-500">Showing 6 of 156 posts</p>
-                <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
                   <Button variant="outline" size="sm" className="border-gray-200 rounded-xl h-8 text-xs transition-all duration-200">Previous</Button>
                   <Button variant="outline" size="sm" className="border-gray-200 rounded-xl h-8 text-xs transition-all duration-200">Next</Button>
-                </div>
-              </div>
+            </div>
+          </div>
             </>
           ) : (
             <EmptyState 
