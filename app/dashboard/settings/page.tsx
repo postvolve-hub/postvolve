@@ -353,10 +353,35 @@ export default function Settings() {
       updateConnectedAccountsFromDB();
     }
 
+    if (connected === "facebook") {
+      toast({
+        title: "Account Connected",
+        description: "Your Facebook account has been connected successfully.",
+      });
+      // Clear URL params
+      window.history.replaceState({}, "", window.location.pathname);
+      // Refresh connected accounts
+      updateConnectedAccountsFromDB();
+    }
+
+    if (connected === "instagram") {
+      toast({
+        title: "Account Connected",
+        description: "Your Instagram account has been connected successfully.",
+      });
+      // Clear URL params
+      window.history.replaceState({}, "", window.location.pathname);
+      // Refresh connected accounts
+      updateConnectedAccountsFromDB();
+    }
+
     if (error) {
       const errorMessages: Record<string, string> = {
         linkedin_auth_failed: "LinkedIn authorization was cancelled or failed.",
         x_auth_failed: "X authorization was cancelled or failed.",
+        facebook_auth_failed: "Facebook authorization was cancelled or failed.",
+        facebook_pages_auth_failed: "Facebook Pages authorization was cancelled or failed.",
+        instagram_auth_failed: "Instagram authorization was cancelled or failed.",
         missing_params: "Missing required parameters. Please try again.",
         invalid_state: "Invalid authorization state. Please try again.",
         oauth_not_configured: "OAuth is not properly configured.",

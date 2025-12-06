@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
@@ -8,6 +8,28 @@ import { Footer } from "@/components/Footer";
 
 export default function PrivacyPage() {
   const lastUpdated = "December 3, 2024";
+  const [showDeletedMessage, setShowDeletedMessage] = useState(false);
+  const [showErrorMessage, setShowErrorMessage] = useState(false);
+
+  useEffect(() => {
+    // Check URL hash to show appropriate message
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#data-deleted") {
+        setShowDeletedMessage(true);
+        // Scroll to the message
+        setTimeout(() => {
+          document.getElementById("data-deleted")?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      } else if (hash === "#data-deletion-error") {
+        setShowErrorMessage(true);
+        // Scroll to the message
+        setTimeout(() => {
+          document.getElementById("data-deletion-error")?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
+      }
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
@@ -99,6 +121,48 @@ export default function PrivacyPage() {
                 To exercise these rights, contact us at <a href="mailto:privacy@postvolve.com" className="text-primary hover:underline">privacy@postvolve.com</a>.
               </p>
             </section>
+
+            <section id="data-deletion">
+              <h2 className="text-xl font-semibold text-foreground mb-3">Data Deletion</h2>
+              <p>
+                You can request deletion of your data at any time. When you request data deletion:
+              </p>
+              <ul className="list-disc pl-6 space-y-2 mt-3">
+                <li>We will delete all your personal information from our systems</li>
+                <li>We will remove all connected social media accounts</li>
+                <li>We will delete all your posts, drafts, and content</li>
+                <li>We will cancel any active subscriptions</li>
+                <li>We will remove all usage and analytics data</li>
+              </ul>
+              <p className="mt-3">
+                <strong>For Facebook Users:</strong> If you connected your Facebook account, you can request data deletion directly from Facebook. When you do, Facebook will automatically notify us, and we will delete all associated data from our systems.
+              </p>
+              <p className="mt-3">
+                <strong>For All Users:</strong> To delete your account and all associated data, contact us at <a href="mailto:privacy@postvolve.com" className="text-primary hover:underline">privacy@postvolve.com</a> or delete your account from your account settings.
+              </p>
+            </section>
+
+            {showDeletedMessage && (
+              <section id="data-deleted">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h2 className="text-xl font-semibold text-green-900 mb-2">Data Deletion Confirmed</h2>
+                  <p className="text-green-800">
+                    Your data has been successfully deleted from our systems. We have removed all your personal information, connected accounts, posts, and associated data.
+                  </p>
+                </div>
+              </section>
+            )}
+
+            {showErrorMessage && (
+              <section id="data-deletion-error">
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <h2 className="text-xl font-semibold text-amber-900 mb-2">Data Deletion Request Received</h2>
+                  <p className="text-amber-800">
+                    We have received your data deletion request. Our team will process this request within 30 days. If you have any questions, please contact us at <a href="mailto:privacy@postvolve.com" className="text-primary hover:underline">privacy@postvolve.com</a>.
+                  </p>
+                </div>
+              </section>
+            )}
 
             <section>
               <h2 className="text-xl font-semibold text-foreground mb-3">Cookies</h2>

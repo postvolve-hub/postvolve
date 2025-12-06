@@ -144,6 +144,20 @@ export function ConnectAccountModal({
         return;
       }
 
+      if (platform === "facebook") {
+        // Redirect to Facebook Pages OAuth with user ID (for posting to Pages)
+        window.location.href = `/api/auth/facebook-pages?userId=${user.id}`;
+        // The redirect will happen, so we don't need to handle success here
+        return;
+      }
+
+      if (platform === "instagram") {
+        // Redirect to Instagram OAuth with user ID
+        window.location.href = `/api/auth/instagram?userId=${user.id}`;
+        // The redirect will happen, so we don't need to handle success here
+        return;
+      }
+
       // For other platforms (will be implemented later)
       setError("Platform not yet implemented");
       setConnectionState("error");
@@ -220,8 +234,16 @@ export function ConnectAccountModal({
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Connecting...</h3>
               <p className="text-sm text-gray-500">
-                Redirecting you to {config.name} for authorization.
+                {platform === "instagram" 
+                  ? "Redirecting you to Facebook to authorize access to your Instagram account."
+                  : `Redirecting you to ${config.name} for authorization.`
+                }
               </p>
+              {platform === "instagram" && (
+                <p className="text-xs text-gray-400 mt-2">
+                  This is required because Instagram accounts are linked to Facebook Pages.
+                </p>
+              )}
             </div>
           )}
 
@@ -264,6 +286,25 @@ export function ConnectAccountModal({
                     </li>
                   ))}
                 </ul>
+
+                {/* Instagram-specific explanation about Facebook login */}
+                {platform === "instagram" && (
+                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-amber-100">
+                        <IconFacebook className="h-4 w-4 text-amber-700" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-amber-900 mb-1">
+                          Facebook Login Required
+                        </p>
+                        <p className="text-xs text-amber-800 leading-relaxed">
+                          Instagram Business accounts are linked to Facebook Pages. You'll be redirected to Facebook to authorize access to your Instagram account. This is secure and required by Instagram's API.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="mt-6 p-3 bg-blue-50 rounded-xl">
                   <p className="text-xs text-blue-700">

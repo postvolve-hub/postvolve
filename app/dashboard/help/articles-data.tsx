@@ -429,17 +429,23 @@ export const ARTICLES: Record<string, Article> = {
 
         <h3 className="text-xl font-semibold text-gray-900 mt-6 mb-3">Instagram</h3>
         <p className="text-gray-700 mb-4">
-          Instagram connection is done through Facebook's Business API:
+          Instagram connection uses Facebook's authentication system:
         </p>
         <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
-          <li>First connect your Facebook account</li>
-          <li>If your Instagram is linked to a Facebook Page, it will be available automatically</li>
-          <li>Select the Instagram account you want to connect</li>
-          <li>Grant necessary permissions</li>
+          <li>Click "Connect" on Instagram in your settings</li>
+          <li>You'll be redirected to Facebook for authorization (this is required by Instagram's API)</li>
+          <li>Log in with your Facebook account that has access to your Instagram Business account</li>
+          <li>If your Instagram is linked to a Facebook Page, it will be detected automatically</li>
+          <li>Grant the necessary permissions to allow PostVolve to post on your behalf</li>
         </ul>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+          <p className="text-sm text-amber-800">
+            <strong>Why Facebook Login?</strong> Instagram Business accounts are linked to Facebook Pages. Instagram's API requires Facebook authentication to access your Instagram account and post content. This is secure and required by Instagram.
+          </p>
+        </div>
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
           <p className="text-sm text-blue-800">
-            <strong>Note:</strong> Instagram requires a Facebook Page connection. If you don't have one, you'll need to create a Facebook Page and link it to your Instagram account first.
+            <strong>Requirements:</strong> Your Instagram account must be a Business or Creator account linked to a Facebook Page. If you don't have one, you'll need to convert your Instagram account to Business/Creator and link it to a Facebook Page first.
           </p>
         </div>
 
