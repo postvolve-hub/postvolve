@@ -16,22 +16,15 @@ import { updateExpiredTokens } from "@/lib/token-expiration";
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify this is a Vercel cron request
-    // Vercel sends x-vercel-cron header for scheduled cron jobs
-    const isVercelCron = request.headers.get("x-vercel-cron") === "1";
-    
-    // Optional: Additional security check with CRON_SECRET for manual calls
+    // Optional: Add authentication/authorization check
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
     
-    // Allow if it's a Vercel cron request OR if CRON_SECRET matches (for manual testing)
-    if (!isVercelCron) {
-      if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json(
-          { error: "Unauthorized" },
-          { status: 401 }
-        );
-      }
+    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
     }
 
     console.log("Checking for expired tokens...");
