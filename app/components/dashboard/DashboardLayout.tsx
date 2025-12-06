@@ -97,19 +97,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<any>(null);
   const router = useRouter();
-  const { user, logoutMutation, isLoading } = useAuth();
-
-  // Redirect to signin if not authenticated (after loading completes)
-  useEffect(() => {
-    // Wait for auth to finish loading
-    if (isLoading) return;
-    
-    // If no user after loading, redirect to signin
-    if (!user) {
-      const redirectUrl = encodeURIComponent(pathname);
-      router.push(`/signin?redirect=${redirectUrl}`);
-    }
-  }, [user, isLoading, router, pathname]);
+  const { user, logoutMutation } = useAuth();
 
   // Check if user has completed onboarding and fetch subscription
   useEffect(() => {
@@ -166,23 +154,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setSidebarCollapsed(newState);
     localStorage.setItem("sidebar-collapsed", String(newState));
   };
-
-  // Show loading state while checking auth
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#6D28D9] mx-auto"></div>
-          <p className="text-sm text-gray-500 mt-4">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render dashboard if not authenticated (will redirect via useEffect)
-  if (!user) {
-    return null;
-  }
 
   const initials =
     user?.username

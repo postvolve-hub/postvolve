@@ -190,11 +190,40 @@ export default function Settings() {
     return { isExpired, expiresSoon, daysUntilExpiry };
   };
 
+  // Helper function to refresh X tokens on-demand (no cron needed)
+  const refreshXTokensIfNeeded = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      // Call API to refresh expiring X tokens
+      const response = await fetch("/api/auth/refresh-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.refreshed > 0) {
+          console.log(`Refreshed ${result.refreshed} X token(s)`);
+        }
+      }
+    } catch (error) {
+      console.error("Error refreshing X tokens:", error);
+      // Don't block the UI if refresh fails
+    }
+  }, [user]);
+
   // Helper function to update connected accounts from database
   const updateConnectedAccountsFromDB = useCallback(async () => {
     if (!user) return;
 
     try {
+      // First, refresh X tokens if needed (on-demand, no cron)
+      await refreshXTokensIfNeeded();
+
       // Fetch all accounts (including expired ones) to check expiration
       const { data: accounts, error } = await supabase
         .from("connected_accounts")
@@ -289,7 +318,7 @@ export default function Settings() {
     } catch (error) {
       console.error("Error fetching accounts:", error);
     }
-  }, [user]);
+  }, [user, refreshXTokensIfNeeded]);
 
   // Fetch connected accounts from database on mount
   useEffect(() => {
@@ -734,14 +763,14 @@ export default function Settings() {
                       {account.connected ? (
                           <>
                             <p className="text-xs text-gray-500">{account.username}</p>
-                            {/* Token expiration warnings */}
-                            {account.isExpired && (
+                            {/* Only show expiration warnings for LinkedIn (X tokens are auto-refreshed) */}
+                            {account.platformId === "linkedin" && account.isExpired && (
                               <div className="flex items-center gap-1 mt-1">
                                 <AlertCircle className="h-3 w-3 text-red-500" />
                                 <p className="text-xs text-red-600 font-medium">Token expired - Reconnect required</p>
                               </div>
                             )}
-                            {account.expiresSoon && !account.isExpired && account.tokenExpiresAt && (
+                            {account.platformId === "linkedin" && account.expiresSoon && !account.isExpired && account.tokenExpiresAt && (
                               <div className="flex items-center gap-1 mt-1">
                                 <AlertTriangle className="h-3 w-3 text-amber-500" />
                                 <p className="text-xs text-amber-600">
@@ -749,11 +778,7 @@ export default function Settings() {
                                 </p>
                               </div>
                             )}
-                            {account.tokenExpiresAt && !account.isExpired && !account.expiresSoon && (
-                              <p className="text-xs text-gray-400 mt-0.5">
-                                Expires {new Date(account.tokenExpiresAt).toLocaleDateString()}
-                              </p>
-                            )}
+                            {/* Removed expiration date display - X tokens auto-refresh, LinkedIn shows reconnect button when needed */}
                           </>
                       ) : (
                           <p className="text-xs text-gray-400">Not connected</p>
@@ -762,7 +787,9 @@ export default function Settings() {
                   </div>
                   {account.connected ? (
                       <div className="flex items-center gap-2">
-                        {account.isExpired ? (
+                        {/* Show reconnect button for LinkedIn when expired or expiring soon */}
+                        {/* X accounts are auto-refreshed, so only show reconnect if truly expired (refresh failed) */}
+                        {(account.isExpired || (account.platformId === "linkedin" && account.expiresSoon)) ? (
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -774,16 +801,8 @@ export default function Settings() {
                           </Button>
                         ) : (
                           <>
-                            <span className={`flex items-center gap-1 text-xs ${
-                              account.expiresSoon 
-                                ? "text-amber-600" 
-                                : "text-emerald-600"
-                            }`}>
-                              <div className={`w-1.5 h-1.5 rounded-full ${
-                                account.expiresSoon 
-                                  ? "bg-amber-500" 
-                                  : "bg-emerald-500"
-                              }`}></div>
+                            <span className="flex items-center gap-1 text-xs text-emerald-600">
+                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                               Connected
                             </span>
                             <Button 
