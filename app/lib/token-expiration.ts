@@ -4,17 +4,7 @@
  * Handles checking and updating expired OAuth tokens for connected accounts
  */
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false,
-  },
-});
+import { supabaseAdmin } from "@/lib/supabaseServer";
 
 /**
  * Check if a token is expired or expiring soon
@@ -58,7 +48,13 @@ export async function updateExpiredTokens() {
     const errors: any[] = [];
     let updated = 0;
 
-    for (const account of accounts) {
+    for (const account of accounts as Array<{
+      id: string;
+      platform: string;
+      token_expires_at: string;
+      status: string;
+      user_id: string;
+    }>) {
       const { isExpired } = checkTokenExpiration(account.token_expires_at);
       
       if (isExpired) {
@@ -68,7 +64,7 @@ export async function updateExpiredTokens() {
           .update({ 
             status: "expired",
             updated_at: new Date().toISOString(),
-          })
+          } as any)
           .eq("id", account.id);
 
         if (updateError) {
@@ -128,7 +124,7 @@ export async function checkAccountTokenExpiration(accountId: string) {
         .update({ 
           status: "expired",
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq("id", accountId);
     }
 
