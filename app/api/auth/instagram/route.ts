@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     // Continue with OAuth regardless - the user ID comes from authenticated Supabase Auth session
     // which is verified in ConnectAccountModal before calling this endpoint
 
-    // Get Instagram OAuth credentials (Instagram uses Facebook's OAuth system)
+    // Get Instagram OAuth credentials (Instagram Login flow)
     const clientId = process.env.INSTAGRAM_APP_ID;
     // Ensure no trailing slash in base URL to avoid double slashes
     const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
@@ -58,26 +58,26 @@ export async function GET(request: NextRequest) {
     // Generate state parameter for CSRF protection
     const state = Buffer.from(`${userId}:${Date.now()}`).toString("base64");
     
-    // Instagram OAuth scopes (Instagram uses Facebook Graph API)
-    // Note: Instagram requires the Instagram account to be linked to a Facebook Page
+    // Instagram Login scopes (new instagram_business_* scopes; no Page required)
     const scopes = [
-      "instagram_basic",
-      "instagram_content_publish",
-      "pages_show_list", // Required to list Pages (Instagram accounts are linked to Pages)
-      "public_profile",
+      "instagram_business_basic",
+      "instagram_business_content_publish",
+      // Optional: uncomment when needed
+      // "instagram_business_manage_comments",
+      // "instagram_business_manage_messages",
     ].join(",");
 
-    // Build Facebook authorization URL (Instagram uses Facebook's OAuth)
-    const authUrl = new URL("https://www.facebook.com/v21.0/dialog/oauth");
+    // Build Instagram authorization URL (Instagram Login)
+    const authUrl = new URL("https://api.instagram.com/oauth/authorize");
     authUrl.searchParams.set("client_id", clientId);
     authUrl.searchParams.set("redirect_uri", redirectUri);
     authUrl.searchParams.set("scope", scopes);
     authUrl.searchParams.set("state", state);
     authUrl.searchParams.set("response_type", "code");
 
-    console.log("Redirecting to Instagram OAuth (via Facebook):", authUrl.toString());
+    console.log("Redirecting to Instagram OAuth (Instagram Login):", authUrl.toString());
 
-    // Redirect to Facebook (which handles Instagram OAuth)
+    // Redirect to Instagram
     return NextResponse.redirect(authUrl.toString());
   } catch (error: any) {
     console.error("Instagram OAuth initiation error:", error);
