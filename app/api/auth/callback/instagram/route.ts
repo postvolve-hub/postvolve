@@ -128,6 +128,7 @@ export async function GET(request: NextRequest) {
     let instagramAccountId: string | null = igUserId ? String(igUserId) : null;
     let instagramUsername: string | null = null;
     let platformAvatarUrl: string | null = null;
+    const pageName: string | null = null; // Instagram Login flow doesn't use Pages
 
     const igProfileResp = await fetch(
       `https://graph.instagram.com/me?fields=id,username,account_type,media_count,profile_picture_url&access_token=${userAccessToken}`
