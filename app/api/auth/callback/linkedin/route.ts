@@ -165,21 +165,45 @@ export async function GET(request: NextRequest) {
     });
 
     if (existingAccount) {
-      // Update existing account
-      const { error: updateError } = await supabaseAdmin
+      // Update existing account - explicitly ensure status is set to "connected"
+      const updateData = {
+        ...accountData,
+        status: "connected" as const, // Explicitly set status to ensure it updates from "expired"
+      };
+      
+      console.log("Updating existing LinkedIn account:", {
+        accountId: existingAccount.id,
+        newStatus: updateData.status,
+      });
+      
+      const { error: updateError, data: updatedData } = await supabaseAdmin
         .from("connected_accounts")
-        .update(accountData)
-        .eq("id", existingAccount.id);
+        .update(updateData)
+        .eq("id", existingAccount.id)
+        .select("status"); // Select to verify update
 
       if (updateError) {
         console.error("Error updating connected account:", updateError);
         console.error("Update error details:", JSON.stringify(updateError, null, 2));
-        console.error("Account data being updated:", JSON.stringify(accountData, null, 2));
+        console.error("Account data being updated:", JSON.stringify({
+          ...updateData,
+          access_token: "[REDACTED]",
+          refresh_token: updateData.refresh_token ? "[REDACTED]" : null,
+        }, null, 2));
         return NextResponse.redirect(
           `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=database_error`
         );
       }
-      console.log("Successfully updated existing LinkedIn account");
+      
+      const actualStatus = updatedData?.[0]?.status;
+      console.log("Successfully updated existing LinkedIn account:", {
+        accountId: existingAccount.id,
+        statusAfterUpdate: actualStatus,
+      });
+      
+      if (actualStatus !== "connected") {
+        console.warn(`Status update may have failed. Expected: "connected", Got: "${actualStatus}"`);
+      }
     } else {
       // Create new account
       const { data: insertedAccount, error: insertError } = await supabaseAdmin

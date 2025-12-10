@@ -191,11 +191,17 @@ export async function GET(request: NextRequest) {
     });
 
     if (existingAccount) {
-      // Update existing account
-      const { error: updateError } = await supabaseAdmin
+      // Update existing account - explicitly ensure status is set to "connected"
+      const updateData = {
+        ...accountData,
+        status: "connected" as const, // Explicitly set status to ensure it updates from "expired"
+      };
+      
+      const { error: updateError, data: updatedData } = await supabaseAdmin
         .from("connected_accounts")
-        .update(accountData)
-        .eq("id", existingAccount.id);
+        .update(updateData)
+        .eq("id", existingAccount.id)
+        .select("status"); // Select to verify update
 
       if (updateError) {
         console.error("Error updating connected account:", updateError);
@@ -203,7 +209,16 @@ export async function GET(request: NextRequest) {
           `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=database_error`
         );
       }
-      console.log("Successfully updated existing Instagram account");
+      
+      const actualStatus = updatedData?.[0]?.status;
+      console.log("Successfully updated existing Instagram account:", {
+        accountId: existingAccount.id,
+        statusAfterUpdate: actualStatus,
+      });
+      
+      if (actualStatus !== "connected") {
+        console.warn(`Status update may have failed. Expected: "connected", Got: "${actualStatus}"`);
+      }
     } else {
       // Create new account
       const { data: insertedAccount, error: insertError } = await supabaseAdmin

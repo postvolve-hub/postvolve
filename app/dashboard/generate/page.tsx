@@ -248,26 +248,26 @@ export default function ContentGeneration() {
             >
               <IconZap className="h-4 w-4 mr-2" />
               Full Pipeline
-            </Button>
+          </Button>
           </div>
         </div>
 
         {/* Category Filter & Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-75">
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
+          {CATEGORIES.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  selectedCategory === category
+                selectedCategory === category
                     ? "bg-[#6D28D9] text-white shadow-sm"
                     : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
+              }`}
+            >
+              {category}
+            </button>
+          ))}
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-all duration-200">
@@ -350,15 +350,15 @@ export default function ContentGeneration() {
                       >
                         <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
                         {regeneratingId === post.id ? "..." : "Regenerate"}
-                      </Button>
-                      <Button
-                        variant="outline"
+                    </Button>
+                    <Button
+                      variant="outline"
                         className="flex-1 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 text-sm"
                         onClick={() => handleSkipPost(post.id)}
-                      >
+                    >
                         <SkipForward className="h-3.5 w-3.5 mr-1.5" />
                         Skip
-                      </Button>
+                    </Button>
                     </div>
                   </div>
                 </div>
