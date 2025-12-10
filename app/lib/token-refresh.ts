@@ -79,7 +79,12 @@ export async function refreshXToken(accountId: string) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error("X token refresh error:", errorText);
+      console.error("X token refresh error:", {
+        status: tokenResponse.status,
+        statusText: tokenResponse.statusText,
+        error: errorText,
+        accountId: account.id,
+      });
       
       // If refresh token is invalid/expired, mark account as expired
       if (tokenResponse.status === 400 || tokenResponse.status === 401) {
@@ -99,11 +104,12 @@ export async function refreshXToken(accountId: string) {
           metadata: {
             platform: "twitter",
             reason: "refresh_token_expired",
+            error: errorText,
           },
         } as any);
       }
 
-      return { success: false, error: "Failed to refresh token" };
+      return { success: false, error: "Refresh token expired. Please reconnect your X account." };
     }
 
     const tokenData = await tokenResponse.json();

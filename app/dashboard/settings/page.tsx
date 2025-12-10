@@ -259,12 +259,12 @@ export default function Settings() {
         }
       }
 
-      // Now fetch only connected accounts for display
+      // Now fetch connected and expired accounts for display
       const { data: connectedAccounts, error: connectedError } = await supabase
         .from("connected_accounts")
         .select("*")
         .eq("user_id", user.id)
-        .eq("status", "connected");
+        .in("status", ["connected", "expired"]);
 
       if (connectedError) {
         console.error("Error fetching connected accounts:", connectedError);
@@ -277,9 +277,16 @@ export default function Settings() {
         // 'x' in UI maps to 'twitter' in database
         const dbPlatform = acc.platformId === "x" ? "twitter" : acc.platformId;
         const dbAccount = connectedAccounts?.find(a => a.platform === dbPlatform);
-        if (dbAccount && dbAccount.status === "connected") {
-          // Check token expiration
-          const { isExpired, expiresSoon } = checkTokenExpiration(dbAccount.token_expires_at);
+        
+        // Handle both connected and expired accounts
+        if (dbAccount && (dbAccount.status === "connected" || dbAccount.status === "expired")) {
+          // If status is expired, treat as disconnected but show reconnect option
+          const isAccountExpired = dbAccount.status === "expired";
+          
+          // Check token expiration (for connected accounts only)
+          const { isExpired, expiresSoon } = dbAccount.status === "connected" 
+            ? checkTokenExpiration(dbAccount.token_expires_at)
+            : { isExpired: true, expiresSoon: false };
           
           // Format username for display
           let displayUsername = dbAccount.platform_username || dbAccount.platform_display_name;
@@ -294,15 +301,15 @@ export default function Settings() {
             displayUsername = `@${displayUsername}`;
           }
           
-          console.log(`Updating ${acc.platformId} to connected with username: ${displayUsername}, expired: ${isExpired}, expiresSoon: ${expiresSoon}`);
+          console.log(`Updating ${acc.platformId} to ${isAccountExpired ? 'expired' : 'connected'} with username: ${displayUsername}, expired: ${isAccountExpired || isExpired}, expiresSoon: ${expiresSoon}`);
           
           return {
             ...acc,
-            connected: true,
+            connected: !isAccountExpired, // Show as disconnected if account status is expired
             username: displayUsername,
             tokenExpiresAt: dbAccount.token_expires_at,
-            isExpired,
-            expiresSoon,
+            isExpired: isAccountExpired || isExpired, // Mark as expired if account status is expired
+            expiresSoon: expiresSoon,
           };
         }
         // Reset to disconnected if not found in database
@@ -785,16 +792,21 @@ export default function Settings() {
                       </div>
                     <div className="flex-1">
                         <h4 className="text-sm font-medium text-gray-900">{account.name}</h4>
-                      {account.connected ? (
+                      {account.connected || account.isExpired ? (
                           <>
                             <p className="text-xs text-gray-500">{account.username}</p>
-                            {/* Only show expiration warnings for LinkedIn (X tokens are auto-refreshed) */}
-                            {account.platformId === "linkedin" && account.isExpired && (
+                            {/* Show expiration warnings for all platforms when expired */}
+                            {account.isExpired && (
                               <div className="flex items-center gap-1 mt-1">
                                 <AlertCircle className="h-3 w-3 text-red-500" />
-                                <p className="text-xs text-red-600 font-medium">Token expired - Reconnect required</p>
+                                <p className="text-xs text-red-600 font-medium">
+                                  {account.platformId === "x" 
+                                    ? "Refresh token expired - Reconnect required" 
+                                    : "Token expired - Reconnect required"}
+                                </p>
                               </div>
                             )}
+                            {/* Show expiration warning for LinkedIn when expiring soon (but not expired) */}
                             {account.platformId === "linkedin" && account.expiresSoon && !account.isExpired && account.tokenExpiresAt && (
                               <div className="flex items-center gap-1 mt-1">
                                 <AlertTriangle className="h-3 w-3 text-amber-500" />
@@ -803,7 +815,6 @@ export default function Settings() {
                                 </p>
                               </div>
                             )}
-                            {/* Removed expiration date display - X tokens auto-refresh, LinkedIn shows reconnect button when needed */}
                           </>
                       ) : (
                           <p className="text-xs text-gray-400">Not connected</p>
@@ -812,9 +823,18 @@ export default function Settings() {
                   </div>
                   {account.connected ? (
                       <div className="flex items-center gap-2">
-                        {/* Show reconnect button for LinkedIn when expired or expiring soon */}
-                        {/* X accounts are auto-refreshed, so only show reconnect if truly expired (refresh failed) */}
-                        {(account.isExpired || (account.platformId === "linkedin" && account.expiresSoon)) ? (
+                        {/* Show reconnect button when expired (for any platform) */}
+                        {account.isExpired ? (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="border-red-500 text-red-600 hover:bg-red-50 rounded-xl h-7 text-xs transition-all duration-200"
+                            onClick={() => handleConnectAccount(account.platformId)}
+                          >
+                            <ExternalLink className="h-3 w-3 mr-1.5" />
+                            Reconnect
+                          </Button>
+                        ) : account.platformId === "linkedin" && account.expiresSoon ? (
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -841,6 +861,17 @@ export default function Settings() {
                           </>
                         )}
                     </div>
+                  ) : account.isExpired ? (
+                      // Show reconnect button for expired accounts (even though not "connected")
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-red-500 text-red-600 hover:bg-red-50 rounded-xl h-7 text-xs transition-all duration-200"
+                        onClick={() => handleConnectAccount(account.platformId)}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1.5" />
+                        Reconnect
+                      </Button>
                   ) : (
                       <Button 
                         variant="outline" 
