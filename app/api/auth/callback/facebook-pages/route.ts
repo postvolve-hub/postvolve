@@ -109,8 +109,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch user profile from Facebook Graph API
+    // Note: 'email' field requires 'email' permission which is not available for Business apps
     const profileResponse = await fetch(
-      `https://graph.facebook.com/v21.0/me?fields=id,name,email,picture&access_token=${access_token}`
+      `https://graph.facebook.com/v21.0/me?fields=id,name,picture&access_token=${access_token}`
     );
 
     if (!profileResponse.ok) {
@@ -162,7 +163,7 @@ export async function GET(request: NextRequest) {
       user_id: userId,
       platform: "facebook" as const,
       platform_user_id: profileData.id || `facebook_${Date.now()}`,
-      platform_username: profileData.email || profileData.name || null,
+      platform_username: profileData.name || null, // Email not available for Business apps
       platform_display_name: profileData.name || null,
       platform_avatar_url: profileData.picture?.data?.url || null,
       access_token: access_token,

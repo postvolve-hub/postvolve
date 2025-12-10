@@ -59,12 +59,12 @@ export async function GET(request: NextRequest) {
     const state = Buffer.from(`${userId}:${Date.now()}`).toString("base64");
     
     // Facebook Pages OAuth scopes (required for posting to Pages)
+    // Note: 'email' permission is not available for Business apps (Pages API)
     const scopes = [
       "pages_manage_posts",
       "pages_show_list",
       "pages_read_engagement",
       "public_profile",
-      "email",
     ].join(",");
 
     // Build Facebook authorization URL
