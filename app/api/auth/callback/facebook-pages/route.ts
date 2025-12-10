@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Exchange authorization code for access token
+    // Exchange authorization code for short-lived user access token
     const clientId = process.env.FACEBOOK_PAGES_APP_ID;
     const clientSecret = process.env.FACEBOOK_PAGES_APP_SECRET;
     // Ensure no trailing slash in base URL to avoid double slashes
@@ -100,18 +100,33 @@ export async function GET(request: NextRequest) {
     }
 
     const tokenData = await tokenFetchResponse.json();
-    const { access_token, expires_in } = tokenData;
+    const { access_token: shortLivedToken, expires_in } = tokenData;
 
-    if (!access_token) {
+    if (!shortLivedToken) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=no_access_token`
       );
     }
 
+    // Exchange for long-lived user token (better stability for posting)
+    const longLivedUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
+    longLivedUrl.searchParams.set("grant_type", "fb_exchange_token");
+    longLivedUrl.searchParams.set("client_id", clientId);
+    longLivedUrl.searchParams.set("client_secret", clientSecret);
+    longLivedUrl.searchParams.set("fb_exchange_token", shortLivedToken);
+
+    const longLivedResp = await fetch(longLivedUrl.toString(), { method: "GET" });
+    if (!longLivedResp.ok) {
+      console.warn("Facebook long-lived token exchange failed, falling back to short-lived:", await longLivedResp.text());
+    }
+    const longLivedData = longLivedResp.ok ? await longLivedResp.json() : {};
+    const userAccessToken = longLivedData.access_token || shortLivedToken;
+    const longLivedExpiresIn = longLivedData.expires_in || expires_in;
+
     // Fetch user profile from Facebook Graph API
     // Note: 'email' field requires 'email' permission which is not available for Business apps
     const profileResponse = await fetch(
-      `https://graph.facebook.com/v21.0/me?fields=id,name,picture&access_token=${access_token}`
+      `https://graph.facebook.com/v21.0/me?fields=id,name,picture&access_token=${userAccessToken}`
     );
 
     if (!profileResponse.ok) {
@@ -126,7 +141,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch user's Pages (requires pages_show_list permission)
     const pagesResponse = await fetch(
-      `https://graph.facebook.com/v21.0/me/accounts?access_token=${access_token}`
+      `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${userAccessToken}`
     );
 
     let pagesData: any[] = [];
@@ -137,9 +152,13 @@ export async function GET(request: NextRequest) {
       console.warn("Could not fetch Pages. User may not have any Pages or permission was denied.");
     }
 
-    // Calculate token expiration
-    const expiresAt = expires_in && expires_in > 0
-      ? new Date(Date.now() + expires_in * 1000).toISOString()
+    // Pick first page (for now) and prefer its access token for posting
+    const primaryPage = pagesData[0];
+    const pageAccessToken = primaryPage?.access_token || userAccessToken;
+
+    // Calculate token expiration using long-lived value if available
+    const expiresAt = longLivedExpiresIn && longLivedExpiresIn > 0
+      ? new Date(Date.now() + longLivedExpiresIn * 1000).toISOString()
       : null;
 
     // Check if account already exists
@@ -166,7 +185,7 @@ export async function GET(request: NextRequest) {
       platform_username: profileData.name || null, // Email not available for Business apps
       platform_display_name: profileData.name || null,
       platform_avatar_url: profileData.picture?.data?.url || null,
-      access_token: access_token,
+      access_token: pageAccessToken, // use Page token for posting
       refresh_token: null, // Facebook doesn't provide refresh tokens
       token_expires_at: expiresAt,
       status: "connected" as const,

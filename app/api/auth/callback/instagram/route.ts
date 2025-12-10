@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Exchange authorization code for access token
+    // Exchange authorization code for short-lived user access token
     const clientId = process.env.INSTAGRAM_APP_ID;
     const clientSecret = process.env.INSTAGRAM_APP_SECRET;
     // Ensure no trailing slash in base URL to avoid double slashes
@@ -100,22 +100,40 @@ export async function GET(request: NextRequest) {
     }
 
     const tokenData = await tokenFetchResponse.json();
-    const { access_token, expires_in } = tokenData;
+    const { access_token: shortLivedToken, expires_in } = tokenData;
 
-    if (!access_token) {
+    if (!shortLivedToken) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?error=no_access_token`
       );
     }
 
+    // Exchange for long-lived user token for stability
+    const longLivedUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
+    longLivedUrl.searchParams.set("grant_type", "fb_exchange_token");
+    longLivedUrl.searchParams.set("client_id", clientId);
+    longLivedUrl.searchParams.set("client_secret", clientSecret);
+    longLivedUrl.searchParams.set("fb_exchange_token", shortLivedToken);
+
+    const longLivedResp = await fetch(longLivedUrl.toString(), { method: "GET" });
+    if (!longLivedResp.ok) {
+      console.warn("Instagram (via FB) long-lived token exchange failed, using short-lived token:", await longLivedResp.text());
+    }
+    const longLivedData = longLivedResp.ok ? await longLivedResp.json() : {};
+    const userAccessToken = longLivedData.access_token || shortLivedToken;
+    const longLivedExpiresIn = longLivedData.expires_in || expires_in;
+
     // Fetch user's Pages (Instagram accounts are linked to Facebook Pages)
     const pagesResponse = await fetch(
-      `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account&access_token=${access_token}`
+      `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,instagram_business_account&access_token=${userAccessToken}`
     );
 
     let instagramAccountId: string | null = null;
     let instagramUsername: string | null = null;
     let pageName: string | null = null;
+    let platformAvatarUrl: string | null = null;
+
+    let pageAccessToken: string | null = null;
 
     if (pagesResponse.ok) {
       const pagesResult = await pagesResponse.json();
@@ -126,15 +144,20 @@ export async function GET(request: NextRequest) {
         if (page.instagram_business_account) {
           instagramAccountId = page.instagram_business_account.id;
           pageName = page.name;
+          pageAccessToken = page.access_token || userAccessToken;
           
           // Fetch Instagram account details
           const instagramResponse = await fetch(
-            `https://graph.facebook.com/v21.0/${instagramAccountId}?fields=username,profile_picture_url&access_token=${access_token}`
+            `https://graph.facebook.com/v21.0/${instagramAccountId}?fields=username,profile_picture_url&access_token=${pageAccessToken}`
           );
           
           if (instagramResponse.ok) {
             const instagramData = await instagramResponse.json();
             instagramUsername = instagramData.username || null;
+            // Prefer IG profile picture if available
+            if (instagramData.profile_picture_url) {
+              platformAvatarUrl = instagramData.profile_picture_url;
+            }
           }
           
           break; // Use the first Instagram account found
@@ -148,8 +171,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate token expiration
-    const expiresAt = expires_in && expires_in > 0
-      ? new Date(Date.now() + expires_in * 1000).toISOString()
+    const expiresAt = longLivedExpiresIn && longLivedExpiresIn > 0
+      ? new Date(Date.now() + longLivedExpiresIn * 1000).toISOString()
       : null;
 
     // Check if account already exists
@@ -167,14 +190,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const effectiveAccessToken = pageAccessToken || userAccessToken;
+
     const accountData = {
       user_id: userId,
       platform: "instagram" as const,
       platform_user_id: instagramAccountId || `instagram_${Date.now()}`,
       platform_username: instagramUsername ? `@${instagramUsername}` : null,
       platform_display_name: pageName || instagramUsername || null,
-      platform_avatar_url: null, // Instagram profile picture URL would need separate API call
-      access_token: access_token,
+      platform_avatar_url: platformAvatarUrl || null,
+      access_token: effectiveAccessToken, // prefer Page token for posting
       refresh_token: null, // Instagram doesn't provide refresh tokens via this flow
       token_expires_at: expiresAt,
       status: "connected" as const,
