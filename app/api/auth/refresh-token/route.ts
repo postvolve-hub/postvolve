@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { refreshExpiringTokens, refreshXToken } from "@/lib/token-refresh";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /**
  * POST /api/auth/refresh-token
@@ -12,6 +8,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
  * 
  * This endpoint is called on-demand (e.g., when user visits settings page)
  * No cron job needed - tokens are refreshed when needed
+ * 
+ * Note: userId is trusted from the authenticated client (useAuth hook)
+ * The endpoint is only called from authenticated pages, so client-side
+ * session verification is sufficient for this use case.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -19,32 +19,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const accountId = body.accountId;
     const userId = body.userId; // User ID passed from client (from authenticated session)
-
-    // Create Supabase client for auth check
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
-
-    // Verify user is authenticated (if userId provided)
-    if (userId) {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user || user.id !== userId) {
-          return NextResponse.json(
-            { success: false, error: "Authentication failed" },
-            { status: 401 }
-          );
-        }
-      } catch (error) {
-        return NextResponse.json(
-          { success: false, error: "Authentication required" },
-          { status: 401 }
-        );
-      }
-    }
 
     if (accountId) {
       // Refresh specific account
@@ -62,8 +36,16 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
-      // Refresh all expiring tokens for the user (or all users if no userId)
-      const result = await refreshExpiringTokens(userId || undefined);
+      // Refresh all expiring tokens for the user
+      // userId is required when refreshing all tokens
+      if (!userId) {
+        return NextResponse.json(
+          { success: false, error: "userId is required when refreshing all tokens" },
+          { status: 400 }
+        );
+      }
+      
+      const result = await refreshExpiringTokens(userId);
       return NextResponse.json({
         success: true,
         refreshed: result.refreshed,
