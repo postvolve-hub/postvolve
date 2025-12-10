@@ -306,6 +306,33 @@ export function ConnectAccountModal({
                   </div>
                 )}
 
+                {/* FB/IG professional account tip */}
+                {(platform === "instagram" || platform === "facebook") && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-blue-100">
+                        <AlertCircle className="h-4 w-4 text-blue-700" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-blue-900 mb-1">
+                          Professional account required for posting
+                        </p>
+                        <p className="text-xs text-blue-800 leading-relaxed">
+                          For Instagram/Facebook posting, switch to a free Professional account—here&apos;s how{" "}
+                          <a
+                            href="https://www.facebook.com/help/502981923235522"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="underline"
+                          >
+                            (Meta&apos;s guide)
+                          </a>. We&apos;ll handle the rest.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-6 p-3 bg-blue-50 rounded-xl">
                   <p className="text-xs text-blue-700">
                     <strong>Note:</strong> You can revoke access at any time from your {config.name} settings 
