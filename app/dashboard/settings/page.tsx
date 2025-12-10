@@ -222,7 +222,16 @@ export default function Settings() {
 
     try {
       // First, refresh X tokens if needed (on-demand, no cron)
-      await refreshXTokensIfNeeded();
+      // Skip refresh if we just reconnected (check URL params)
+      const searchParams = new URLSearchParams(window.location.search);
+      const justConnected = searchParams.get("connected") === "x";
+      
+      // Only refresh if not just reconnected (to avoid race condition)
+      if (!justConnected) {
+        await refreshXTokensIfNeeded();
+      } else {
+        console.log("Skipping token refresh - account just reconnected");
+      }
 
       // Fetch all accounts (including expired ones) to check expiration
       const { data: accounts, error } = await supabase
@@ -238,9 +247,16 @@ export default function Settings() {
       console.log("Fetched connected accounts from DB:", accounts);
 
       // Check for expired tokens and update status if needed
+      // Skip accounts that were just updated (within last 2 minutes) to avoid race conditions after reconnection
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+      
       if (accounts) {
         for (const account of accounts) {
-          if (account.status === "connected" && account.token_expires_at) {
+          // Skip expiration check for recently updated accounts (likely just reconnected)
+          const accountUpdatedAt = account.updated_at ? new Date(account.updated_at) : null;
+          const isRecentlyUpdated = accountUpdatedAt && accountUpdatedAt > twoMinutesAgo;
+          
+          if (account.status === "connected" && account.token_expires_at && !isRecentlyUpdated) {
             const { isExpired } = checkTokenExpiration(account.token_expires_at);
             
             if (isExpired) {
@@ -255,6 +271,8 @@ export default function Settings() {
               
               console.log(`Token expired for ${account.platform}, updating status to expired`);
             }
+          } else if (isRecentlyUpdated) {
+            console.log(`Skipping expiration check for ${account.platform} - account was recently updated (likely reconnected)`);
           }
         }
       }
@@ -356,8 +374,10 @@ export default function Settings() {
       });
       // Clear URL params
       window.history.replaceState({}, "", window.location.pathname);
-      // Refresh connected accounts
-      updateConnectedAccountsFromDB();
+      // Wait a moment for database transaction to commit, then refresh
+      setTimeout(() => {
+        updateConnectedAccountsFromDB();
+      }, 500);
     }
 
     if (connected === "facebook") {

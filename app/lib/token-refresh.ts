@@ -88,16 +88,35 @@ export async function refreshXToken(accountId: string) {
       
       // If refresh token is invalid/expired, mark account as expired
       if (tokenResponse.status === 400 || tokenResponse.status === 401) {
-        await supabaseAdmin
+        console.log("Marking account as expired due to invalid refresh token:", {
+          accountId,
+          platform: account.platform,
+          userId: account.user_id,
+        });
+        
+        const { error: updateError, data: updatedAccount } = await supabaseAdmin
           .from("connected_accounts")
           .update({
             status: "expired",
             updated_at: new Date().toISOString(),
           })
-          .eq("id", accountId);
+          .eq("id", accountId)
+          .select("status"); // Select to verify update
+
+        if (updateError) {
+          console.error("Error marking account as expired:", updateError);
+        } else {
+          const actualStatus = updatedAccount?.[0]?.status;
+          console.log("Account status after marking as expired:", {
+            accountId,
+            status: actualStatus,
+            expected: "expired",
+            match: actualStatus === "expired",
+          });
+        }
 
         // Log activity
-        await supabaseAdmin.from("activity_log").insert({
+        const { error: activityError } = await supabaseAdmin.from("activity_log").insert({
           user_id: account.user_id,
           activity_type: "account_disconnected",
           description: "X account refresh token expired - reconnect required",
@@ -107,6 +126,10 @@ export async function refreshXToken(accountId: string) {
             error: errorText,
           },
         } as any);
+
+        if (activityError) {
+          console.error("Error logging activity for expired token:", activityError);
+        }
       }
 
       return { success: false, error: "Refresh token expired. Please reconnect your X account." };
@@ -163,7 +186,7 @@ export async function refreshExpiringTokens(userId?: string) {
     // Fetch all X accounts with refresh tokens that are expiring soon
     let query = supabaseAdmin
       .from("connected_accounts")
-      .select("id, platform, token_expires_at, refresh_token, user_id")
+      .select("id, platform, token_expires_at, refresh_token, user_id, updated_at")
       .eq("platform", "twitter")
       .eq("status", "connected")
       .not("refresh_token", "is", null)
@@ -184,10 +207,24 @@ export async function refreshExpiringTokens(userId?: string) {
       return { refreshed: 0, errors: [] };
     }
 
+    // Filter out accounts that were just updated (within last 2 minutes) to avoid race conditions
+    // This prevents trying to refresh tokens immediately after reconnection
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    const accountsToRefresh = accounts.filter(account => {
+      if (!account.updated_at) return true; // Include if no updated_at
+      const updatedAt = new Date(account.updated_at);
+      return updatedAt < twoMinutesAgo; // Only include if updated more than 2 minutes ago
+    });
+
+    if (accountsToRefresh.length === 0) {
+      console.log("Skipping token refresh - all accounts were recently updated");
+      return { refreshed: 0, errors: [] };
+    }
+
     const errors: any[] = [];
     let refreshed = 0;
 
-    for (const account of accounts) {
+    for (const account of accountsToRefresh) {
       if (shouldRefreshToken(account.token_expires_at)) {
         const result = await refreshXToken(account.id);
         if (result.success) {

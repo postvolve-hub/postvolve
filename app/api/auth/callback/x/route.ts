@@ -184,11 +184,15 @@ export async function GET(request: NextRequest) {
         hasRefreshToken: !!updateData.refresh_token,
       });
       
+      // Update with explicit status to ensure it's set correctly
       const { error: updateError, data: updatedData } = await supabaseAdmin
         .from("connected_accounts")
-        .update(updateData)
+        .update({
+          ...updateData,
+          status: "connected", // Explicitly set status again to ensure it updates
+        })
         .eq("id", existingAccount.id)
-        .select("status, refresh_token"); // Select to verify update
+        .select("status, refresh_token, updated_at"); // Select to verify update
 
       if (updateError) {
         console.error("Error updating connected account:", updateError);
@@ -211,9 +215,45 @@ export async function GET(request: NextRequest) {
         refreshTokenPresent: !!updatedData?.[0]?.refresh_token,
       });
       
-      // If status didn't update, log a warning (but don't fail - tokens are more important)
+      // If status didn't update, try again with explicit status update
       if (actualStatus !== "connected") {
-        console.warn(`Status update may have failed. Expected: "connected", Got: "${actualStatus}"`);
+        console.warn(`Status update may have failed. Expected: "connected", Got: "${actualStatus}". Retrying...`);
+        
+        // Retry with explicit status update only
+        const { error: retryError, data: retryData } = await supabaseAdmin
+          .from("connected_accounts")
+          .update({ 
+            status: "connected" as const,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingAccount.id)
+          .select("status");
+        
+        if (retryError) {
+          console.error("Retry status update failed:", retryError);
+        } else {
+          const retryStatus = retryData?.[0]?.status;
+          console.log("Retry status update result:", {
+            accountId: existingAccount.id,
+            statusAfterRetry: retryStatus,
+            success: retryStatus === "connected",
+          });
+          
+          // Final verification query to ensure status is correct
+          if (retryStatus !== "connected") {
+            const { data: verifyData, error: verifyError } = await supabaseAdmin
+              .from("connected_accounts")
+              .select("status, updated_at")
+              .eq("id", existingAccount.id)
+              .single();
+            
+            if (verifyError) {
+              console.error("Verification query failed:", verifyError);
+            } else {
+              console.error("CRITICAL: Status still not 'connected' after retry. Current status:", verifyData?.status, "Updated at:", verifyData?.updated_at);
+            }
+          }
+        }
       }
     } else {
       // Create new account
