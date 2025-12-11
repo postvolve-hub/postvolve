@@ -18,17 +18,17 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 /**
- * Check if a token should be refreshed (expires within 24 hours)
+ * Check if a token should be refreshed based on a buffer window
+ * Default buffer: 10 minutes
  */
-export function shouldRefreshToken(tokenExpiresAt: string | null | undefined): boolean {
+export function shouldRefreshToken(
+  tokenExpiresAt: string | null | undefined,
+  bufferMs = 10 * 60 * 1000
+): boolean {
   if (!tokenExpiresAt) return false;
-  
-  const expiresAt = new Date(tokenExpiresAt);
-  const now = new Date();
-  const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  
-  // Refresh if token expires within 24 hours
-  return expiresAt <= twentyFourHoursFromNow && expiresAt > now;
+  const expiresAtMs = new Date(tokenExpiresAt).getTime();
+  const now = Date.now();
+  return expiresAtMs > now && expiresAtMs <= now + bufferMs;
 }
 
 /**
@@ -181,7 +181,7 @@ export async function refreshXToken(accountId: string) {
  * Check and refresh X tokens that are expiring soon
  * This can be called on-demand (e.g., when user visits settings page)
  */
-export async function refreshExpiringTokens(userId?: string) {
+export async function refreshExpiringTokens(userId?: string, bufferMs = 10 * 60 * 1000) {
   try {
     // Fetch all X accounts with refresh tokens that are expiring soon
     let query = supabaseAdmin
@@ -208,7 +208,6 @@ export async function refreshExpiringTokens(userId?: string) {
     }
 
     // Filter out accounts that were just updated (within last 2 minutes) to avoid race conditions
-    // This prevents trying to refresh tokens immediately after reconnection
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
     const accountsToRefresh = accounts.filter(account => {
       if (!account.updated_at) return true; // Include if no updated_at
@@ -225,7 +224,7 @@ export async function refreshExpiringTokens(userId?: string) {
     let refreshed = 0;
 
     for (const account of accountsToRefresh) {
-      if (shouldRefreshToken(account.token_expires_at)) {
+      if (shouldRefreshToken(account.token_expires_at, bufferMs)) {
         const result = await refreshXToken(account.id);
         if (result.success) {
           refreshed++;

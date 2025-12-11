@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateExpiredTokens } from "@/lib/token-expiration";
+import { refreshExpiringTokens } from "@/lib/token-refresh";
 
 /**
  * Cron job endpoint to check and update expired tokens
@@ -27,13 +28,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("Checking for expired tokens...");
-    const result = await updateExpiredTokens();
-    
+    console.log("Checking for expired tokens and refreshing expiring ones...");
+    const expireResult = await updateExpiredTokens();
+    const refreshResult = await refreshExpiringTokens(undefined, 10 * 60 * 1000); // 10-minute buffer
+
     return NextResponse.json({
       success: true,
-      updated: result.updated,
-      errors: result.errors.length,
+      expiredUpdated: expireResult.updated,
+      expiredErrors: expireResult.errors.length,
+      refreshed: refreshResult.refreshed,
+      refreshErrors: refreshResult.errors.length,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
