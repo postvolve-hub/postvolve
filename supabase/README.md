@@ -142,6 +142,14 @@ When you need to modify the schema:
    - Test queries
 4. Run in Supabase SQL Editor (same process as initial migration)
 
+### Scheduled Migrations
+
+- **`002_setup_pg_cron.sql`** - Sets up Supabase cron jobs using pg_net (⚠️ has memory issues)
+- **`003_setup_cron_with_edge_function.sql`** - **RECOMMENDED** - Uses Edge Functions (no memory issues)
+  - See `EDGE_FUNCTION_SETUP.md` for complete setup instructions
+  - Requires deploying Edge Function first: `supabase functions deploy cron-refresh-tokens`
+  - Use `002_test_cron.sql` to test and verify your cron setup
+
 ### Migration Best Practices
 
 ✅ **DO:**

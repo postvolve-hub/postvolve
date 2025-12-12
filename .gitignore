@@ -52,7 +52,12 @@ Thumbs.db
 
 # Migration
 supabase/migrations/001_initial_schema.sql
+supabase/migrations/002_test_cron.sql
+supabase/migrations/003_setup_cron_with_edge_function.sql
 
+# Supabase CLI temp/cache
+supabase/.temp/
+supabase/functions/cron-refresh-tokens/index.ts
 #Readme
 QUICK_START_GUIDE.md
 
