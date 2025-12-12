@@ -18,7 +18,7 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 });
 
 /**
- * Check if a token should be refreshed based on a buffer window
+  * Check if a token should be refreshed based on a buffer window
  * Default buffer: 10 minutes
  */
 export function shouldRefreshToken(
