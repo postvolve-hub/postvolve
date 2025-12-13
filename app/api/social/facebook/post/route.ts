@@ -35,10 +35,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "missing_params" }, { status: 400 });
     }
 
-    // Fetch stored Facebook token (we store page-ready token in access_token)
+    // Fetch stored Facebook token (we store USER token in access_token)
     const { data: account, error: accountError } = await supabaseAdmin
       .from("connected_accounts")
-      .select("access_token, status")
+      .select("access_token, status, metadata")
       .eq("user_id", userId)
       .eq("platform", "facebook")
       .maybeSingle();
@@ -52,28 +52,53 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "no_facebook_account" }, { status: 404 });
     }
 
-    const storedToken = account.access_token;
+    const userAccessToken = account.access_token; // This is the USER token
+    const metadata = (account.metadata as any) || {};
 
-    // Fetch pages to get a page access token (if different) and page ID
-    const pagesResp = await fetch(
-      `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${storedToken}`
-    );
+    // Check if a page is selected in metadata
+    let pageId: string | null = null;
+    let pageToken: string | null = null;
+    let pageName: string | null = null;
 
-    if (!pagesResp.ok) {
-      const errText = await pagesResp.text();
-      console.error("FB post: pages fetch failed", errText);
-      return NextResponse.json({ error: "pages_fetch_failed", details: errText }, { status: 502 });
+    if (metadata.selected_page_id && metadata.selected_page_token) {
+      // Use selected page from metadata
+      pageId = metadata.selected_page_id;
+      pageToken = metadata.selected_page_token;
+      pageName = metadata.selected_page_name || null;
+    } else {
+      // Fallback: fetch pages and use first one (for backward compatibility)
+      const pagesResp = await fetch(
+        `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}`
+      );
+
+      if (!pagesResp.ok) {
+        const errText = await pagesResp.text();
+        console.error("FB post: pages fetch failed", errText);
+        return NextResponse.json({ error: "pages_fetch_failed", details: errText }, { status: 502 });
+      }
+
+      const pagesJson = await pagesResp.json();
+      const pages = pagesJson?.data || [];
+      
+      if (!pages.length) {
+        return NextResponse.json({ 
+          error: "no_pages_found",
+          message: "No Facebook Pages found. Please select a page in Settings."
+        }, { status: 404 });
+      }
+
+      const primaryPage = pages[0];
+      pageId = primaryPage.id;
+      pageToken = primaryPage.access_token;
+      pageName = primaryPage.name;
     }
 
-    const pagesJson = await pagesResp.json();
-    const pages = pagesJson?.data || [];
-    if (!pages.length) {
-      return NextResponse.json({ error: "no_pages_found" }, { status: 404 });
+    if (!pageId || !pageToken) {
+      return NextResponse.json({ 
+        error: "no_page_selected",
+        message: "No Facebook Page selected. Please select a page in Settings."
+      }, { status: 404 });
     }
-
-    const primaryPage = pages[0];
-    const pageId = primaryPage.id;
-    const pageToken = primaryPage.access_token || storedToken;
 
     // Post to the page feed
     const form = new URLSearchParams();
@@ -92,7 +117,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "post_failed", details: postText }, { status: 502 });
     }
 
-    return NextResponse.json({ success: true, pageId, result: postText });
+    const postResult = await postResp.json().catch(() => ({ id: postText }));
+
+    return NextResponse.json({ 
+      success: true, 
+      pageId,
+      pageName: pageName || "Unknown",
+      result: postResult 
+    });
   } catch (error: any) {
     console.error("FB post: unexpected error", error);
     return NextResponse.json({ error: "unexpected_error", details: error?.message }, { status: 500 });

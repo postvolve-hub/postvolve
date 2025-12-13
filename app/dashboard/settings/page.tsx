@@ -23,6 +23,7 @@ import { ConnectAccountModal } from "@/components/dashboard/ConnectAccountModal"
 import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
 import { PaymentUpdatePrompt } from "@/components/dashboard/PaymentUpdatePrompt";
 import { LockOverlay } from "@/components/dashboard/LockOverlay";
+import { FacebookPageSelector } from "@/components/dashboard/FacebookPageSelector";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabaseClient";
@@ -144,6 +145,9 @@ export default function Settings() {
   ]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
+  const [facebookPageSelectorOpen, setFacebookPageSelectorOpen] = useState(false);
+  const [facebookPages, setFacebookPages] = useState<any[]>([]);
+  const [facebookAccountMetadata, setFacebookAccountMetadata] = useState<any>(null);
 
   // Fetch subscription and check permissions
   useEffect(() => {
@@ -289,6 +293,12 @@ export default function Settings() {
         return;
       }
 
+      // Store Facebook account metadata for page selection
+      const facebookAccount = connectedAccounts?.find(a => a.platform === "facebook");
+      if (facebookAccount?.metadata) {
+        setFacebookAccountMetadata(facebookAccount.metadata as any);
+      }
+
       // Update connected accounts state - reset all to disconnected first, then update with database data
       setConnectedAccounts(prev => prev.map(acc => {
         // Map UI platform ID to database platform value
@@ -381,6 +391,19 @@ export default function Settings() {
     }
 
     if (connected === "facebook") {
+      const pagesParam = searchParams.get("pages");
+      if (pagesParam) {
+        try {
+          const decoded = decodeURIComponent(pagesParam);
+          // Use atob for browser-compatible base64 decoding
+          const pages = JSON.parse(atob(decoded));
+          setFacebookPages(pages);
+          setFacebookPageSelectorOpen(true);
+        } catch (error) {
+          console.error("Error parsing pages param:", error);
+        }
+      }
+      
       toast({
         title: "Account Connected",
         description: "Your Facebook account has been connected successfully.",
@@ -490,6 +513,71 @@ export default function Settings() {
   const handleDisconnectAccount = (platform: Platform) => {
     setSelectedPlatform(platform);
     setDisconnectModalOpen(true);
+  };
+
+  const handlePageSelected = async (pageId: string) => {
+    setFacebookPageSelectorOpen(false);
+    setFacebookPages([]);
+    await updateConnectedAccountsFromDB();
+  };
+
+  const handleChangeFacebookPage = async () => {
+    if (!user) return;
+    
+    // Fetch current pages from Facebook
+    try {
+      const { data: account } = await supabase
+        .from("connected_accounts")
+        .select("access_token, metadata")
+        .eq("user_id", user.id)
+        .eq("platform", "facebook")
+        .maybeSingle();
+
+      if (!account?.access_token) {
+        toast({
+          title: "Error",
+          description: "Could not fetch Facebook pages. Please reconnect your account.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Fetch pages from Facebook API
+      const pagesResp = await fetch(
+        `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${account.access_token}`
+      );
+
+      if (!pagesResp.ok) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch Facebook pages. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const pagesJson = await pagesResp.json();
+      const pages = pagesJson?.data || [];
+
+      if (pages.length === 0) {
+        toast({
+          title: "No Pages Found",
+          description: "You don't have any Facebook Pages. Please create one first.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setFacebookPages(pages);
+      setFacebookPageSelectorOpen(true);
+    } catch (error) {
+      console.error("Error fetching Facebook pages:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch Facebook pages. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDisconnectConfirm = async () => {
@@ -815,6 +903,26 @@ export default function Settings() {
                       {account.connected || account.isExpired ? (
                           <>
                             <p className="text-xs text-gray-500">{account.username}</p>
+                            {/* Show selected Facebook Page */}
+                            {account.platformId === "facebook" && facebookAccountMetadata && (
+                              <div className="mt-1">
+                                {facebookAccountMetadata.selected_page_name ? (
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs text-gray-500">Page:</span>
+                                    <span className="text-xs font-medium text-gray-700">
+                                      {facebookAccountMetadata.selected_page_name}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <AlertCircle className="h-3 w-3 text-amber-500" />
+                                    <p className="text-xs text-amber-600">
+                                      No page selected - Select a page to post
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                             {/* Show expiration warnings for all platforms when expired */}
                             {account.isExpired && (
                               <div className="flex items-center gap-1 mt-1">
@@ -870,6 +978,17 @@ export default function Settings() {
                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                               Connected
                             </span>
+                            {/* Show "Change Page" button for Facebook if page is selected, or "Select Page" if not */}
+                            {account.platformId === "facebook" && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-xs text-gray-600 hover:text-[#1877F2] rounded-xl h-7 transition-all duration-200 border-gray-300"
+                                onClick={handleChangeFacebookPage}
+                              >
+                                {facebookAccountMetadata?.selected_page_name ? "Change Page" : "Select Page"}
+                              </Button>
+                            )}
                             <Button 
                               variant="ghost" 
                               size="sm" 
@@ -934,6 +1053,18 @@ export default function Settings() {
           confirmText="Disconnect"
           cancelText="Keep Connected"
           variant="danger"
+        />
+
+        {/* Facebook Page Selector Modal */}
+        <FacebookPageSelector
+          isOpen={facebookPageSelectorOpen}
+          onClose={() => {
+            setFacebookPageSelectorOpen(false);
+            setFacebookPages([]);
+          }}
+          userId={user?.id || ""}
+          pages={facebookPages}
+          onPageSelected={handlePageSelected}
         />
 
         {/* Notifications */}

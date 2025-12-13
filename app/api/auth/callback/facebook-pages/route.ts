@@ -152,14 +152,20 @@ export async function GET(request: NextRequest) {
       console.warn("Could not fetch Pages. User may not have any Pages or permission was denied.");
     }
 
-    // Pick first page (for now) and prefer its access token for posting
-    const primaryPage = pagesData[0];
-    const pageAccessToken = primaryPage?.access_token || userAccessToken;
+    // Store USER token (not page token) so we can always fetch pages
+    // Page tokens will be stored in metadata when user selects a page
 
     // Calculate token expiration using long-lived value if available
     const expiresAt = longLivedExpiresIn && longLivedExpiresIn > 0
       ? new Date(Date.now() + longLivedExpiresIn * 1000).toISOString()
       : null;
+
+    // Prepare pages info for metadata and redirect
+    const pagesInfo = pagesData.map((page: any) => ({
+      id: page.id,
+      name: page.name,
+      access_token: page.access_token,
+    }));
 
     // Check if account already exists
     const { data: existingAccount, error: checkError } = await supabaseAdmin
@@ -176,8 +182,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // For Facebook Pages, we store the user's access token
+    // For Facebook Pages, we store the USER access token (not page token)
     // The Pages themselves are managed via the user's access token
+    // Page selection will be stored in metadata
     const accountData = {
       user_id: userId,
       platform: "facebook" as const,
@@ -185,12 +192,17 @@ export async function GET(request: NextRequest) {
       platform_username: profileData.name || null, // Email not available for Business apps
       platform_display_name: profileData.name || null,
       platform_avatar_url: profileData.picture?.data?.url || null,
-      access_token: pageAccessToken, // use Page token for posting
+      access_token: userAccessToken, // Store USER token (not page token)
       refresh_token: null, // Facebook doesn't provide refresh tokens
       token_expires_at: expiresAt,
       status: "connected" as const,
       connected_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      metadata: {
+        pages: pagesInfo,
+        pages_count: pagesData.length,
+        user_access_token: userAccessToken, // Store user token for fetching pages later
+      },
     };
 
     console.log("Saving Facebook Pages account to database:", {
@@ -265,11 +277,18 @@ export async function GET(request: NextRequest) {
       // Don't fail the whole flow if activity logging fails
     }
 
-    // Redirect back to settings with success
-    // Note: We use "facebook" as the connected parameter since both Login and Pages use the same platform
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/dashboard/settings?connected=facebook`
-    );
+    // Redirect back to settings with pages info
+    // Encode pages info in URL params for the page selector modal
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+    let redirectUrl = `${baseUrl}/dashboard/settings?connected=facebook`;
+    
+    if (pagesInfo.length > 0) {
+      // Encode pages info as base64 JSON
+      const pagesParam = Buffer.from(JSON.stringify(pagesInfo)).toString("base64");
+      redirectUrl += `&pages=${encodeURIComponent(pagesParam)}`;
+    }
+
+    return NextResponse.redirect(redirectUrl);
   } catch (error: any) {
     console.error("Facebook Pages callback error:", error);
     console.error("Error stack:", error?.stack);
