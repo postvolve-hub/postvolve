@@ -227,7 +227,7 @@ export async function refreshXToken(
     }
 
     console.log(`Successfully refreshed X token for account ${accountId}${retryCount > 0 ? ` (after ${retryCount} retries)` : ""}`);
-    return { success: true, expiresAt };
+    return { success: true, expiresAt: expiresAt || undefined };
   } catch (error: any) {
     // Retry on network errors
     if (retryCount < MAX_RETRIES && (error.code === "ECONNRESET" || error.code === "ETIMEDOUT")) {
