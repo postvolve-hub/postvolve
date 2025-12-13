@@ -378,9 +378,16 @@ export async function refreshExpiringTokens(
     }
 
     // Filter accounts that need refreshing
-    const accountsNeedingRefresh = accountsToRefresh.filter(account =>
-      shouldRefreshToken(account.token_expires_at, bufferMs)
-    );
+    const accountsNeedingRefresh = accountsToRefresh.filter(account => {
+      // Always attempt refresh for expired accounts (they have refresh tokens, verified at query level)
+      // This is a safety net for edge cases where tokens expired despite the 40-minute buffer
+      // Examples: cron job failures, system downtime, race conditions
+      if (account.status === "expired") {
+        return true;
+      }
+      // For connected accounts, use normal buffer/grace period logic
+      return shouldRefreshToken(account.token_expires_at, bufferMs);
+    });
 
     const skipped = accountsToRefresh.length - accountsNeedingRefresh.length;
 
