@@ -279,7 +279,7 @@ export async function GET(request: NextRequest) {
 
     // Redirect back to settings with pages info
     // Encode pages info in URL params for the page selector modal
-    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/+$/, "");
+    // Reuse baseUrl that was declared earlier in the function
     let redirectUrl = `${baseUrl}/dashboard/settings?connected=facebook`;
     
     if (pagesInfo.length > 0) {
