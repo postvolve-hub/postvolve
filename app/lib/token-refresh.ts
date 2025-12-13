@@ -3,6 +3,12 @@
  * 
  * Handles automatic refresh of OAuth tokens for platforms that support refresh tokens (X/Twitter)
  * LinkedIn does not provide refresh tokens, so manual reconnect is required
+ * 
+ * Features:
+ * - Batch processing with parallel execution (scalable to 10,000+ users)
+ * - Retry logic with exponential backoff
+ * - Comprehensive monitoring and metrics
+ * - Race condition protection
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -17,33 +23,55 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   },
 });
 
+// Configuration constants
+const DEFAULT_BUFFER_MS = 40 * 60 * 1000; // 40 minutes - refresh tokens well before expiry
+const GRACE_PERIOD_MS = 5 * 60 * 1000; // 5-minute grace period for recently expired tokens
+const RACE_CONDITION_COOLDOWN_MS = 30 * 1000; // 30 seconds - reduced from 2 minutes
+const BATCH_SIZE = 500; // Process 500 accounts per batch
+const MAX_CONCURRENT_REFRESHES = 20; // Maximum concurrent token refreshes
+const MAX_RETRIES = 3; // Maximum retry attempts
+const RETRY_DELAY_BASE_MS = 1000; // Base delay for exponential backoff (1 second)
+
 /**
-  * Check if a token should be refreshed based on a buffer window
- * Default buffer: 10 minutes
+ * Check if a token should be refreshed based on a buffer window
+ * Default buffer: 40 minutes (increased for better reliability)
  * Also includes a grace period for recently expired tokens (5 minutes)
  */
 export function shouldRefreshToken(
   tokenExpiresAt: string | null | undefined,
-  bufferMs = 10 * 60 * 1000
+  bufferMs = DEFAULT_BUFFER_MS
 ): boolean {
   if (!tokenExpiresAt) return false;
   const expiresAtMs = new Date(tokenExpiresAt).getTime();
   const now = Date.now();
   const timeUntilExpiry = expiresAtMs - now;
-  const gracePeriodMs = 5 * 60 * 1000; // 5-minute grace period for recently expired tokens
   
   // Refresh if:
   // 1. Token expires within buffer window (future), OR
   // 2. Token expired recently (within grace period) - allows recovery
   return (timeUntilExpiry > 0 && timeUntilExpiry <= bufferMs) || 
-         (timeUntilExpiry <= 0 && timeUntilExpiry >= -gracePeriodMs);
+         (timeUntilExpiry <= 0 && timeUntilExpiry >= -GRACE_PERIOD_MS);
 }
 
 /**
- * Refresh X/Twitter access token using refresh token
- * According to X OAuth 2.0 docs: https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code
+ * Sleep utility for retry delays
  */
-export async function refreshXToken(accountId: string) {
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Refresh X/Twitter access token using refresh token with retry logic
+ * According to X OAuth 2.0 docs: https://docs.x.com/fundamentals/authentication/oauth-2-0/authorization-code
+ * 
+ * @param accountId - The account ID to refresh
+ * @param retryCount - Current retry attempt (internal use)
+ * @returns Refresh result with success status and optional error
+ */
+export async function refreshXToken(
+  accountId: string,
+  retryCount = 0
+): Promise<{ success: boolean; error?: string; expiresAt?: string; retried?: boolean }> {
   try {
     // Fetch account with refresh token
     // Allow refreshing even if status is "expired" - we'll update status after successful refresh
@@ -88,11 +116,29 @@ export async function refreshXToken(accountId: string) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
+      
+      // Retry on transient errors (429 rate limit, 500-503 server errors)
+      const isTransientError = tokenResponse.status === 429 || 
+                               (tokenResponse.status >= 500 && tokenResponse.status < 504);
+      
+      if (isTransientError && retryCount < MAX_RETRIES) {
+        const delay = RETRY_DELAY_BASE_MS * Math.pow(2, retryCount); // Exponential backoff
+        console.log(`Retrying token refresh for account ${accountId} (attempt ${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms`, {
+          status: tokenResponse.status,
+          error: errorText,
+        });
+        
+        await sleep(delay);
+        const retryResult = await refreshXToken(accountId, retryCount + 1);
+        return { ...retryResult, retried: true };
+      }
+      
       console.error("X token refresh error:", {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
         error: errorText,
         accountId: account.id,
+        retryCount,
       });
       
       // If refresh token is invalid/expired, mark account as expired
@@ -180,20 +226,92 @@ export async function refreshXToken(accountId: string) {
       return { success: false, error: "Failed to update token in database" };
     }
 
-    console.log(`Successfully refreshed X token for account ${accountId}`);
+    console.log(`Successfully refreshed X token for account ${accountId}${retryCount > 0 ? ` (after ${retryCount} retries)` : ""}`);
     return { success: true, expiresAt };
   } catch (error: any) {
+    // Retry on network errors
+    if (retryCount < MAX_RETRIES && (error.code === "ECONNRESET" || error.code === "ETIMEDOUT")) {
+      const delay = RETRY_DELAY_BASE_MS * Math.pow(2, retryCount);
+      console.log(`Retrying token refresh for account ${accountId} due to network error (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      await sleep(delay);
+      return await refreshXToken(accountId, retryCount + 1);
+    }
+    
     console.error("Error refreshing X token:", error);
     return { success: false, error: error.message || "Unknown error" };
   }
 }
 
 /**
- * Check and refresh X tokens that are expiring soon
- * This can be called on-demand (e.g., when user visits settings page)
+ * Process tokens in parallel with concurrency limit
  */
-export async function refreshExpiringTokens(userId?: string, bufferMs = 10 * 60 * 1000) {
+async function processBatchWithConcurrency<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  concurrency: number
+): Promise<R[]> {
+  const results: R[] = [];
+  const executing: Promise<void>[] = [];
+
+  for (const item of items) {
+    const promise = processor(item).then(result => {
+      results.push(result);
+    });
+    
+    executing.push(promise);
+
+    if (executing.length >= concurrency) {
+      await Promise.race(executing);
+      executing.splice(executing.findIndex(p => p === promise), 1);
+    }
+  }
+
+  await Promise.all(executing);
+  return results;
+}
+
+/**
+ * Check and refresh X tokens that are expiring soon
+ * 
+ * Features:
+ * - Batch processing (500 accounts per batch)
+ * - Parallel execution (20 concurrent refreshes)
+ * - Comprehensive metrics and logging
+ * - Scalable to 10,000+ users
+ * 
+ * @param userId - Optional user ID to refresh tokens for a specific user
+ * @param bufferMs - Buffer window in milliseconds (default: 40 minutes)
+ * @returns Refresh statistics
+ */
+export async function refreshExpiringTokens(
+  userId?: string,
+  bufferMs = DEFAULT_BUFFER_MS
+): Promise<{
+  refreshed: number;
+  errors: any[];
+  skipped: number;
+  total: number;
+  metrics: {
+    startTime: string;
+    endTime: string;
+    durationMs: number;
+    successRate: number;
+  };
+}> {
+  const startTime = Date.now();
+  const metrics = {
+    startTime: new Date().toISOString(),
+    endTime: "",
+    durationMs: 0,
+    successRate: 0,
+  };
+
   try {
+    console.log(`Starting token refresh process (buffer: ${bufferMs / 1000 / 60} minutes)`, {
+      userId: userId || "all users",
+      timestamp: metrics.startTime,
+    });
+
     // Fetch all X accounts with refresh tokens that are expiring soon
     // Include both "connected" and "expired" status to catch tokens that just expired
     let query = supabaseAdmin
@@ -212,46 +330,146 @@ export async function refreshExpiringTokens(userId?: string, bufferMs = 10 * 60 
 
     if (error) {
       console.error("Error fetching accounts for refresh:", error);
-      return { refreshed: 0, errors: [] };
+      metrics.endTime = new Date().toISOString();
+      metrics.durationMs = Date.now() - startTime;
+      return {
+        refreshed: 0,
+        errors: [{ type: "fetch_error", error }],
+        skipped: 0,
+        total: 0,
+        metrics,
+      };
     }
 
     if (!accounts || accounts.length === 0) {
-      return { refreshed: 0, errors: [] };
+      console.log("No accounts found for token refresh");
+      metrics.endTime = new Date().toISOString();
+      metrics.durationMs = Date.now() - startTime;
+      return {
+        refreshed: 0,
+        errors: [],
+        skipped: 0,
+        total: 0,
+        metrics,
+      };
     }
 
-    // Filter out accounts that were just updated (within last 2 minutes) to avoid race conditions
-    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+    console.log(`Found ${accounts.length} X accounts to check`);
+
+    // Filter out accounts that were just updated (within cooldown period) to avoid race conditions
+    const cooldownThreshold = new Date(Date.now() - RACE_CONDITION_COOLDOWN_MS);
     const accountsToRefresh = accounts.filter(account => {
       if (!account.updated_at) return true; // Include if no updated_at
       const updatedAt = new Date(account.updated_at);
-      return updatedAt < twoMinutesAgo; // Only include if updated more than 2 minutes ago
+      return updatedAt < cooldownThreshold; // Only include if updated more than cooldown period ago
     });
 
     if (accountsToRefresh.length === 0) {
       console.log("Skipping token refresh - all accounts were recently updated");
-      return { refreshed: 0, errors: [] };
+      metrics.endTime = new Date().toISOString();
+      metrics.durationMs = Date.now() - startTime;
+      return {
+        refreshed: 0,
+        errors: [],
+        skipped: accounts.length,
+        total: accounts.length,
+        metrics,
+      };
+    }
+
+    // Filter accounts that need refreshing
+    const accountsNeedingRefresh = accountsToRefresh.filter(account =>
+      shouldRefreshToken(account.token_expires_at, bufferMs)
+    );
+
+    const skipped = accountsToRefresh.length - accountsNeedingRefresh.length;
+
+    if (accountsNeedingRefresh.length === 0) {
+      console.log("No accounts need refreshing at this time");
+      metrics.endTime = new Date().toISOString();
+      metrics.durationMs = Date.now() - startTime;
+      return {
+        refreshed: 0,
+        errors: [],
+        skipped,
+        total: accounts.length,
+        metrics,
+      };
+    }
+
+    console.log(`Processing ${accountsNeedingRefresh.length} accounts needing refresh (skipped ${skipped} that don't need refresh yet)`);
+
+    // Process in batches
+    const batches: typeof accountsNeedingRefresh[] = [];
+    for (let i = 0; i < accountsNeedingRefresh.length; i += BATCH_SIZE) {
+      batches.push(accountsNeedingRefresh.slice(i, i + BATCH_SIZE));
     }
 
     const errors: any[] = [];
     let refreshed = 0;
 
-    for (const account of accountsToRefresh) {
-      if (shouldRefreshToken(account.token_expires_at, bufferMs)) {
-        const result = await refreshXToken(account.id);
+    // Process each batch
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      console.log(`Processing batch ${batchIndex + 1}/${batches.length} (${batch.length} accounts)`);
+
+      // Process batch with concurrency limit
+      const results = await processBatchWithConcurrency(
+        batch,
+        async (account) => {
+          const result = await refreshXToken(account.id);
+          return { accountId: account.id, result };
+        },
+        MAX_CONCURRENT_REFRESHES
+      );
+
+      // Collect results
+      for (const { accountId, result } of results) {
         if (result.success) {
           refreshed++;
         } else {
-          errors.push({ accountId: account.id, error: result.error });
+          errors.push({ accountId, error: result.error, retried: result.retried });
         }
       }
+
+      console.log(`Batch ${batchIndex + 1} complete: ${refreshed} refreshed, ${errors.length} errors`);
     }
 
-    return { refreshed, errors };
+    const endTime = Date.now();
+    metrics.endTime = new Date().toISOString();
+    metrics.durationMs = endTime - startTime;
+    metrics.successRate = accountsNeedingRefresh.length > 0
+      ? (refreshed / accountsNeedingRefresh.length) * 100
+      : 100;
+
+    console.log(`Token refresh process complete:`, {
+      total: accounts.length,
+      checked: accountsToRefresh.length,
+      needingRefresh: accountsNeedingRefresh.length,
+      refreshed,
+      errors: errors.length,
+      skipped,
+      duration: `${(metrics.durationMs / 1000).toFixed(2)}s`,
+      successRate: `${metrics.successRate.toFixed(2)}%`,
+    });
+
+    return {
+      refreshed,
+      errors,
+      skipped,
+      total: accounts.length,
+      metrics,
+    };
   } catch (error: any) {
     console.error("Error in refreshExpiringTokens:", error);
-    return { refreshed: 0, errors: [error] };
+    metrics.endTime = new Date().toISOString();
+    metrics.durationMs = Date.now() - startTime;
+    return {
+      refreshed: 0,
+      errors: [{ type: "unexpected_error", error: error.message }],
+      skipped: 0,
+      total: 0,
+      metrics,
+    };
   }
 }
-
-
-

@@ -1,11 +1,4 @@
-{
-  "crons": [
-    {
-      "path": "/api/cron/check-expired-tokens",
-      "schedule": "0 0 * * *"
-    }
-  ]
-}
+{}
 
 
 
