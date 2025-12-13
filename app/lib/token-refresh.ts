@@ -20,6 +20,7 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 /**
   * Check if a token should be refreshed based on a buffer window
  * Default buffer: 10 minutes
+ * Also includes a grace period for recently expired tokens (5 minutes)
  */
 export function shouldRefreshToken(
   tokenExpiresAt: string | null | undefined,
@@ -28,7 +29,14 @@ export function shouldRefreshToken(
   if (!tokenExpiresAt) return false;
   const expiresAtMs = new Date(tokenExpiresAt).getTime();
   const now = Date.now();
-  return expiresAtMs > now && expiresAtMs <= now + bufferMs;
+  const timeUntilExpiry = expiresAtMs - now;
+  const gracePeriodMs = 5 * 60 * 1000; // 5-minute grace period for recently expired tokens
+  
+  // Refresh if:
+  // 1. Token expires within buffer window (future), OR
+  // 2. Token expired recently (within grace period) - allows recovery
+  return (timeUntilExpiry > 0 && timeUntilExpiry <= bufferMs) || 
+         (timeUntilExpiry <= 0 && timeUntilExpiry >= -gracePeriodMs);
 }
 
 /**
@@ -38,12 +46,13 @@ export function shouldRefreshToken(
 export async function refreshXToken(accountId: string) {
   try {
     // Fetch account with refresh token
+    // Allow refreshing even if status is "expired" - we'll update status after successful refresh
     const { data: account, error: fetchError } = await supabaseAdmin
       .from("connected_accounts")
-      .select("id, platform, refresh_token, user_id")
+      .select("id, platform, refresh_token, user_id, status")
       .eq("id", accountId)
       .eq("platform", "twitter") // Database uses "twitter" enum
-      .eq("status", "connected")
+      .in("status", ["connected", "expired"]) // Allow refreshing expired tokens
       .single();
 
     if (fetchError || !account) {
@@ -148,9 +157,11 @@ export async function refreshXToken(accountId: string) {
       : null;
 
     // Update account with new tokens
+    // Also set status back to "connected" if it was "expired"
     const updateData: any = {
       access_token: access_token,
       token_expires_at: expiresAt,
+      status: "connected", // Ensure status is set to connected after successful refresh
       updated_at: new Date().toISOString(),
     };
 
@@ -184,11 +195,12 @@ export async function refreshXToken(accountId: string) {
 export async function refreshExpiringTokens(userId?: string, bufferMs = 10 * 60 * 1000) {
   try {
     // Fetch all X accounts with refresh tokens that are expiring soon
+    // Include both "connected" and "expired" status to catch tokens that just expired
     let query = supabaseAdmin
       .from("connected_accounts")
-      .select("id, platform, token_expires_at, refresh_token, user_id, updated_at")
+      .select("id, platform, token_expires_at, refresh_token, user_id, updated_at, status")
       .eq("platform", "twitter")
-      .eq("status", "connected")
+      .in("status", ["connected", "expired"]) // Include expired tokens that might still have valid refresh tokens
       .not("refresh_token", "is", null)
       .not("token_expires_at", "is", null);
 

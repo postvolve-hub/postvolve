@@ -29,8 +29,10 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("Checking for expired tokens and refreshing expiring ones...");
-    const expireResult = await updateExpiredTokens();
+    // IMPORTANT: Run refresh FIRST, then mark as expired
+    // This ensures we try to refresh tokens before marking them as expired
     const refreshResult = await refreshExpiringTokens(undefined, 20 * 60 * 1000); // 20-minute buffer
+    const expireResult = await updateExpiredTokens();
     return NextResponse.json({
       success: true,
       expiredUpdated: expireResult.updated,

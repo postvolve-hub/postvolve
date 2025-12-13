@@ -57,7 +57,9 @@ supabase/migrations/003_setup_cron_with_edge_function.sql
 
 # Supabase CLI temp/cache
 supabase/.temp/
-supabase/functions/cron-refresh-tokens/index.ts
+
+# Supabase Edge Functions (deployed manually or via CLI)
+supabase/functions/
 #Readme
 QUICK_START_GUIDE.md
 
