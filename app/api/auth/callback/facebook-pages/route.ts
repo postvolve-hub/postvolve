@@ -123,6 +123,25 @@ export async function GET(request: NextRequest) {
     const userAccessToken = longLivedData.access_token || shortLivedToken;
     const longLivedExpiresIn = longLivedData.expires_in || expires_in;
 
+    // Debug: Check token permissions (for troubleshooting)
+    try {
+      const debugTokenResponse = await fetch(
+        `https://graph.facebook.com/v21.0/debug_token?input_token=${userAccessToken}&access_token=${userAccessToken}`
+      );
+      if (debugTokenResponse.ok) {
+        const debugData = await debugTokenResponse.json();
+        console.log("Token debug info:", {
+          scopes: debugData.data?.scopes || [],
+          user_id: debugData.data?.user_id,
+          app_id: debugData.data?.app_id,
+          is_valid: debugData.data?.is_valid,
+          expires_at: debugData.data?.expires_at,
+        });
+      }
+    } catch (debugError) {
+      console.warn("Could not debug token (non-critical):", debugError);
+    }
+
     // Fetch user profile from Facebook Graph API
     // Note: 'email' field requires 'email' permission which is not available for Business apps
     const profileResponse = await fetch(
@@ -145,11 +164,53 @@ export async function GET(request: NextRequest) {
     );
 
     let pagesData: any[] = [];
+    const pagesResponseText = await pagesResponse.text();
+    let pagesResult: any = {};
+
+    try {
+      pagesResult = JSON.parse(pagesResponseText);
+    } catch {
+      pagesResult = { raw: pagesResponseText };
+    }
+
     if (pagesResponse.ok) {
-      const pagesResult = await pagesResponse.json();
-      pagesData = pagesResult.data || [];
+      // Check for error in response (Facebook sometimes returns 200 with error object)
+      if (pagesResult.error) {
+        console.error("Facebook Pages API error (200 OK but error in body):", {
+          error: pagesResult.error,
+          type: pagesResult.error.type,
+          code: pagesResult.error.code,
+          message: pagesResult.error.message,
+          error_subcode: pagesResult.error.error_subcode,
+          error_user_title: pagesResult.error.error_user_title,
+          error_user_msg: pagesResult.error.error_user_msg,
+          fbtrace_id: pagesResult.error.fbtrace_id,
+        });
+        pagesData = [];
+      } else {
+        pagesData = pagesResult.data || [];
+        console.log(`Successfully fetched ${pagesData.length} Facebook Pages`);
+      }
     } else {
-      console.warn("Could not fetch Pages. User may not have any Pages or permission was denied.");
+      console.error("Failed to fetch Facebook Pages:", {
+        status: pagesResponse.status,
+        statusText: pagesResponse.statusText,
+        error: pagesResult.error || pagesResult,
+        url: `https://graph.facebook.com/v21.0/me/accounts`,
+      });
+      
+      // Log specific error details
+      if (pagesResult.error) {
+        console.error("Facebook API Error Details:", {
+          type: pagesResult.error.type,
+          code: pagesResult.error.code,
+          message: pagesResult.error.message,
+          error_subcode: pagesResult.error.error_subcode,
+          error_user_title: pagesResult.error.error_user_title,
+          error_user_msg: pagesResult.error.error_user_msg,
+          fbtrace_id: pagesResult.error.fbtrace_id,
+        });
+      }
     }
 
     // Store USER token (not page token) so we can always fetch pages

@@ -50,12 +50,45 @@ export async function POST(request: NextRequest) {
       `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${userAccessToken}`
     );
 
-    if (!pagesResp.ok) {
-      return NextResponse.json({ error: "pages_fetch_failed" }, { status: 502 });
+    const pagesResponseText = await pagesResp.text();
+    let pagesJson: any = {};
+
+    try {
+      pagesJson = JSON.parse(pagesResponseText);
+    } catch {
+      pagesJson = { raw: pagesResponseText };
     }
 
-    const pagesJson = await pagesResp.json();
+    if (!pagesResp.ok) {
+      console.error("FB select page: pages fetch failed", {
+        status: pagesResp.status,
+        statusText: pagesResp.statusText,
+        error: pagesJson.error || pagesJson,
+      });
+      return NextResponse.json({ 
+        error: "pages_fetch_failed",
+        details: pagesJson.error || pagesJson 
+      }, { status: 502 });
+    }
+
+    // Check for error in response even if status is 200
+    if (pagesJson.error) {
+      console.error("FB select page: Facebook API error (200 OK but error in body)", {
+        error: pagesJson.error,
+        type: pagesJson.error.type,
+        code: pagesJson.error.code,
+        message: pagesJson.error.message,
+        error_subcode: pagesJson.error.error_subcode,
+        error_user_msg: pagesJson.error.error_user_msg,
+      });
+      return NextResponse.json({ 
+        error: "pages_fetch_failed",
+        details: pagesJson.error 
+      }, { status: 502 });
+    }
+
     const pages = pagesJson?.data || [];
+    console.log(`FB select page: Found ${pages.length} pages`);
     const selectedPage = pages.find((p: any) => p.id === pageId);
 
     if (!selectedPage) {

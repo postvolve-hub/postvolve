@@ -547,16 +547,47 @@ export default function Settings() {
         `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token&access_token=${account.access_token}`
       );
 
+      const pagesResponseText = await pagesResp.text();
+      let pagesJson: any = {};
+
+      try {
+        pagesJson = JSON.parse(pagesResponseText);
+      } catch {
+        pagesJson = { raw: pagesResponseText };
+      }
+
       if (!pagesResp.ok) {
+        console.error("Failed to fetch Facebook pages:", {
+          status: pagesResp.status,
+          statusText: pagesResp.statusText,
+          error: pagesJson.error || pagesJson,
+        });
         toast({
           title: "Error",
-          description: "Failed to fetch Facebook pages. Please try again.",
+          description: `Failed to fetch Facebook pages: ${pagesJson.error?.error_user_msg || pagesJson.error?.message || pagesResp.statusText}`,
           variant: "destructive",
         });
         return;
       }
 
-      const pagesJson = await pagesResp.json();
+      // Check for error in response even if status is 200
+      if (pagesJson.error) {
+        console.error("Facebook API error (200 OK but error in body):", {
+          error: pagesJson.error,
+          type: pagesJson.error.type,
+          code: pagesJson.error.code,
+          message: pagesJson.error.message,
+          error_subcode: pagesJson.error.error_subcode,
+          error_user_msg: pagesJson.error.error_user_msg,
+        });
+        toast({
+          title: "Error",
+          description: `Facebook API error: ${pagesJson.error.error_user_msg || pagesJson.error.message || "Unknown error"}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const pages = pagesJson?.data || [];
 
       if (pages.length === 0) {
