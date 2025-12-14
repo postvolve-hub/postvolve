@@ -72,8 +72,8 @@ export async function POST(
 
     // Determine generation options based on original post
     const generationOptions: any = {
-      lane: post.generation_lane || 'prompt',
-      category: post.category || 'tech',
+      lane: (post.generation_lane || 'custom') as 'auto' | 'url' | 'custom',
+      category: (post.category || 'tech') as 'tech' | 'ai' | 'business' | 'motivation',
       platforms,
     };
 

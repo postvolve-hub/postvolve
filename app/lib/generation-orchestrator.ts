@@ -56,8 +56,9 @@ export async function generateContent(
   } else if (lane === 'auto') {
     // For auto lane, generate content based on category and trends
     // No URL or user prompt needed - AI generates from category context
-    console.log('[Orchestrator] Auto-generating content for category:', category);
-    title = `AI-Generated ${category.charAt(0).toUpperCase() + category.slice(1)} Content`;
+    const categoryName = category || 'tech';
+    console.log('[Orchestrator] Auto-generating content for category:', categoryName);
+    title = `AI-Generated ${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Content`;
   }
 
   // Step 2: Prompt Refinement (optional - gracefully handles rate limits)
@@ -83,8 +84,8 @@ export async function generateContent(
   const [textResults, imageResult] = await Promise.all([
     // Generate text for all platforms
     generateMultiPlatformText({
-      category,
-      platforms,
+      category: category || 'tech',
+      platforms: platforms || ['linkedin'],
       baseContent: refinedPrompt,
       urlContent: extractedContent,
       userPrompt,
@@ -99,7 +100,7 @@ export async function generateContent(
         } as GeneratedImage)
       : generatePostImage({
           textContent: refinedPrompt || title,
-          category,
+          category: category || 'tech',
           platform: platforms?.[0] || 'linkedin',
           quality: 'high',
         }),
