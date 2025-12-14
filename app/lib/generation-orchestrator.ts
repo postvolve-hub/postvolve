@@ -44,7 +44,7 @@ export async function generateContent(
 ): Promise<GenerationResult> {
   const { lane, category, platforms, url, userPrompt, baseContent, uploadedImageUrl } = options;
 
-  // Step 1: Content Extraction (for URL lane)
+  // Step 1: Content Extraction (for URL lane) or Auto Generation
   let extractedContent: string | undefined;
   let title = 'Generated Post';
 
@@ -53,6 +53,11 @@ export async function generateContent(
     const extracted = await extractUrlContent(url);
     title = extracted.title;
     extractedContent = prepareContentForAI(extracted);
+  } else if (lane === 'auto') {
+    // For auto lane, generate content based on category and trends
+    // No URL or user prompt needed - AI generates from category context
+    console.log('[Orchestrator] Auto-generating content for category:', category);
+    title = `AI-Generated ${category.charAt(0).toUpperCase() + category.slice(1)} Content`;
   }
 
   // Step 2: Prompt Refinement (optional - gracefully handles rate limits)

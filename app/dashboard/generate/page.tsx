@@ -236,14 +236,41 @@ export default function ContentGeneration() {
   };
 
   const handleRegeneratePost = async (postId: string) => {
+    if (!user) return;
+    
     setRegeneratingId(postId);
-    // TODO: Implement regeneration API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setRegeneratingId(null);
-    toast({
-      title: "Content Regenerated",
-      description: "A new version has been generated for this draft.",
-    });
+    try {
+      const response = await fetch(`/api/posts/${postId}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to regenerate post');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Content Regenerated",
+          description: "A new version has been generated for this draft.",
+        });
+        // Refresh posts to show updated content
+        await refreshPosts();
+      }
+    } catch (error: any) {
+      console.error('Error regenerating post:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to regenerate post. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingId(null);
+    }
   };
 
   const refreshPosts = async () => {

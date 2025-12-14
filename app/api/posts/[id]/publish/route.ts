@@ -227,9 +227,13 @@ export async function POST(
 
     const finalStatus = allSuccess ? 'posted' : anySuccess ? 'posted' : 'failed';
 
+    // Update post status and posted_at timestamp
     await supabaseAdmin
       .from('posts')
-      .update({ status: finalStatus })
+      .update({ 
+        status: finalStatus,
+        posted_at: anySuccess ? new Date().toISOString() : null,
+      })
       .eq('id', postId);
 
     // Log activity

@@ -15,6 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "@/hooks/use-toast";
 
 type UploadMode = "file" | "url" | "ai";
 
@@ -31,6 +33,7 @@ export function ImageUploadModal({
   onUpload,
   currentImage,
 }: ImageUploadModalProps) {
+  const { user } = useAuth();
   const [mode, setMode] = useState<UploadMode>("file");
   const [imageUrl, setImageUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -38,6 +41,7 @@ export function ImageUploadModal({
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -48,12 +52,13 @@ export function ImageUploadModal({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("File size must be less than 5MB");
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File size must be less than 10MB");
       return;
     }
 
     setError(null);
+    setSelectedFile(file);
     const reader = new FileReader();
     reader.onload = (e) => {
       setPreviewUrl(e.target?.result as string);
@@ -107,27 +112,109 @@ export function ImageUploadModal({
   };
 
   const handleAIGenerate = async () => {
+    if (!imageUrl.trim()) {
+      setError("Please enter a prompt or description for image generation");
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
 
-    // Simulate AI image generation
-    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      const response = await fetch('/api/generate/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          textContent: imageUrl,
+          quality: 'high',
+        }),
+      });
 
-    // Mock generated image
-    setPreviewUrl("https://picsum.photos/800/600?random=" + Date.now());
-    setIsGenerating(false);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to generate image');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.image?.imageUrl) {
+        setPreviewUrl(result.image.imageUrl);
+        toast({
+          title: "Image Generated",
+          description: "Your AI-generated image is ready!",
+        });
+      } else {
+        throw new Error('No image URL returned');
+      }
+    } catch (error: any) {
+      console.error('Error generating image:', error);
+      setError(error.message || 'Failed to generate image');
+      toast({
+        title: "Error",
+        description: error.message || "Failed to generate image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleUpload = async () => {
     if (!previewUrl) return;
+    if (!user) {
+      setError("Please sign in to upload images");
+      return;
+    }
 
     setIsUploading(true);
-    // Simulate upload
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsUploading(false);
+    setError(null);
 
-    onUpload?.(previewUrl);
-    handleClose();
+    try {
+      let finalImageUrl = previewUrl;
+
+      // If file mode and we have a selected file, upload it
+      if (mode === 'file' && selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        formData.append('userId', user.id);
+
+        const response = await fetch('/api/upload/image', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to upload image');
+        }
+
+        const result = await response.json();
+        if (result.success && result.imageUrl) {
+          finalImageUrl = result.imageUrl;
+        } else {
+          throw new Error('Upload failed - no image URL returned');
+        }
+      }
+      // For URL mode, use the URL directly
+      // For AI mode, previewUrl is already set from generation
+
+      onUpload?.(finalImageUrl);
+      toast({
+        title: "Image Updated",
+        description: "Your post image has been updated successfully.",
+      });
+      handleClose();
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      setError(error.message || 'Failed to upload image');
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleClose = () => {

@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadModal } from "@/components/dashboard/ImageUploadModal";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 // Social Platform Icons
 const IconLinkedIn = ({ className = "h-5 w-5" }: { className?: string }) => (
@@ -87,6 +88,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizationModalProps) {
+  const { user } = useAuth();
   const [postContent, setPostContent] = useState("");
   const [postTitle, setPostTitle] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "x"]);
@@ -136,22 +138,82 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   };
 
   const handleRegenerate = async () => {
+    if (!user || !post) return;
+    
     setIsRegenerating(true);
-    // Simulate regeneration
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsRegenerating(false);
-    toast({
-      title: "Image Regenerated",
-      description: "A new image has been generated for your post.",
-    });
+    try {
+      // Get text content for image generation
+      const textContent = postContent || post.content || post.title;
+      
+      const response = await fetch('/api/generate/image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          textContent,
+          category: post.category,
+          platform: previewPlatform,
+          quality: 'high',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to regenerate image');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.image?.imageUrl) {
+        setCurrentImageUrl(result.image.imageUrl);
+        toast({
+          title: "Image Regenerated",
+          description: "A new image has been generated for your post.",
+        });
+      }
+    } catch (error: any) {
+      console.error('Error regenerating image:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to regenerate image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRegenerating(false);
+    }
   };
 
-  const handleImageUpload = (imageUrl: string) => {
+  const handleImageUpload = async (imageUrl: string) => {
+    if (!post || !user) return;
+    
     setCurrentImageUrl(imageUrl);
-    toast({
-      title: "Image Updated",
-      description: "Your post image has been changed successfully.",
-    });
+    
+    // Update the post with new image URL
+    try {
+      const response = await fetch(`/api/posts/${post.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          image_url: imageUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update post image');
+      }
+
+      toast({
+        title: "Image Updated",
+        description: "Your post image has been changed successfully.",
+      });
+    } catch (error: any) {
+      console.error('Error updating post image:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save image. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getCharacterStatus = (platformId: string) => {

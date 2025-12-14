@@ -123,7 +123,72 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Calculate rates
+    // Calculate previous period metrics for comparison
+    let previousPeriodStart: Date;
+    let previousPeriodEnd: Date;
+    
+    if (startDate && endDate) {
+      const currentStart = new Date(startDate);
+      const currentEnd = new Date(endDate);
+      const periodLength = currentEnd.getTime() - currentStart.getTime();
+      previousPeriodEnd = new Date(currentStart.getTime() - 1);
+      previousPeriodStart = new Date(previousPeriodEnd.getTime() - periodLength);
+    } else {
+      // Default: Last 30 days vs previous 30 days
+      const endDateObj = endDate ? new Date(endDate) : new Date();
+      const startDateObj = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const periodLength = endDateObj.getTime() - startDateObj.getTime();
+      previousPeriodEnd = new Date(startDateObj.getTime() - 1);
+      previousPeriodStart = new Date(previousPeriodEnd.getTime() - periodLength);
+    }
+
+    // Get previous period data
+    const { data: previousPosts } = await supabaseAdmin
+      .from('posts')
+      .select(`
+        id,
+        post_platforms (
+          post_analytics (
+            impressions,
+            engagements,
+            clicks,
+            shares,
+            likes,
+            comments
+          )
+        )
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'posted')
+      .gte('posted_at', previousPeriodStart.toISOString())
+      .lte('posted_at', previousPeriodEnd.toISOString())
+      .limit(100);
+
+    let prevImpressions = 0;
+    let prevEngagements = 0;
+    let prevClicks = 0;
+    let prevShares = 0;
+    let prevEngagementRate = 0;
+
+    (previousPosts || []).forEach((post) => {
+      const platforms = (post.post_platforms as any[]) || [];
+      platforms.forEach((platform) => {
+        const analytics = (platform.post_analytics as any[]) || [];
+        analytics.forEach((analytics) => {
+          prevImpressions += analytics.impressions || 0;
+          prevEngagements += (analytics.likes || 0) + (analytics.comments || 0) + (analytics.shares || 0);
+          prevClicks += analytics.clicks || 0;
+          prevShares += analytics.shares || 0;
+        });
+      });
+    });
+
+    const prevPostCount = previousPosts?.length || 0;
+    if (prevPostCount > 0 && prevImpressions > 0) {
+      prevEngagementRate = (prevEngagements / prevImpressions) * 100;
+    }
+
+    // Calculate rates first
     const avgEngagementRate = totalPosts > 0 && totalImpressions > 0
       ? ((totalEngagements / totalImpressions) * 100).toFixed(1)
       : '0';
@@ -132,42 +197,64 @@ export async function GET(request: NextRequest) {
       ? ((totalClicks / totalImpressions) * 100).toFixed(1)
       : '0';
 
+    // Calculate percentage changes
+    const calculateChange = (current: number, previous: number): { change: string; trend: 'up' | 'down' } => {
+      if (previous === 0) {
+        return current > 0 ? { change: '+100%', trend: 'up' } : { change: '0%', trend: 'up' };
+      }
+      const percentChange = ((current - previous) / previous) * 100;
+      const sign = percentChange >= 0 ? '+' : '';
+      return {
+        change: `${sign}${percentChange.toFixed(1)}%`,
+        trend: percentChange >= 0 ? 'up' : 'down',
+      };
+    };
+
+    const impressionsChange = calculateChange(totalImpressions, prevImpressions);
+    const engagementsChange = calculateChange(totalEngagements, prevEngagements);
+    const clicksChange = calculateChange(totalClicks, prevClicks);
+    const sharesChange = calculateChange(totalShares, prevShares);
+    const engagementRateChange = calculateChange(
+      parseFloat(avgEngagementRate),
+      prevEngagementRate
+    );
+
     // Format metrics for display
     const metrics = [
       {
         id: 1,
         label: 'Total Impressions',
         value: totalImpressions > 0 ? `${(totalImpressions / 1000).toFixed(1)}K` : '0',
-        change: '+0%', // TODO: Calculate from previous period
-        trend: 'up' as const,
+        change: impressionsChange.change,
+        trend: impressionsChange.trend,
       },
       {
         id: 2,
         label: 'Total Engagements',
         value: totalEngagements > 0 ? `${(totalEngagements / 1000).toFixed(1)}K` : '0',
-        change: '+0%', // TODO: Calculate from previous period
-        trend: 'up' as const,
+        change: engagementsChange.change,
+        trend: engagementsChange.trend,
       },
       {
         id: 3,
         label: 'Click-through Rate',
         value: `${clickThroughRate}%`,
-        change: '+0%', // TODO: Calculate from previous period
-        trend: 'up' as const,
+        change: clicksChange.change,
+        trend: clicksChange.trend,
       },
       {
         id: 4,
         label: 'Total Shares',
         value: totalShares > 0 ? `${(totalShares / 1000).toFixed(1)}K` : '0',
-        change: '+0%', // TODO: Calculate from previous period
-        trend: 'up' as const,
+        change: sharesChange.change,
+        trend: sharesChange.trend,
       },
       {
         id: 5,
         label: 'Avg. Engagement Rate',
         value: `${avgEngagementRate}%`,
-        change: '+0%', // TODO: Calculate from previous period
-        trend: 'up' as const,
+        change: engagementRateChange.change,
+        trend: engagementRateChange.trend,
       },
     ];
 
