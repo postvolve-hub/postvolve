@@ -99,6 +99,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function ContentGeneration() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState<"all" | "draft" | "scheduled" | "posted">("all");
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
@@ -152,8 +153,9 @@ export default function ContentGeneration() {
 
       setIsLoading(true);
       try {
+        // Fetch all posts (draft, scheduled, posted)
         const response = await fetch(
-          `/api/posts?userId=${user.id}&status=draft&limit=50`
+          `/api/posts?userId=${user.id}&limit=100`
         );
         
         if (!response.ok) {
@@ -189,17 +191,49 @@ export default function ContentGeneration() {
     };
   }, [user]);
 
-  const filteredContent = selectedCategory === "All" 
-    ? content 
-    : content.filter(post => {
-        const categoryMap: Record<string, string> = {
-          'AI': 'ai',
-          'Tech': 'tech',
-          'Business': 'business',
-          'Motivation': 'motivation',
-        };
-        return post.category === categoryMap[selectedCategory];
-      });
+  // Filter by category and status
+  const filteredContent = content.filter(post => {
+    // Category filter
+    if (selectedCategory !== "All") {
+      const categoryMap: Record<string, string> = {
+        'AI': 'ai',
+        'Tech': 'tech',
+        'Business': 'business',
+        'Motivation': 'motivation',
+      };
+      if (post.category !== categoryMap[selectedCategory]) {
+        return false;
+      }
+    }
+    
+    // Status filter
+    if (selectedStatus !== "all") {
+      if (selectedStatus === "draft" && post.status !== "draft") {
+        return false;
+      }
+      if (selectedStatus === "scheduled" && post.status !== "scheduled") {
+        return false;
+      }
+      if (selectedStatus === "posted") {
+        // Check if any platform has been posted
+        const hasPosted = post.post_platforms?.some(pp => pp.status === "posted");
+        if (!hasPosted) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  });
+
+  // Group posts by status
+  const groupedPosts = {
+    draft: filteredContent.filter(post => post.status === "draft"),
+    scheduled: filteredContent.filter(post => post.status === "scheduled"),
+    posted: filteredContent.filter(post => 
+      post.post_platforms?.some(pp => pp.status === "posted")
+    ),
+  };
 
   const handleEditPost = (post: Post) => {
     setSelectedPost(post);
@@ -210,14 +244,13 @@ export default function ContentGeneration() {
     if (!user) return;
     
     try {
-      const response = await fetch(`/api/posts/${postId}`, {
+      const response = await fetch(`/api/posts/${postId}?userId=${user.id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete post');
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete post');
       }
 
       setContent(prev => prev.filter(p => p.id !== postId));
@@ -225,11 +258,11 @@ export default function ContentGeneration() {
         title: "Draft Deleted",
         description: "The draft has been removed from your queue.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting post:", error);
       toast({
         title: "Error",
-        description: "Failed to delete post. Please try again.",
+        description: error.message || "Failed to delete post. Please try again.",
         variant: "destructive",
       });
     }
@@ -279,7 +312,7 @@ export default function ContentGeneration() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `/api/posts?userId=${user.id}&status=draft&limit=50`
+        `/api/posts?userId=${user.id}&limit=100`
       );
       
       if (!response.ok) {
@@ -350,31 +383,67 @@ export default function ContentGeneration() {
           </div>
         </div>
 
-        {/* Category Filter & Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-75">
+        {/* Status & Category Filters */}
+        <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-75">
+          {/* Status Filter */}
           <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((category) => (
             <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                selectedCategory === category
-                    ? "bg-[#6D28D9] text-white shadow-sm"
-                    : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+              onClick={() => setSelectedStatus("all")}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                selectedStatus === "all"
+                  ? "bg-[#6D28D9] text-white shadow-sm"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
-              {category}
+              All Posts
             </button>
-          ))}
+            <button
+              onClick={() => setSelectedStatus("draft")}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                selectedStatus === "draft"
+                  ? "bg-[#6D28D9] text-white shadow-sm"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Saved ({groupedPosts.draft.length})
+            </button>
+            <button
+              onClick={() => setSelectedStatus("scheduled")}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                selectedStatus === "scheduled"
+                  ? "bg-[#6D28D9] text-white shadow-sm"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Scheduled ({groupedPosts.scheduled.length})
+            </button>
+            <button
+              onClick={() => setSelectedStatus("posted")}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                selectedStatus === "posted"
+                  ? "bg-[#6D28D9] text-white shadow-sm"
+                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Posted ({groupedPosts.posted.length})
+            </button>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-all duration-200">
-              <Filter className="h-4 w-4 mr-2" />
-              Filter
-            </Button>
-            <Button variant="ghost" size="sm" className="text-gray-400 rounded-lg hover:bg-gray-100 transition-all duration-200">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+          
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  selectedCategory === category
+                    ? "bg-[#6D28D9] text-white shadow-sm"
+                    : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
           </div>
         </div>
 
