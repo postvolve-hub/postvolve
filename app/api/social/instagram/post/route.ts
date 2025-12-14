@@ -60,8 +60,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "account_not_connected", status: account.status }, { status: 403 });
     }
 
-    const accessToken = account.access_token;
+    const accessToken = account.access_token.trim();
     const igUserId = account.platform_user_id; // Instagram Business Account ID
+
+    // Add debug logging
+    console.log("Instagram post: Starting", {
+      igUserId,
+      tokenLength: accessToken.length,
+      tokenPreview: `${accessToken.substring(0, 20)}...`,
+      hasImageUrl: !!imageUrl,
+    });
 
     // Instagram Graph API - Create a media container first
     // Step 1: Create media container
@@ -83,22 +91,42 @@ export async function POST(request: NextRequest) {
     }
 
     // Create media container
-    const containerResp = await fetch(
-      `https://graph.facebook.com/v21.0/${igUserId}/media`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams(containerData),
-      }
-    );
+    const containerUrl = `https://graph.facebook.com/v21.0/${igUserId}/media`;
+    console.log("Instagram post: Creating container", { url: containerUrl, igUserId });
+    
+    const containerResp = await fetch(containerUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(containerData),
+    });
 
     const containerText = await containerResp.text();
+    console.log("Instagram post: Container response", {
+      status: containerResp.status,
+      statusText: containerResp.statusText,
+      responsePreview: containerText.substring(0, 200),
+    });
+    
     if (!containerResp.ok) {
-      console.error("Instagram post: container creation failed", containerText);
+      let errorDetails: any = { raw: containerText };
+      try {
+        errorDetails = JSON.parse(containerText);
+      } catch {
+        // Keep raw text if not JSON
+      }
+      
+      console.error("Instagram post: container creation failed", {
+        status: containerResp.status,
+        error: errorDetails,
+        igUserId,
+        tokenLength: accessToken.length,
+      });
+      
       return NextResponse.json({ 
         error: "container_creation_failed", 
-        details: containerText,
-        status: containerResp.status 
+        details: errorDetails,
+        status: containerResp.status,
+        message: errorDetails.error?.message || "Failed to create media container"
       }, { status: 502 });
     }
 
@@ -121,25 +149,44 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 2: Publish the media container
-    const publishResp = await fetch(
-      `https://graph.facebook.com/v21.0/${igUserId}/media_publish`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          creation_id: creationId,
-          access_token: accessToken,
-        }),
-      }
-    );
+    const publishUrl = `https://graph.facebook.com/v21.0/${igUserId}/media_publish`;
+    console.log("Instagram post: Publishing", { url: publishUrl, creationId });
+    
+    const publishResp = await fetch(publishUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        creation_id: creationId,
+        access_token: accessToken,
+      }),
+    });
 
     const publishText = await publishResp.text();
+    console.log("Instagram post: Publish response", {
+      status: publishResp.status,
+      statusText: publishResp.statusText,
+      responsePreview: publishText.substring(0, 200),
+    });
+    
     if (!publishResp.ok) {
-      console.error("Instagram post: publish failed", publishText);
+      let errorDetails: any = { raw: publishText };
+      try {
+        errorDetails = JSON.parse(publishText);
+      } catch {
+        // Keep raw text if not JSON
+      }
+      
+      console.error("Instagram post: publish failed", {
+        status: publishResp.status,
+        error: errorDetails,
+        creationId,
+      });
+      
       return NextResponse.json({ 
         error: "publish_failed", 
-        details: publishText,
-        status: publishResp.status 
+        details: errorDetails,
+        status: publishResp.status,
+        message: errorDetails.error?.message || "Failed to publish media"
       }, { status: 502 });
     }
 
