@@ -36,9 +36,10 @@ async function publishToInstagram(postId: string, content: string, imageUrl: str
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params;
     const postId = params.id;
     const body = await request.json().catch(() => null);
     const userId = body?.userId as string | undefined;
