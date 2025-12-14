@@ -46,19 +46,18 @@ export async function generateContent(
 
   // Step 1: Content Extraction (for URL lane) or Auto Generation
   let extractedContent: string | undefined;
-  let title = 'Generated Post';
+  let title = 'Generated Post'; // Title only for image generation, not in post content
 
   if (lane === 'url' && url) {
     console.log('[Orchestrator] Extracting content from URL...');
     const extracted = await extractUrlContent(url);
-    title = extracted.title;
+    title = extracted.title; // Use for image only
     extractedContent = prepareContentForAI(extracted);
   } else if (lane === 'auto') {
     // For auto lane, generate content based on category and trends
-    // No URL or user prompt needed - AI generates from category context
     const categoryName = category || 'tech';
     console.log('[Orchestrator] Auto-generating content for category:', categoryName);
-    title = `AI-Generated ${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Content`;
+    title = `${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} News`; // For image only
   }
 
   // Step 2: Prompt Refinement (optional - gracefully handles rate limits)
@@ -99,7 +98,7 @@ export async function generateContent(
           prompt: 'User uploaded image',
         } as GeneratedImage)
       : generatePostImage({
-          textContent: refinedPrompt || title,
+          textContent: title || refinedPrompt || 'Social Media Post',
           category: category || 'tech',
           platform: platforms?.[0] || 'linkedin',
           quality: 'high',

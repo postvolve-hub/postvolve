@@ -29,8 +29,8 @@ interface A4FAPIResponse {
 // Free tier models available on A4F
 // Use full model IDs as specified by A4F
 const FREE_TIER_MODELS = {
-  high: 'provider-4/imagen-4', // Google's Imagen 4 - high quality (Full Model ID)
-  medium: 'provider-4/imagen-4', // Use same model for medium (A4F doesn't have imagen-4-fast)
+  high: 'provider-4/phoenix', // Phoenix model - high quality
+  medium: 'provider-4/phoenix', // Phoenix model
   low: 'flux-schnell', // Black Forest Labs - fast and efficient
 };
 

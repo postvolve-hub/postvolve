@@ -70,7 +70,7 @@ export function buildImagePrompt(context: ImageGenerationContext): string {
     .replace(/#[\w]+/g, '')
     .trim();
 
-  // Build specific news card prompt matching the style from examples
-  return `Professional social media news card. Large bold headline text overlay: "${headline}". Dark background with white/yellow text overlay. ${visualElements}. ${categoryStyle}. Text-dominant design, shareable format, high quality typography, news card aesthetic.`;
+  // Build optimized news card prompt (token-efficient, specific)
+  return `News card. Bold headline: "${headline}". Dark bg, white/yellow text. ${visualElements}. ${categoryStyle}. Text-dominant, professional typography.`;
 }
 

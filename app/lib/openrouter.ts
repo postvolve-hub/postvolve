@@ -225,10 +225,10 @@ export async function callModelWithFallback(
 }
 
 /**
- * Generate text content optimized for a specific platform
+ * Generate universal brief post for all platforms (max 280 chars)
+ * Optimized prompt for best results
  */
-export async function generateTextForPlatform(
-  platform: 'linkedin' | 'x' | 'facebook' | 'instagram',
+export async function generateUniversalPost(
   prompt: string,
   options?: {
     category?: string;
@@ -237,15 +237,8 @@ export async function generateTextForPlatform(
     max_tokens?: number;
   }
 ): Promise<string> {
-  // Tight, optimized system prompts
-  const platformPrompts: Record<string, string> = {
-    linkedin: 'Create brief LinkedIn post (100-200 words). Professional tone. 3-5 hashtags at end. Output ONLY post text.',
-    x: 'Create brief X post (under 280 chars). Casual tone. 1-2 hashtags. Output ONLY post text.',
-    facebook: 'Create brief Facebook post (80-150 words). Conversational tone. 1-3 hashtags at end. Output ONLY post text.',
-    instagram: 'Create brief Instagram caption (100-200 words). Creative tone. 5-8 hashtags at end. Output ONLY caption text.',
-  };
-  
-  const systemPrompt = platformPrompts[platform] || platformPrompts.linkedin;
+  // Ultra-optimized system prompt (perfection-focused)
+  const systemPrompt = `Create brief social media post. Max 280 characters. Engaging, shareable. Include 3-5 hashtags. NO title. NO explanations. Output ONLY the post text.`;
 
   const messages: OpenRouterMessage[] = [
     { role: 'system', content: systemPrompt },
@@ -254,7 +247,7 @@ export async function generateTextForPlatform(
 
   const result = await callModelWithFallback('text', messages, {
     temperature: options?.temperature ?? 0.8,
-    max_tokens: options?.max_tokens ?? 500, // Reduced for brief posts
+    max_tokens: options?.max_tokens ?? 150, // Very tight for 280 char limit
     allowSkip: false,
   });
 
@@ -262,43 +255,63 @@ export async function generateTextForPlatform(
     throw new Error('Text generation failed');
   }
 
-  // Clean the response - remove any explanations, markdown, or metadata
+  // Aggressive content cleaning
   let content = result.content.trim();
   
-  // Remove markdown formatting if present
+  // Remove markdown
   content = content.replace(/^```[\w]*\n?/gm, '').replace(/\n?```$/gm, '');
+  content = content.replace(/\*\*/g, '');
+  content = content.replace(/^#+\s*/gm, '');
   
-  // Remove common explanation prefixes
-  const explanationPatterns = [
+  // Remove all explanation patterns
+  const patterns = [
     /^Here's.*?:\s*/i,
     /^Here is.*?:\s*/i,
     /^Here.*?:\s*/i,
     /^---\s*/gm,
-    /^\*\*Why this works:\*\*/i,
-    /^\*\*.*?:\*\*/i,
-    /^Would you like.*$/i,
-    /^Happy to.*$/i,
-    /^Format:.*$/i,
-    /^Requirements:.*$/i,
-    /^Note:.*$/i,
+    /Why this works:/i,
+    /Why This Works:/i,
+    /Would you like.*$/i,
+    /Happy to.*$/i,
+    /Need a different.*$/i,
+    /Share your.*$/i,
+    /Format:.*$/i,
+    /Requirements:.*$/i,
+    /Note:.*$/i,
+    /^###\s+/gm,
+    /^\d+\.\s+/gm,
+    /^[\*\*]*[🚀💡✨🔥⭐]+[\*\*]*\s*/gm, // Emoji titles
+    /^\*\*[^*]+\*\*\s*/gm, // Bold titles
   ];
   
-  explanationPatterns.forEach(pattern => {
+  patterns.forEach(pattern => {
     content = content.replace(pattern, '');
   });
   
-  // Extract only the actual post content (before any "Why this works" or explanations)
-  const postEndMarkers = [
+  // Remove title patterns (short lines at start that look like titles)
+  const lines = content.split('\n');
+  if (lines.length > 1) {
+    const firstLine = lines[0].trim();
+    // If first line is short and looks like a title, remove it
+    if (firstLine.length < 80 && (firstLine.endsWith('?') || firstLine.match(/^[A-Z][^.!?]*[.!?]$/))) {
+      content = lines.slice(1).join('\n').trim();
+    }
+  }
+  
+  // Extract only post content (before explanations)
+  const endMarkers = [
     /---/,
-    /\*\*Why/i,
     /Why this works/i,
+    /Why This Works/i,
     /Would you like/i,
-    /Happy to/i,
+    /Need a different/i,
+    /Share your/i,
+    /###/,
   ];
   
-  for (const marker of postEndMarkers) {
+  for (const marker of endMarkers) {
     const index = content.search(marker);
-    if (index > 0) {
+    if (index > 0 && index < content.length * 0.7) {
       content = content.substring(0, index).trim();
       break;
     }
@@ -371,11 +384,11 @@ export async function summarizeUrlContent(
   urlContent: string,
   userPrompt?: string
 ): Promise<string> {
-  const systemPrompt = `Summarize article content. Extract key points. Keep concise. Output ONLY the summary.`;
+  const systemPrompt = `Summarize article. Extract key points. Brief. Output ONLY summary.`;
 
   const userMessage = userPrompt
-    ? `Content: ${urlContent.substring(0, 2000)} Request: ${userPrompt}`
-    : `Content: ${urlContent.substring(0, 2000)}`;
+    ? `Article: ${urlContent.substring(0, 1500)} Focus: ${userPrompt}`
+    : `Article: ${urlContent.substring(0, 1500)}`;
 
   const messages: OpenRouterMessage[] = [
     { role: 'system', content: systemPrompt },
