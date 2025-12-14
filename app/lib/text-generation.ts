@@ -93,25 +93,66 @@ export async function generateMultiPlatformText(
         max_tokens: Math.floor(PLATFORM_LIMITS[platform] * 1.5), // Allow some buffer
       });
 
-      // Extract hashtags and content
+      // Clean content - remove explanations and metadata
+      let cleanContent = content.trim();
+      
+      // Remove markdown code blocks
+      cleanContent = cleanContent.replace(/^```[\w]*\n?/gm, '').replace(/\n?```$/gm, '');
+      
+      // Remove explanation patterns
+      const explanationPatterns = [
+        /^Here's.*?:\s*/i,
+        /^Here is.*?:\s*/i,
+        /^---\s*/gm,
+        /\*\*Why this works:\*\*/i,
+        /\*\*.*?:\*\*/i,
+        /^Would you like.*$/i,
+        /^Happy to.*$/i,
+        /^Format:.*$/i,
+        /^Requirements:.*$/i,
+        /^Note:.*$/i,
+      ];
+      
+      explanationPatterns.forEach(pattern => {
+        cleanContent = cleanContent.replace(pattern, '');
+      });
+      
+      // Extract only post content (before any explanations)
+      const postEndMarkers = [/---/, /\*\*Why/i, /Why this works/i, /Would you like/i];
+      for (const marker of postEndMarkers) {
+        const index = cleanContent.search(marker);
+        if (index > 0) {
+          cleanContent = cleanContent.substring(0, index).trim();
+          break;
+        }
+      }
+      
+      // Extract hashtags
       const hashtagRegex = /#[\w]+/g;
-      const hashtags = content.match(hashtagRegex) || [];
-      const cleanContent = content.replace(hashtagRegex, '').trim();
-
-      // Ensure content fits platform limits
-      let finalContent = cleanContent;
-      if (finalContent.length > PLATFORM_LIMITS[platform]) {
-        // Truncate intelligently (at sentence boundary if possible)
-        const truncated = finalContent.substring(0, PLATFORM_LIMITS[platform] - 50);
+      const hashtags = cleanContent.match(hashtagRegex) || [];
+      let finalContent = cleanContent.replace(hashtagRegex, '').trim();
+      
+      // Ensure content fits platform limits (brief posts)
+      const maxLength = platform === 'x' ? 280 : platform === 'linkedin' ? 200 : platform === 'instagram' ? 200 : 150;
+      
+      if (finalContent.length > maxLength) {
+        const truncated = finalContent.substring(0, maxLength - 20);
         const lastSentence = truncated.lastIndexOf('.');
-        finalContent = lastSentence > 0 
+        finalContent = lastSentence > 50 
           ? truncated.substring(0, lastSentence + 1)
-          : truncated + '...';
+          : truncated.trim();
       }
 
-      // Add hashtags back
+      // Add hashtags back at end
       if (hashtags.length > 0) {
         finalContent += '\n\n' + hashtags.join(' ');
+      }
+      
+      // Final length check including hashtags
+      if (finalContent.length > PLATFORM_LIMITS[platform]) {
+        const hashtagPart = '\n\n' + hashtags.join(' ');
+        const maxContentLength = PLATFORM_LIMITS[platform] - hashtagPart.length - 10;
+        finalContent = finalContent.substring(0, maxContentLength).trim() + hashtagPart;
       }
 
       return {

@@ -237,19 +237,15 @@ export async function generateTextForPlatform(
     max_tokens?: number;
   }
 ): Promise<string> {
+  // Tight, optimized system prompts
   const platformPrompts: Record<string, string> = {
-    linkedin: 'Create a professional LinkedIn post that is engaging, informative, and suitable for a business audience. Include 3-5 relevant hashtags at the end.',
-    x: 'Create a concise, engaging X (Twitter) post. Keep it under 280 characters. Include 1-2 relevant hashtags. Make it punchy and shareable.',
-    facebook: 'Create a friendly, engaging Facebook post. Make it conversational and relatable. Include 1-3 relevant hashtags.',
-    instagram: 'Create an engaging Instagram post caption. Make it visually descriptive and include 5-10 relevant hashtags at the end.',
+    linkedin: 'Create brief LinkedIn post (100-200 words). Professional tone. 3-5 hashtags at end. Output ONLY post text.',
+    x: 'Create brief X post (under 280 chars). Casual tone. 1-2 hashtags. Output ONLY post text.',
+    facebook: 'Create brief Facebook post (80-150 words). Conversational tone. 1-3 hashtags at end. Output ONLY post text.',
+    instagram: 'Create brief Instagram caption (100-200 words). Creative tone. 5-8 hashtags at end. Output ONLY caption text.',
   };
-
-  const systemPrompt = `${platformPrompts[platform]}
-
-${options?.category ? `Category: ${options.category}` : ''}
-${options?.context ? `Additional context: ${options.context}` : ''}
-
-Generate high-quality, engaging content that is optimized for ${platform}. Ensure it's ready to post without any additional editing.`;
+  
+  const systemPrompt = platformPrompts[platform] || platformPrompts.linkedin;
 
   const messages: OpenRouterMessage[] = [
     { role: 'system', content: systemPrompt },
@@ -258,16 +254,57 @@ Generate high-quality, engaging content that is optimized for ${platform}. Ensur
 
   const result = await callModelWithFallback('text', messages, {
     temperature: options?.temperature ?? 0.8,
-    max_tokens: options?.max_tokens ?? 2000,
-    allowSkip: false, // Text generation is required, don't allow skip
+    max_tokens: options?.max_tokens ?? 500, // Reduced for brief posts
+    allowSkip: false,
   });
 
-  // TypeScript: result cannot be null when allowSkip is false
   if (!result) {
-    throw new Error('Text generation failed and cannot be skipped');
+    throw new Error('Text generation failed');
   }
 
-  return result.content;
+  // Clean the response - remove any explanations, markdown, or metadata
+  let content = result.content.trim();
+  
+  // Remove markdown formatting if present
+  content = content.replace(/^```[\w]*\n?/gm, '').replace(/\n?```$/gm, '');
+  
+  // Remove common explanation prefixes
+  const explanationPatterns = [
+    /^Here's.*?:\s*/i,
+    /^Here is.*?:\s*/i,
+    /^Here.*?:\s*/i,
+    /^---\s*/gm,
+    /^\*\*Why this works:\*\*/i,
+    /^\*\*.*?:\*\*/i,
+    /^Would you like.*$/i,
+    /^Happy to.*$/i,
+    /^Format:.*$/i,
+    /^Requirements:.*$/i,
+    /^Note:.*$/i,
+  ];
+  
+  explanationPatterns.forEach(pattern => {
+    content = content.replace(pattern, '');
+  });
+  
+  // Extract only the actual post content (before any "Why this works" or explanations)
+  const postEndMarkers = [
+    /---/,
+    /\*\*Why/i,
+    /Why this works/i,
+    /Would you like/i,
+    /Happy to/i,
+  ];
+  
+  for (const marker of postEndMarkers) {
+    const index = content.search(marker);
+    if (index > 0) {
+      content = content.substring(0, index).trim();
+      break;
+    }
+  }
+  
+  return content.trim();
 }
 
 /**
@@ -283,24 +320,16 @@ export async function refinePrompt(
     urlContent?: string;
   }
 ): Promise<string> {
-  let systemPrompt = `You are an expert content strategist. Your task is to refine and enhance user prompts to create the best possible social media content.
-
-Guidelines:
-- Expand vague prompts with relevant details
-- Add context and depth
-- Ensure the prompt will generate engaging, shareable content
-- Maintain the user's original intent
-- Add relevant keywords and topics
-- Make it specific and actionable`;
+  let systemPrompt = `Refine this prompt for social media content. Add relevant details. Keep it concise. Output ONLY the refined prompt.`;
 
   if (context?.category) {
-    systemPrompt += `\n- Category: ${context.category}`;
+    systemPrompt += ` Category: ${context.category}`;
   }
   if (context?.platform) {
-    systemPrompt += `\n- Target platform: ${context.platform}`;
+    systemPrompt += ` Platform: ${context.platform}`;
   }
   if (context?.urlContent) {
-    systemPrompt += `\n- Source content context: ${context.urlContent.substring(0, 500)}...`;
+    systemPrompt += ` Source: ${context.urlContent.substring(0, 300)}`;
   }
 
   const messages: OpenRouterMessage[] = [
@@ -342,19 +371,11 @@ export async function summarizeUrlContent(
   urlContent: string,
   userPrompt?: string
 ): Promise<string> {
-  const systemPrompt = `You are an expert content curator. Extract and summarize the key points from the provided content to create engaging social media posts.
-
-Guidelines:
-- Extract the most important and shareable insights
-- Identify the main topic and key takeaways
-- Note any interesting statistics, quotes, or facts
-- Identify the target audience
-- Suggest angles for social media posts
-- Keep it concise but comprehensive`;
+  const systemPrompt = `Summarize article content. Extract key points. Keep concise. Output ONLY the summary.`;
 
   const userMessage = userPrompt
-    ? `Content:\n${urlContent}\n\nUser's specific interest: ${userPrompt}\n\nExtract and summarize the key points.`
-    : `Content:\n${urlContent}\n\nExtract and summarize the key points.`;
+    ? `Content: ${urlContent.substring(0, 2000)} Request: ${userPrompt}`
+    : `Content: ${urlContent.substring(0, 2000)}`;
 
   const messages: OpenRouterMessage[] = [
     { role: 'system', content: systemPrompt },

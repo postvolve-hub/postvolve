@@ -27,17 +27,11 @@ interface A4FAPIResponse {
 }
 
 // Free tier models available on A4F
+// Use full model IDs as specified by A4F
 const FREE_TIER_MODELS = {
-  high: 'imagen-4', // Google's Imagen 4 - high quality
-  medium: 'imagen-4-fast', // Fast version of Imagen 4
+  high: 'provider-4/imagen-4', // Google's Imagen 4 - high quality (Full Model ID)
+  medium: 'provider-4/imagen-4', // Use same model for medium (A4F doesn't have imagen-4-fast)
   low: 'flux-schnell', // Black Forest Labs - fast and efficient
-};
-
-// Alternative model formats with provider prefixes (fallback)
-const FREE_TIER_MODELS_WITH_PROVIDER = {
-  high: 'google/imagen-4',
-  medium: 'google/imagen-4-fast',
-  low: 'black-forest-labs/flux-schnell',
 };
 
 /**
@@ -63,7 +57,6 @@ export async function generateImage(
 
     // Select model based on quality or use provided model
     let selectedModel = model || FREE_TIER_MODELS[quality];
-    let useProviderPrefix = false;
 
     // Convert dimensions to A4F size format (must be specific sizes)
     // A4F supports: 256x256, 512x512, 1024x1024, 1792x1024, 1024x1792
@@ -97,41 +90,11 @@ export async function generateImage(
       }),
     });
 
-    // If model not found, try with provider prefix
+    // Handle errors
     if (!response.ok) {
       const errorText = await response.text();
-      
-      // Check if it's a model not found error
-      if (response.status === 404 || errorText.toLowerCase().includes('model') || errorText.toLowerCase().includes('not found')) {
-        // Try with provider prefix
-        if (!model && !useProviderPrefix) {
-          selectedModel = FREE_TIER_MODELS_WITH_PROVIDER[quality];
-          useProviderPrefix = true;
-          console.log(`[A4F] Retrying with provider prefix: ${selectedModel}`);
-          
-          response = await fetch('https://api.a4f.co/v1/images/generations', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              model: selectedModel,
-              prompt: prompt,
-              n: 1,
-              size: size,
-              quality: quality === 'high' ? 'hd' : 'standard',
-              response_format: 'url',
-            }),
-          });
-        }
-      }
-      
-      if (!response.ok) {
-        const finalErrorText = await response.text();
-        console.error('[A4F] API Error:', response.status, finalErrorText);
-        throw new Error(`A4F API error (${response.status}): ${finalErrorText}`);
-      }
+      console.error('[A4F] API Error:', response.status, errorText);
+      throw new Error(`A4F API error (${response.status}): ${errorText}`);
     }
 
     const result: A4FAPIResponse = await response.json();

@@ -15,13 +15,27 @@ export interface ImageGenerationContext {
  */
 export function getCategoryImageStyle(category?: string): string {
   const styles: Record<string, string> = {
-    tech: 'modern tech aesthetic, sleek design, digital elements, professional color scheme (blues, grays), futuristic',
-    ai: 'futuristic AI theme, neural networks visualization, digital art, innovative design, tech-forward aesthetic',
-    business: 'professional business style, clean corporate design, sophisticated color palette, executive aesthetic',
-    motivation: 'energetic and inspiring, vibrant colors, uplifting imagery, motivational design, dynamic composition',
+    tech: 'modern tech aesthetic, digital elements, blue/gray palette, futuristic',
+    ai: 'futuristic AI theme, neural networks, innovative tech visuals',
+    business: 'professional corporate style, sophisticated, executive aesthetic',
+    motivation: 'energetic, vibrant colors, uplifting, dynamic composition',
   };
 
-  return styles[category || ''] || 'modern, engaging, professional social media design';
+  return styles[category || ''] || 'modern, professional social media design';
+}
+
+/**
+ * Get category-specific visual elements
+ */
+export function getCategoryVisualElements(category?: string): string {
+  const elements: Record<string, string> = {
+    tech: 'tech graphics, digital elements, modern technology visuals',
+    ai: 'AI visuals, neural network patterns, futuristic tech graphics',
+    business: 'corporate graphics, professional business imagery, executive setting',
+    motivation: 'inspiring imagery, dynamic visuals, energetic composition',
+  };
+
+  return elements[category || ''] || 'professional graphics, engaging visuals';
 }
 
 /**
@@ -40,30 +54,23 @@ export function getPlatformImageRequirements(platform?: string): string {
 
 /**
  * Build image generation prompt
+ * Optimized for news card style: text-heavy, bold headlines, professional typography
  */
 export function buildImagePrompt(context: ImageGenerationContext): string {
-  const { textContent, category, platform, style } = context;
+  const { textContent, category, platform } = context;
 
   const categoryStyle = getCategoryImageStyle(category);
-  const platformReqs = getPlatformImageRequirements(platform);
-  const customStyle = style || categoryStyle;
+  const visualElements = getCategoryVisualElements(category);
+  
+  // Extract headline/key text (first 80 chars for token efficiency)
+  // Remove hashtags and clean up for headline
+  const headline = textContent
+    .substring(0, 80)
+    .replace(/\n/g, ' ')
+    .replace(/#[\w]+/g, '')
+    .trim();
 
-  // Extract key themes from text content
-  const contentPreview = textContent.substring(0, 200);
-
-  return `Create a high-quality social media image for this content: "${contentPreview}"
-
-Style: ${customStyle}
-Format: ${platformReqs}
-Requirements:
-- Professional news card style
-- Visually appealing and shareable
-- Relevant to the content theme
-- Brand-appropriate and professional
-- Eye-catching design that encourages engagement
-- High quality, crisp imagery
-- Optimized for social media sharing
-
-The image should complement the text content and make the post more engaging and shareable.`;
+  // Build specific news card prompt matching the style from examples
+  return `Professional social media news card. Large bold headline text overlay: "${headline}". Dark background with white/yellow text overlay. ${visualElements}. ${categoryStyle}. Text-dominant design, shareable format, high quality typography, news card aesthetic.`;
 }
 
