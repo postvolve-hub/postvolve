@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadModal } from "@/components/dashboard/ImageUploadModal";
+import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -96,6 +97,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [imageUploadOpen, setImageUploadOpen] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState("");
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
 
   useEffect(() => {
     if (post) {
@@ -153,6 +155,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
           category: post.category,
           platform: previewPlatform,
           quality: 'high',
+          userId: user?.id, // Pass userId to download external images
         }),
       });
 
@@ -300,6 +303,49 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
               onClose={() => setImageUploadOpen(false)}
               onUpload={handleImageUpload}
               currentImage={currentImageUrl || post.image_url || ''}
+            />
+
+            {/* Schedule Modal */}
+            <SchedulePostModal
+              isOpen={scheduleModalOpen}
+              onClose={() => setScheduleModalOpen(false)}
+              onSchedule={async (postId, date, time) => {
+                if (!user) return;
+                
+                try {
+                  // Combine date and time into ISO string
+                  const scheduledAt = new Date(`${date}T${time}`).toISOString();
+                  
+                  const response = await fetch('/api/scheduler/posts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId: user.id,
+                      postId: post.id,
+                      scheduledAt,
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Failed to schedule post');
+                  }
+
+                  toast({
+                    title: "Post Scheduled",
+                    description: `Your post has been scheduled for ${date} at ${time}.`,
+                  });
+                  
+                  setScheduleModalOpen(false);
+                  onClose();
+                } catch (error: any) {
+                  console.error('Schedule error:', error);
+                  toast({
+                    title: "Schedule Failed",
+                    description: error.message || 'Failed to schedule post. Please try again.',
+                    variant: "destructive",
+                  });
+                }
+              }}
             />
 
             <div className="space-y-5">
@@ -514,22 +560,10 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                 className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl"
                 disabled={selectedPlatforms.some(p => getCharacterStatus(p) === "over")}
                 onClick={async () => {
-                  if (!post) return;
-                  
-                  // Get user
-                  const { supabase } = await import('@/lib/supabaseClient');
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) {
-                    toast({
-                      title: "Authentication Required",
-                      description: "Please sign in to save posts.",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
+                  if (!post || !user) return;
                   
                   try {
-                    // Update post with new content
+                    // First, save the post with updated content
                     const response = await fetch(`/api/posts/${post.id}`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json' },
@@ -549,11 +583,8 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                       throw new Error('Failed to update post');
                     }
 
-                    toast({
-                      title: "Post Updated",
-                      description: "Your post has been saved successfully.",
-                    });
-                    onClose();
+                    // Then open schedule modal
+                    setScheduleModalOpen(true);
                   } catch (error: any) {
                     console.error('Update error:', error);
                     toast({

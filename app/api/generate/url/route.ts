@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       platforms: (platforms as any) || ['linkedin', 'x', 'facebook', 'instagram'],
       url,
       userPrompt,
+      userId, // Pass userId to download external images
     });
 
     // Save to database

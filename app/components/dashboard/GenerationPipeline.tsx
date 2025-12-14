@@ -239,7 +239,33 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
         // Upload image if provided
         let imageUrl = undefined;
         if (uploadedImage) {
-          // TODO: Implement image upload to storage
+          try {
+            // Upload image to Supabase Storage
+            const formData = new FormData();
+            formData.append('file', uploadedImage);
+            formData.append('userId', user.id);
+
+            const uploadResponse = await fetch('/api/upload/image', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!uploadResponse.ok) {
+              const error = await uploadResponse.json();
+              throw new Error(error.message || 'Failed to upload image');
+            }
+
+            const uploadResult = await uploadResponse.json();
+            if (uploadResult.success && uploadResult.imageUrl) {
+              imageUrl = uploadResult.imageUrl;
+            } else {
+              throw new Error('Upload failed - no image URL returned');
+            }
+          } catch (error: any) {
+            console.error('Error uploading image:', error);
+            // Continue without image - don't block generation
+            // The error is logged but we proceed with generation
+          }
         }
 
         response = await fetch('/api/generate/prompt', {
@@ -305,64 +331,24 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
   const finishGeneration = async () => {
     if (!generatedContent) return;
     
-    updateStage(5, { status: "processing" });
-    setCurrentStageIndex(5);
+    // Post is already saved by /api/generate/url or /api/generate/prompt
+    // No need to save again - just mark as complete
+    updateStage(5, { status: "completed" });
+    setOverallProgress(100);
+    setCurrentStageIndex(6);
     
-    try {
-      // Get user
-      const { supabase } = await import('@/lib/supabaseClient');
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Save post to database
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          title: generatedContent.title,
-          content: generatedContent.content,
-          imageUrl: generatedContent.imageUrl,
-          category: 'tech', // Default
-          lane: selectedLane === 'url' ? 'url' : 'custom',
-          platforms: [
-            { platform: 'linkedin', content: generatedContent.content },
-            { platform: 'x', content: generatedContent.content },
-          ],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save post');
-      }
-
-      updateStage(5, { status: "completed" });
-      setOverallProgress(100);
-      setCurrentStageIndex(6);
-      
-      toast({
-        title: "Content Generated",
-        description: "Your new content has been added to drafts.",
-      });
-      
-      setTimeout(() => {
-        onComplete?.(generatedContent);
-        onClose();
-      }, 1000);
-    } catch (error: any) {
-      console.error('Save error:', error);
-      updateStage(5, { 
-        status: "error", 
-        error: error.message || "Failed to save post. Please try again." 
-      });
-      toast({
-        title: "Save Failed",
-        description: error.message || "Failed to save post. Please try again.",
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: "Content Generated",
+      description: "Your new content has been added to drafts.",
+    });
+    
+    // Trigger page refresh
+    window.dispatchEvent(new CustomEvent('postGenerated'));
+    
+    setTimeout(() => {
+      onComplete?.(generatedContent);
+      onClose();
+    }, 1000);
   };
 
   const isInputStage = currentStageIndex === -1;

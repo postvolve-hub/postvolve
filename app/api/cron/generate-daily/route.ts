@@ -152,6 +152,7 @@ async function handleCronRequest(request: NextRequest) {
           lane: 'auto',
           category: selectedCategory,
           platforms: platforms as any,
+          userId, // Pass userId to download external images
         });
 
         // Save to database

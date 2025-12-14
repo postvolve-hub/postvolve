@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       category: category || 'tech',
       platforms: (platforms as any) || ['linkedin', 'x', 'facebook', 'instagram'],
       userPrompt,
+      userId, // Pass userId to download external images
       uploadedImageUrl,
     });
 

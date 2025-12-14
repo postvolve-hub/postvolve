@@ -75,12 +75,13 @@ export async function POST(
       lane: (post.generation_lane || 'custom') as 'auto' | 'url' | 'custom',
       category: (post.category || 'tech') as 'tech' | 'ai' | 'business' | 'motivation',
       platforms,
+      userId, // Pass userId to download external images
     };
 
     // Add source based on generation lane
     if (post.generation_lane === 'url' && post.source_url) {
       generationOptions.url = post.source_url;
-    } else if (post.generation_lane === 'prompt' && post.source_prompt) {
+    } else if (post.generation_lane === 'custom' && post.source_prompt) {
       generationOptions.userPrompt = post.source_prompt;
     }
 

@@ -180,9 +180,37 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
         // First, upload image if provided
         let imageUrl = undefined;
         if (uploadedFile) {
-          // TODO: Implement image upload to storage
-          // For now, we'll skip image upload and let the backend handle it
-          // You can add image upload to Supabase Storage here
+          try {
+            // Upload image to Supabase Storage
+            const formData = new FormData();
+            formData.append('file', uploadedFile);
+            formData.append('userId', user.id);
+
+            const uploadResponse = await fetch('/api/upload/image', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!uploadResponse.ok) {
+              const error = await uploadResponse.json();
+              throw new Error(error.message || 'Failed to upload image');
+            }
+
+            const uploadResult = await uploadResponse.json();
+            if (uploadResult.success && uploadResult.imageUrl) {
+              imageUrl = uploadResult.imageUrl;
+            } else {
+              throw new Error('Upload failed - no image URL returned');
+            }
+          } catch (error: any) {
+            console.error('Error uploading image:', error);
+            toast({
+              title: "Image Upload Failed",
+              description: error.message || "Failed to upload image. Continuing without image.",
+              variant: "destructive",
+            });
+            // Continue without image - don't block generation
+          }
         }
 
         response = await fetch('/api/generate/prompt', {

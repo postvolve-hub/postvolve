@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
     const category = body?.category as 'tech' | 'ai' | 'business' | 'motivation' | undefined;
     const platform = body?.platform as 'linkedin' | 'x' | 'facebook' | 'instagram' | undefined;
     const quality = body?.quality as 'low' | 'medium' | 'high' | undefined;
+    const userId = body?.userId as string | undefined;
 
     if (!textContent) {
       return NextResponse.json(
@@ -27,6 +28,7 @@ export async function POST(request: NextRequest) {
       category,
       platform: platform || 'linkedin',
       quality: quality || 'high',
+      userId, // Pass userId to download external images
     });
 
     return NextResponse.json({

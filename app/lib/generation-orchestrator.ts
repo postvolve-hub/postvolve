@@ -32,6 +32,7 @@ export interface GenerationOptions {
   url?: string;
   userPrompt?: string;
   baseContent?: string;
+  userId?: string; // For downloading external images to our storage
   uploadedImageUrl?: string;
 }
 
@@ -42,7 +43,7 @@ export interface GenerationOptions {
 export async function generateContent(
   options: GenerationOptions
 ): Promise<GenerationResult> {
-  const { lane, category, platforms, url, userPrompt, baseContent, uploadedImageUrl } = options;
+  const { lane, category, platforms, url, userPrompt, baseContent, uploadedImageUrl, userId } = options;
 
   // Step 1: Content Extraction (for URL lane) or Auto Generation
   let extractedContent: string | undefined;
@@ -106,6 +107,7 @@ export async function generateContent(
         category: category || 'tech',
         platform: platforms?.[0] || 'linkedin',
         quality: 'high',
+        userId: options.userId, // Pass userId to download external images
       });
     } catch (error: any) {
       console.warn('[Orchestrator] Image generation failed, using placeholder:', error.message);
