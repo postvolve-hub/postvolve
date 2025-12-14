@@ -41,14 +41,7 @@ const IconCalendar = ({ className = "h-4 w-4" }: { className?: string }) => (
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-const MOCK_SCHEDULED_POSTS = [
-  { id: 1, title: "The Future of AI in Content Creation", date: "2024-12-03", time: "15:00", category: "AI", platform: "LinkedIn" },
-  { id: 2, title: "5 Tech Trends to Watch in 2025", date: "2024-12-04", time: "10:00", category: "Tech", platform: "Twitter" },
-  { id: 3, title: "Building a Growth Mindset", date: "2024-12-05", time: "14:00", category: "Motivation", platform: "LinkedIn" },
-  { id: 4, title: "Startup Funding Strategies", date: "2024-12-06", time: "11:00", category: "Business", platform: "Twitter" },
-  { id: 5, title: "Machine Learning Best Practices", date: "2024-12-07", time: "09:00", category: "AI", platform: "LinkedIn" },
-  { id: 6, title: "Remote Work Productivity Tips", date: "2024-12-10", time: "13:00", category: "Business", platform: "Twitter" },
-];
+// Mock data removed - now using real data from API
 
 const CATEGORY_COLORS: Record<string, string> = {
   AI: "bg-purple-500",
@@ -71,9 +64,10 @@ export default function Scheduler() {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [postToDelete, setPostToDelete] = useState<number | null>(null);
-  const [scheduledPosts, setScheduledPosts] = useState(MOCK_SCHEDULED_POSTS);
+  const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Fetch subscription and check permissions
   useEffect(() => {
@@ -105,6 +99,46 @@ export default function Scheduler() {
     fetchSubscription();
   }, [user]);
 
+  // Fetch scheduled posts
+  useEffect(() => {
+    async function fetchScheduledPosts() {
+      if (!user) return;
+
+      setIsLoading(true);
+      try {
+        // Get start and end of current month
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const startDate = new Date(year, month, 1).toISOString().split('T')[0];
+        const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+        const response = await fetch(
+          `/api/scheduler/posts?userId=${user.id}&startDate=${startDate}&endDate=${endDate}`
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch scheduled posts');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          setScheduledPosts(result.posts || []);
+        }
+      } catch (error) {
+        console.error('Error fetching scheduled posts:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load scheduled posts',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchScheduledPosts();
+  }, [user, currentDate]);
+
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
   
@@ -127,13 +161,57 @@ export default function Scheduler() {
     return scheduledPosts.filter(post => post.date === dateStr);
   };
 
-  const handleSchedulePost = (postId: number, date: string, time: string) => {
-    // In real app, this would add a new scheduled post
-    toast({
-      title: "Post Scheduled",
-      description: `Your post has been scheduled for ${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${time}.`,
-    });
-    setScheduleModalOpen(false);
+  const handleSchedulePost = async (postId: number, date: string, time: string) => {
+    if (!user) return;
+
+    try {
+      // Combine date and time into ISO string
+      const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
+
+      const response = await fetch('/api/scheduler/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          postId: postId.toString(),
+          scheduledAt,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to schedule post');
+      }
+
+      toast({
+        title: "Post Scheduled",
+        description: `Your post has been scheduled for ${new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${time}.`,
+      });
+      
+      setScheduleModalOpen(false);
+      
+      // Refresh scheduled posts
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const startDate = new Date(year, month, 1).toISOString().split('T')[0];
+      const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+      
+      const refreshResponse = await fetch(
+        `/api/scheduler/posts?userId=${user.id}&startDate=${startDate}&endDate=${endDate}`
+      );
+      if (refreshResponse.ok) {
+        const refreshResult = await refreshResponse.json();
+        if (refreshResult.success) {
+          setScheduledPosts(refreshResult.posts || []);
+        }
+      }
+    } catch (error) {
+      console.error('Error scheduling post:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to schedule post',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDeletePost = (postId: number) => {

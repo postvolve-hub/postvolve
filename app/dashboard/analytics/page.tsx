@@ -7,12 +7,13 @@ import {
   Filter,
   MoreHorizontal
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DateRangePickerModal } from "@/components/dashboard/DateRangePickerModal";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 // Custom Icons
 const IconEye = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -79,62 +80,7 @@ const IconTrending = ({ className = "h-4 w-4" }: { className?: string }) => (
   </svg>
 );
 
-const MOCK_METRICS = [
-  { 
-    id: 1, 
-    label: "Total Impressions", 
-    value: "248.5K", 
-    change: "+18.2%", 
-    trend: "up",
-    icon: IconLayers,
-    color: "text-blue-600 bg-blue-50"
-  },
-  { 
-    id: 2, 
-    label: "Total Engagements", 
-    value: "12.4K", 
-    change: "+24.5%", 
-    trend: "up",
-    icon: IconActivity,
-    color: "text-emerald-600 bg-emerald-50"
-  },
-  { 
-    id: 3, 
-    label: "Click-through Rate", 
-    value: "4.8%", 
-    change: "+0.6%", 
-    trend: "up",
-    icon: IconClick,
-    color: "text-purple-600 bg-purple-50"
-  },
-  { 
-    id: 4, 
-    label: "Total Shares", 
-    value: "1.2K", 
-    change: "-2.3%", 
-    trend: "down",
-    icon: IconShare,
-    color: "text-green-600 bg-green-50"
-  },
-  { 
-    id: 5, 
-    label: "Avg. Engagement Rate", 
-    value: "5.2%", 
-    change: "+1.1%", 
-    trend: "up",
-    icon: IconTrending,
-    color: "text-orange-600 bg-orange-50"
-  },
-];
-
-const MOCK_POST_HISTORY = [
-  { id: 1, title: "The Future of AI in Content Creation", date: "Dec 3, 2024", category: "AI", impressions: "15.2K", engagement: "842", status: "posted" },
-  { id: 2, title: "5 Tech Trends to Watch in 2025", date: "Dec 2, 2024", category: "Tech", impressions: "12.8K", engagement: "654", status: "posted" },
-  { id: 3, title: "Building a Growth Mindset", date: "Dec 1, 2024", category: "Motivation", impressions: "18.5K", engagement: "1.2K", status: "posted" },
-  { id: 4, title: "Startup Funding Strategies", date: "Nov 30, 2024", category: "Business", impressions: "9.4K", engagement: "423", status: "posted" },
-  { id: 5, title: "Machine Learning Best Practices", date: "Nov 29, 2024", category: "AI", impressions: "22.1K", engagement: "1.5K", status: "posted" },
-  { id: 6, title: "Remote Work Productivity Tips", date: "Nov 28, 2024", category: "Business", impressions: "11.3K", engagement: "567", status: "posted" },
-];
+// Mock data removed - now using real data from API
 
 const CATEGORY_COLORS: Record<string, string> = {
   AI: "bg-purple-100 text-purple-700",
@@ -151,8 +97,67 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function Analytics() {
+  const { user } = useAuth();
   const [dateRangeModalOpen, setDateRangeModalOpen] = useState(false);
   const [selectedDateRange, setSelectedDateRange] = useState("Last 30 Days");
+  const [metrics, setMetrics] = useState<any[]>([]);
+  const [postHistory, setPostHistory] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ start: Date | null; end: Date | null }>({
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    end: new Date(),
+  });
+
+  // Fetch analytics data
+  useEffect(() => {
+    async function fetchAnalytics() {
+      if (!user) return;
+
+      setIsLoading(true);
+      try {
+        const startDate = dateRange.start ? dateRange.start.toISOString().split('T')[0] : null;
+        const endDate = dateRange.end ? dateRange.end.toISOString().split('T')[0] : null;
+        
+        const url = `/api/analytics/metrics?userId=${user.id}${startDate ? `&startDate=${startDate}` : ''}${endDate ? `&endDate=${endDate}` : ''}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch analytics');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          // Map metrics with icons
+          const metricsWithIcons = result.metrics.map((metric: any, index: number) => {
+            const iconMap: Record<string, any> = {
+              'Total Impressions': IconLayers,
+              'Total Engagements': IconActivity,
+              'Click-through Rate': IconClick,
+              'Total Shares': IconShare,
+              'Avg. Engagement Rate': IconTrending,
+            };
+            return {
+              ...metric,
+              icon: iconMap[metric.label] || IconBarChart,
+            };
+          });
+          setMetrics(metricsWithIcons);
+          setPostHistory(result.postHistory || []);
+        }
+      } catch (error) {
+        console.error('Error fetching analytics:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load analytics data',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAnalytics();
+  }, [user, dateRange]);
 
   const handleDateRangeApply = (range: { start: Date | null; end: Date | null }, preset: string) => {
     const presetLabels: Record<string, string> = {
@@ -167,6 +172,7 @@ export default function Analytics() {
       custom: "Custom Range",
     };
     setSelectedDateRange(presetLabels[preset] || "Custom Range");
+    setDateRange(range);
     toast({
       title: "Date Range Updated",
       description: `Analytics now showing data for ${presetLabels[preset] || "custom range"}.`,
@@ -200,7 +206,12 @@ export default function Analytics() {
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 animate-in slide-in-from-bottom-2 duration-500 delay-75">
-          {MOCK_METRICS.map((metric, index) => {
+          {isLoading ? (
+            <div className="col-span-full flex items-center justify-center py-8">
+              <div className="text-sm text-gray-500">Loading analytics...</div>
+            </div>
+          ) : metrics.length > 0 ? (
+            metrics.map((metric, index) => {
             const IconComponent = metric.icon;
             return (
             <div
@@ -227,7 +238,16 @@ export default function Analytics() {
                 <p className="text-xs text-gray-500 mt-0.5">{metric.label}</p>
             </div>
             );
-          })}
+          })
+          ) : (
+            <div className="col-span-full">
+              <EmptyState
+                variant="analytics"
+                title="No analytics data"
+                description="Analytics will appear here once you start posting content."
+              />
+            </div>
+          )}
         </div>
 
         {/* Chart */}
@@ -406,7 +426,11 @@ export default function Analytics() {
               Export Data
             </Button>
           </div>
-          {MOCK_POST_HISTORY.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-sm text-gray-500">Loading post history...</div>
+            </div>
+          ) : postHistory.length > 0 ? (
             <>
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -421,7 +445,7 @@ export default function Analytics() {
                 </tr>
               </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {MOCK_POST_HISTORY.map((post, index) => (
+                    {postHistory.map((post, index) => (
                       <tr key={post.id} className="hover:bg-gray-50/50 transition-colors duration-200">
                         <td className="px-5 py-3">
                       <p className="text-sm font-medium text-gray-900">{post.title}</p>

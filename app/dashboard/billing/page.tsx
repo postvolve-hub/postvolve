@@ -127,15 +127,27 @@ function BillingPageContent() {
           setSubscription(subData);
         }
 
-        // Fetch usage (mock for now - will be calculated from posts table later)
-        setUsage({
-          postsUsed: 45,
-          postsLimit: subData?.posts_per_day === -1 ? 999 : (subData?.posts_per_day || 1) * 30,
-          accountsUsed: 3,
-          accountsLimit: subData?.social_accounts_limit === -1 ? 999 : (subData?.social_accounts_limit || 1),
-          categoriesUsed: 4,
-          categoriesLimit: subData?.categories_limit === -1 ? 999 : (subData?.categories_limit || 999), // Default to unlimited if not set
-        });
+        // Fetch real usage data
+        try {
+          const usageResponse = await fetch(`/api/billing/usage?userId=${user.id}`);
+          if (usageResponse.ok) {
+            const usageResult = await usageResponse.json();
+            if (usageResult.success) {
+              setUsage(usageResult.usage);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching usage:', error);
+          // Fallback to calculated values
+          setUsage({
+            postsUsed: 0,
+            postsLimit: subData?.posts_per_day === -1 ? 999 : (subData?.posts_per_day || 1) * 30,
+            accountsUsed: 0,
+            accountsLimit: subData?.social_accounts_limit === -1 ? 999 : (subData?.social_accounts_limit || 1),
+            categoriesUsed: 0,
+            categoriesLimit: subData?.categories_limit === -1 ? 999 : (subData?.categories_limit || 999),
+          });
+        }
 
         // Fetch invoices
         const { data: invoiceData, error: invoiceError } = await supabase

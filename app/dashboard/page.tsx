@@ -107,83 +107,7 @@ const CATEGORIES = [
   { id: 8, label: "Scheduled", icon: IconGlobe, color: "from-cyan-50 to-cyan-100/50", iconColor: "text-cyan-600" },
 ];
 
-// Draft posts
-const DRAFT_POSTS = [
-  { 
-    id: 1, 
-    title: "The Future of AI in Content Creation – How...", 
-    category: "AI", 
-    categoryColor: "bg-purple-100 text-purple-700",
-    attachments: 12, 
-    comments: 21, 
-    status: "In Review",
-    statusColor: "bg-amber-50 text-amber-700",
-    priority: "High",
-    priorityColor: "bg-red-50 text-red-600",
-    daysLeft: 15,
-    progress: 0 
-  },
-  { 
-    id: 2, 
-    title: "5 Cloud Technologies Transforming Business", 
-    category: "Tech", 
-    categoryColor: "bg-blue-100 text-blue-700",
-    attachments: 4, 
-    comments: 32, 
-    status: "Drafts",
-    statusColor: "bg-gray-100 text-gray-600",
-    priority: "Medium",
-    priorityColor: "bg-amber-50 text-amber-600",
-    daysLeft: 12,
-    progress: 0 
-  },
-];
-
-// Active/Scheduled posts
-const ACTIVE_POSTS = [
-  { 
-    id: 1, 
-    title: "Startup Funding: Series A Strategies", 
-    category: "Business", 
-    categoryColor: "bg-emerald-100 text-emerald-700",
-    attachments: 11, 
-    comments: 8, 
-    status: "In Progress",
-    statusColor: "bg-violet-100 text-violet-700",
-    priority: "Mid",
-    priorityColor: "bg-amber-50 text-amber-600",
-    daysLeft: 32,
-    progress: 26 
-  },
-  { 
-    id: 2, 
-    title: "Building Resilience in Uncertain Times", 
-    category: "Motivation", 
-    categoryColor: "bg-orange-100 text-orange-700",
-    attachments: 7, 
-    comments: 12, 
-    status: "In Progress",
-    statusColor: "bg-violet-100 text-violet-700",
-    priority: "Medium",
-    priorityColor: "bg-amber-50 text-amber-600",
-    daysLeft: 4,
-    progress: 74 
-  },
-  { 
-    id: 3, 
-    title: "Machine Learning Best Practices for 2025", 
-    category: "AI", 
-    categoryColor: "bg-purple-100 text-purple-700",
-    attachments: 4, 
-    comments: 16, 
-    status: "Input Needed",
-    statusColor: "bg-orange-100 text-orange-700",
-    priority: "Low",
-    priorityColor: "bg-green-50 text-green-600",
-    daysLeft: 22,
-    progress: 38 
-  },
-];
+// Mock data removed - now using real data from API
 
 function PostRow({ post, index }: { post: typeof DRAFT_POSTS[0]; index: number }) {
   return (
@@ -245,6 +169,9 @@ export default function DashboardHome() {
   const [subscription, setSubscription] = useState<any>(null);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [processingUpgrade, setProcessingUpgrade] = useState(false);
+  const [draftPosts, setDraftPosts] = useState<any[]>([]);
+  const [activePosts, setActivePosts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadSubscription() {
@@ -279,6 +206,80 @@ export default function DashboardHome() {
 
     loadSubscription();
   }, [user]);
+
+  // Fetch dashboard stats and posts
+  useEffect(() => {
+    async function loadDashboardData() {
+      if (!user) return;
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/dashboard/stats?userId=${user.id}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch dashboard stats');
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          // Format draft posts
+          const formattedDrafts = (result.draftPosts || []).map((post: any) => ({
+            id: post.id,
+            title: post.title || 'Untitled Post',
+            category: post.category || 'uncategorized',
+            categoryColor: getCategoryColor(post.category),
+            attachments: 0,
+            comments: 0,
+            status: 'Draft',
+            statusColor: 'bg-gray-100 text-gray-600',
+            priority: 'Medium',
+            priorityColor: 'bg-amber-50 text-amber-600',
+            daysLeft: 0,
+            progress: 0,
+          }));
+
+          // Format active posts
+          const formattedActive = (result.activePosts || []).map((post: any) => ({
+            id: post.id,
+            title: post.title || 'Untitled Post',
+            category: post.category || 'uncategorized',
+            categoryColor: getCategoryColor(post.category),
+            attachments: 0,
+            comments: 0,
+            status: post.status === 'scheduled' ? 'Scheduled' : 'Publishing',
+            statusColor: post.status === 'scheduled' ? 'bg-violet-100 text-violet-700' : 'bg-blue-100 text-blue-700',
+            priority: 'Medium',
+            priorityColor: 'bg-amber-50 text-amber-600',
+            daysLeft: post.scheduled_at ? Math.ceil((new Date(post.scheduled_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0,
+            progress: 0,
+          }));
+
+          setDraftPosts(formattedDrafts);
+          setActivePosts(formattedActive);
+        }
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load dashboard data',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, [user]);
+
+  const getCategoryColor = (category: string | null) => {
+    const colors: Record<string, string> = {
+      ai: 'bg-purple-100 text-purple-700',
+      tech: 'bg-blue-100 text-blue-700',
+      business: 'bg-emerald-100 text-emerald-700',
+      motivation: 'bg-orange-100 text-orange-700',
+    };
+    return colors[category?.toLowerCase() || ''] || 'bg-gray-100 text-gray-700';
+  };
 
   const handleUpgrade = async (planId: "plus" | "pro") => {
     if (!user) return;
@@ -420,10 +421,14 @@ export default function DashboardHome() {
             </button>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {DRAFT_POSTS.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-gray-500">Loading...</div>
+              </div>
+            ) : draftPosts.length > 0 ? (
               <>
                 <div className="divide-y divide-gray-100">
-                  {DRAFT_POSTS.map((post, index) => (
+                  {draftPosts.map((post, index) => (
                     <PostRow key={post.id} post={post} index={index} />
                   ))}
                 </div>
@@ -457,9 +462,13 @@ export default function DashboardHome() {
             </button>
           </div>
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            {ACTIVE_POSTS.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-sm text-gray-500">Loading...</div>
+              </div>
+            ) : activePosts.length > 0 ? (
               <div className="divide-y divide-gray-100">
-                {ACTIVE_POSTS.map((post, index) => (
+                {activePosts.map((post, index) => (
                   <PostRow key={post.id} post={post} index={index} />
                 ))}
               </div>
