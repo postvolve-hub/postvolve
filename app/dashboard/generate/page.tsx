@@ -400,7 +400,7 @@ export default function ContentGeneration() {
                   className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md hover:scale-[1.01] group"
                   style={{ animationDelay: `${index * 75}ms` }}
                 >
-                  <div className="flex flex-col md:flex-row">
+                  <div className="flex flex-col md:flex-row min-w-0">
                     <div className="md:w-3/5 relative">
                       <img
                         src={post.image_url || "https://via.placeholder.com/800x600?text=No+Image"}
@@ -421,14 +421,14 @@ export default function ContentGeneration() {
                       </div>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
-                    <div className="md:w-2/5 p-4 flex flex-col">
+                    <div className="md:w-2/5 p-4 flex flex-col min-w-0">
                       <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2">
                         {post.title}
                       </h3>
                       <p className="text-sm text-gray-500 mb-4 line-clamp-3 flex-1">
                         {post.content && post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content || 'No content'}
                       </p>
-                      <div className="space-y-2">
+                      <div className="space-y-2 mt-auto">
                         <Button
                           onClick={() => {
                             if (permissions?.canViewDrafts) {
@@ -441,10 +441,10 @@ export default function ContentGeneration() {
                           <Edit3 className="h-3.5 w-3.5 mr-2" />
                           Review & Edit
                         </Button>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 min-w-0">
                           <Button
                             variant="outline"
-                            className="flex-1 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
+                            className="flex-1 min-w-0 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
                             onClick={() => {
                               if (permissions?.canGenerateContent) {
                                 handleRegeneratePost(post.id);
@@ -452,16 +452,16 @@ export default function ContentGeneration() {
                             }}
                             disabled={regeneratingId === post.id || !permissions?.canGenerateContent}
                           >
-                            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
-                            {regeneratingId === post.id ? "..." : "Regenerate"}
+                            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 flex-shrink-0 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
+                            <span className="truncate">{regeneratingId === post.id ? "..." : "Regenerate"}</span>
                           </Button>
                           <Button
                             variant="outline"
-                            className="flex-1 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 text-sm"
+                            className="flex-1 min-w-0 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 text-sm"
                             onClick={() => handleSkipPost(post.id)}
                           >
-                            <SkipForward className="h-3.5 w-3.5 mr-1.5" />
-                            Delete
+                            <SkipForward className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
+                            <span className="truncate">Delete</span>
                           </Button>
                         </div>
                       </div>

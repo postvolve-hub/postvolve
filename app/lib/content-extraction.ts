@@ -1,11 +1,10 @@
 /**
  * URL Content Extraction Service
  * Extracts and cleans content from URLs for content generation
+ * Uses cheerio only (no jsdom) for serverless compatibility
  */
 
 import * as cheerio from 'cheerio';
-import { Readability } from '@mozilla/readability';
-import { JSDOM } from 'jsdom';
 
 interface ExtractedContent {
   title: string;
@@ -19,6 +18,7 @@ interface ExtractedContent {
 
 /**
  * Extract content from a URL
+ * Uses cheerio for parsing (serverless-compatible)
  */
 export async function extractUrlContent(url: string): Promise<ExtractedContent> {
   try {
@@ -68,55 +68,105 @@ export async function extractUrlContent(url: string): Promise<ExtractedContent> 
       throw new Error('URL returned empty content');
     }
 
-    const dom = new JSDOM(html, { url });
-    const document = dom.window.document;
-
-    // Use Readability to extract main content
-    const reader = new Readability(document);
-    const article = reader.parse();
-
-    // Also parse with Cheerio for metadata
+    // Parse with Cheerio (serverless-compatible)
     const $ = cheerio.load(html);
 
-    // Extract metadata
+    // Extract title
     const title =
-      article?.title ||
       $('meta[property="og:title"]').attr('content') ||
+      $('meta[name="twitter:title"]').attr('content') ||
       $('title').text() ||
+      $('h1').first().text() ||
       'Untitled';
 
+    // Extract description
     const description =
-      article?.excerpt ||
       $('meta[property="og:description"]').attr('content') ||
       $('meta[name="description"]').attr('content') ||
+      $('meta[name="twitter:description"]').attr('content') ||
       '';
 
+    // Extract main content
+    // Try to find article content using common selectors
+    let content = '';
+    
+    // Try article tag first
+    const article = $('article').first();
+    if (article.length > 0) {
+      // Remove script and style tags
+      article.find('script, style, nav, aside, footer, header').remove();
+      content = article.text().trim();
+    }
+    
+    // If no article, try main content areas
+    if (!content) {
+      const mainContent = $('main, [role="main"], .content, .post-content, .article-content, .entry-content').first();
+      if (mainContent.length > 0) {
+        mainContent.find('script, style, nav, aside, footer, header').remove();
+        content = mainContent.text().trim();
+      }
+    }
+    
+    // Fallback: get body text, excluding common non-content elements
+    if (!content) {
+      const body = $('body');
+      body.find('script, style, nav, aside, footer, header, .sidebar, .menu, .navigation').remove();
+      // Get paragraphs and headings
+      content = body.find('p, h1, h2, h3, h4, h5, h6').map((_, el) => $(el).text()).get().join('\n\n').trim();
+    }
+
+    // Clean up content: remove extra whitespace
+    content = content.replace(/\s+/g, ' ').trim();
+
+    // Extract image
     const imageUrl =
       $('meta[property="og:image"]').attr('content') ||
       $('meta[name="twitter:image"]').attr('content') ||
       $('article img').first().attr('src') ||
+      $('main img').first().attr('src') ||
       undefined;
 
+    // Make image URL absolute if it's relative
+    let absoluteImageUrl = imageUrl;
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      try {
+        absoluteImageUrl = new URL(imageUrl, url).toString();
+      } catch {
+        absoluteImageUrl = undefined;
+      }
+    }
+
+    // Extract author
     const author =
       $('meta[property="article:author"]').attr('content') ||
       $('meta[name="author"]').attr('content') ||
       $('[rel="author"]').text() ||
+      $('.author, .byline').first().text() ||
       undefined;
 
+    // Extract published date
     const publishedDate =
       $('meta[property="article:published_time"]').attr('content') ||
       $('meta[name="published"]').attr('content') ||
+      $('time[datetime]').first().attr('datetime') ||
       undefined;
 
-    // Clean the content
-    const content = article?.textContent || article?.content || '';
+    // If no content was extracted, use description as fallback
+    if (!content && description) {
+      content = description;
+    }
+
+    // Final fallback: use title if still no content
+    if (!content) {
+      content = title;
+    }
 
     return {
       title: title.trim(),
       content: content.trim(),
       description: description.trim(),
-      imageUrl,
-      author,
+      imageUrl: absoluteImageUrl,
+      author: author?.trim(),
       publishedDate,
       url,
     };

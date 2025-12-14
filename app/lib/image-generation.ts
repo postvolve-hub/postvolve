@@ -3,7 +3,7 @@
  * Orchestrates image generation with quality optimization
  */
 
-import { generateImage, generateImageWithFallback, createImagePrompt } from './puter';
+import { generateImage, generateImageWithFallback, createImagePrompt } from './a4f';
 import { buildImagePrompt, type ImageGenerationContext } from './prompts/image-generation';
 
 export interface GeneratedImage {
