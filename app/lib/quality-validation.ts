@@ -29,14 +29,14 @@ export async function validateContentQuality(
   // First, do basic validation
   const basicValidation = validateContentForPlatform(content, platform);
 
-  // Then, use AI to assess quality
-  const systemPrompt = `You are an expert social media content quality assessor. Evaluate the provided content for ${platform} and provide a detailed quality assessment.
+  // Then, use AI to assess quality (universal content assessment)
+  const systemPrompt = `You are an expert social media content quality assessor. Evaluate the provided universal content (max 280 chars, works for all platforms) and provide a detailed quality assessment.
 
 Rate each aspect from 0-10:
 1. Engagement potential (will it get likes, comments, shares?)
 2. Clarity (is it clear and easy to understand?)
 3. Relevance (is it relevant to the target audience?)
-4. Platform optimization (is it optimized for ${platform}?)
+4. Universal optimization (is it optimized for all social platforms?)
 
 Provide:
 - Overall score (0-10)
@@ -129,13 +129,14 @@ export async function enhanceContentQuality(
     return content;
   }
 
-  const systemPrompt = `You are an expert content editor. Improve the provided content based on the quality assessment and suggestions.
+  const systemPrompt = `You are an expert content editor. Improve the provided universal content (max 280 chars) based on the quality assessment and suggestions.
 
 Guidelines:
 - Maintain the original intent and message
 - Implement the suggestions to improve quality
-- Keep it optimized for ${platform}
-- Ensure it's ready to post without additional editing`;
+- Keep it optimized for all social platforms (universal content)
+- Ensure it's ready to post without additional editing
+- Max 280 characters total`;
 
   try {
     const result = await callModelWithFallback('text', [

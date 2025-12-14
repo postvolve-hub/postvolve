@@ -80,30 +80,44 @@ export async function generateContent(
 
   // Step 3: Parallel Generation (Text + Image)
   console.log('[Orchestrator] Generating content...');
-  const [textResults, imageResult] = await Promise.all([
-    // Generate text for all platforms
-    generateMultiPlatformText({
-      category: category || 'tech',
-      platforms: platforms || ['linkedin'],
-      baseContent: refinedPrompt,
-      urlContent: extractedContent,
-      userPrompt,
-    }),
-    // Generate image (if not uploaded)
-    uploadedImageUrl
-      ? Promise.resolve({
-          imageUrl: uploadedImageUrl,
-          model: 'uploaded',
-          quality: 'high',
-          prompt: 'User uploaded image',
-        } as GeneratedImage)
-      : generatePostImage({
-          textContent: title || refinedPrompt || 'Social Media Post',
-          category: category || 'tech',
-          platform: platforms?.[0] || 'linkedin',
-          quality: 'high',
-        }),
-  ]);
+  
+  // Generate text (required)
+  const textResults = await generateMultiPlatformText({
+    category: category || 'tech',
+    platforms: platforms || ['linkedin'],
+    baseContent: refinedPrompt,
+    urlContent: extractedContent,
+    userPrompt,
+  });
+
+  // Generate image (optional - graceful fallback on failure)
+  let imageResult: GeneratedImage;
+  if (uploadedImageUrl) {
+    imageResult = {
+      imageUrl: uploadedImageUrl,
+      model: 'uploaded',
+      quality: 'high',
+      prompt: 'User uploaded image',
+    };
+  } else {
+    try {
+      imageResult = await generatePostImage({
+        textContent: title || refinedPrompt || 'Social Media Post',
+        category: category || 'tech',
+        platform: platforms?.[0] || 'linkedin',
+        quality: 'high',
+      });
+    } catch (error: any) {
+      console.warn('[Orchestrator] Image generation failed, using placeholder:', error.message);
+      // Fallback to placeholder image
+      imageResult = {
+        imageUrl: 'https://via.placeholder.com/1200x630?text=Image+Generation+Failed',
+        model: 'placeholder',
+        quality: 'low',
+        prompt: 'Placeholder - generation failed',
+      };
+    }
+  }
 
   // Step 4: Quality Validation & Enhancement
   console.log('[Orchestrator] Validating quality...');

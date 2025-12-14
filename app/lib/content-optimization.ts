@@ -6,18 +6,24 @@
 // Platform type for content optimization
 type Platform = 'linkedin' | 'x' | 'facebook' | 'instagram';
 
+// Universal limit for all platforms (X's 280 char limit)
+const UNIVERSAL_LIMIT = 280;
+
 const PLATFORM_LIMITS: Record<Platform, number> = {
-  linkedin: 3000,
-  x: 280,
-  facebook: 63206,
-  instagram: 2200,
+  linkedin: UNIVERSAL_LIMIT,
+  x: UNIVERSAL_LIMIT,
+  facebook: UNIVERSAL_LIMIT,
+  instagram: UNIVERSAL_LIMIT,
 };
 
+// Universal hashtag recommendation (3-5 for all platforms)
+const UNIVERSAL_HASHTAG_COUNTS = { min: 3, max: 5 };
+
 const PLATFORM_HASHTAG_COUNTS: Record<Platform, { min: number; max: number }> = {
-  linkedin: { min: 3, max: 5 },
-  x: { min: 1, max: 2 },
-  facebook: { min: 1, max: 3 },
-  instagram: { min: 5, max: 10 },
+  linkedin: UNIVERSAL_HASHTAG_COUNTS,
+  x: UNIVERSAL_HASHTAG_COUNTS,
+  facebook: UNIVERSAL_HASHTAG_COUNTS,
+  instagram: UNIVERSAL_HASHTAG_COUNTS,
 };
 
 /**
@@ -42,32 +48,23 @@ export function validateContentForPlatform(
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const limit = PLATFORM_LIMITS[platform];
+  const limit = UNIVERSAL_LIMIT; // Universal 280 char limit for all platforms
   const characterCount = content.length;
 
-  // Check character limit
+  // Check universal character limit
   if (characterCount > limit) {
-    errors.push(`Content exceeds ${platform} limit of ${limit} characters (${characterCount})`);
+    errors.push(`Content exceeds universal limit of ${limit} characters (${characterCount})`);
   }
 
-  // Check hashtags
+  // Check hashtags (universal 3-5 recommendation)
   const hashtags = extractHashtags(content);
   const hashtagCount = hashtags.length;
-  const hashtagRange = PLATFORM_HASHTAG_COUNTS[platform];
+  const hashtagRange = UNIVERSAL_HASHTAG_COUNTS;
 
   if (hashtagCount < hashtagRange.min) {
     warnings.push(`Consider adding more hashtags (${hashtagCount}/${hashtagRange.min}-${hashtagRange.max} recommended)`);
   } else if (hashtagCount > hashtagRange.max) {
-    warnings.push(`Too many hashtags for ${platform} (${hashtagCount}/${hashtagRange.max} recommended)`);
-  }
-
-  // Platform-specific validations
-  if (platform === 'x' && characterCount > 280) {
-    errors.push('X (Twitter) posts must be 280 characters or less');
-  }
-
-  if (platform === 'linkedin' && characterCount < 150) {
-    warnings.push('LinkedIn posts perform better with 150+ characters');
+    warnings.push(`Too many hashtags (${hashtagCount}/${hashtagRange.max} recommended)`);
   }
 
   return {
@@ -84,14 +81,14 @@ export function optimizeContentFormatForPlatform(
   content: string,
   platform: Platform
 ): string {
-  const limit = PLATFORM_LIMITS[platform];
+  const limit = UNIVERSAL_LIMIT; // Universal 280 char limit
   let optimized = content.trim();
 
   // Extract hashtags first
   const hashtags = extractHashtags(optimized);
   const contentWithoutHashtags = optimized.replace(/#[\w]+/g, '').trim();
 
-  // Truncate content if needed
+  // Truncate content if needed (universal limit)
   if (contentWithoutHashtags.length > limit - 50) {
     // Leave room for hashtags
     const maxContentLength = limit - 50;
@@ -104,19 +101,23 @@ export function optimizeContentFormatForPlatform(
     
     optimized = breakPoint > 0 
       ? truncated.substring(0, breakPoint + 1)
-      : truncated + '...';
+      : truncated.trim();
   } else {
     optimized = contentWithoutHashtags;
   }
 
-  // Add hashtags back
+  // Add hashtags back (max 5)
   if (hashtags.length > 0) {
-    optimized += '\n\n' + hashtags.join(' ');
+    const hashtagPart = ' ' + hashtags.slice(0, 5).join(' ');
+    const remainingSpace = limit - optimized.length - hashtagPart.length;
+    if (remainingSpace > 0) {
+      optimized += hashtagPart;
+    }
   }
 
-  // Ensure final length is within limit
+  // Ensure final length is within universal limit
   if (optimized.length > limit) {
-    optimized = optimized.substring(0, limit - 3) + '...';
+    optimized = optimized.substring(0, limit).trim();
   }
 
   return optimized;
@@ -129,32 +130,9 @@ export function formatContentForPlatform(
   content: string,
   platform: Platform
 ): string {
-  let formatted = content;
-
-  // Platform-specific formatting
-  switch (platform) {
-    case 'linkedin':
-      // Add line breaks for readability
-      formatted = formatted.replace(/\. /g, '.\n\n');
-      break;
-    
-    case 'x':
-      // Keep it compact
-      formatted = formatted.replace(/\n{2,}/g, '\n');
-      break;
-    
-    case 'facebook':
-      // Friendly formatting
-      formatted = formatted.replace(/\. /g, '.\n');
-      break;
-    
-    case 'instagram':
-      // Visual formatting with line breaks
-      formatted = formatted.replace(/\. /g, '.\n');
-      break;
-  }
-
-  return formatted.trim();
+  // Universal formatting - no platform-specific changes
+  // Just ensure clean formatting
+  return content.trim();
 }
 
 /**

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { 
   RefreshCw, 
   Edit3, 
-  SkipForward,
+  Trash2,
   Image as ImageIcon,
   Filter,
   MoreHorizontal,
@@ -444,24 +444,26 @@ export default function ContentGeneration() {
                         <div className="flex gap-2 min-w-0">
                           <Button
                             variant="outline"
-                            className="flex-1 min-w-0 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
+                            size="icon"
+                            className="flex-1 min-w-0 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 w-9"
                             onClick={() => {
                               if (permissions?.canGenerateContent) {
                                 handleRegeneratePost(post.id);
                               }
                             }}
                             disabled={regeneratingId === post.id || !permissions?.canGenerateContent}
+                            title="Regenerate"
                           >
-                            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 flex-shrink-0 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
-                            <span className="truncate">{regeneratingId === post.id ? "..." : "Regenerate"}</span>
+                            <RefreshCw className={`h-4 w-4 flex-shrink-0 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
                           </Button>
                           <Button
                             variant="outline"
-                            className="flex-1 min-w-0 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 text-sm"
+                            size="icon"
+                            className="flex-1 min-w-0 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 w-9"
                             onClick={() => handleSkipPost(post.id)}
+                            title="Delete"
                           >
-                            <SkipForward className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                            <span className="truncate">Delete</span>
+                            <Trash2 className="h-4 w-4 flex-shrink-0" />
                           </Button>
                         </div>
                       </div>

@@ -68,10 +68,10 @@ interface PostCustomizationModalProps {
 }
 
 const PLATFORMS = [
-  { id: "linkedin", name: "LinkedIn", icon: IconLinkedIn, color: "text-[#0A66C2]", bgColor: "bg-[#0A66C2]", charLimit: 3000 },
+  { id: "linkedin", name: "LinkedIn", icon: IconLinkedIn, color: "text-[#0A66C2]", bgColor: "bg-[#0A66C2]", charLimit: 280 },
   { id: "x", name: "X", icon: IconX, color: "text-black", bgColor: "bg-black", charLimit: 280 },
-  { id: "facebook", name: "Facebook", icon: IconFacebook, color: "text-[#1877F2]", bgColor: "bg-[#1877F2]", charLimit: 63206 },
-  { id: "instagram", name: "Instagram", icon: IconInstagram, color: "text-[#E4405F]", bgColor: "bg-[#E4405F]", charLimit: 2200 },
+  { id: "facebook", name: "Facebook", icon: IconFacebook, color: "text-[#1877F2]", bgColor: "bg-[#1877F2]", charLimit: 280 },
+  { id: "instagram", name: "Instagram", icon: IconInstagram, color: "text-[#E4405F]", bgColor: "bg-[#E4405F]", charLimit: 280 },
 ];
 
 const LANE_INFO = {

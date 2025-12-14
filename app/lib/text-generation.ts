@@ -26,11 +26,14 @@ export interface TextGenerationOptions {
   temperature?: number;
 }
 
+// Universal limit for all platforms (280 chars - X's limit)
+const UNIVERSAL_LIMIT = 280;
+
 const PLATFORM_LIMITS: Record<Platform, number> = {
-  linkedin: 3000,
-  x: 280,
-  facebook: 63206,
-  instagram: 2200,
+  linkedin: UNIVERSAL_LIMIT,
+  x: UNIVERSAL_LIMIT,
+  facebook: UNIVERSAL_LIMIT,
+  instagram: UNIVERSAL_LIMIT,
 };
 
 /**
