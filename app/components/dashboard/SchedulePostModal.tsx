@@ -33,29 +33,15 @@ interface SchedulePostModalProps {
   preselectedDate?: string;
 }
 
-const MOCK_DRAFTS = [
-  {
-    id: 1,
-    title: "The Rise of Autonomous AI Agents",
-    category: "AI",
-    platforms: ["linkedin", "x"],
-    preview: "Discover how AI agents are revolutionizing task automation...",
-  },
-  {
-    id: 2,
-    title: "5 Cloud Technologies Transforming Business",
-    category: "Tech",
-    platforms: ["linkedin"],
-    preview: "Cloud computing continues to evolve...",
-  },
-  {
-    id: 3,
-    title: "Building Resilience in Uncertain Times",
-    category: "Motivation",
-    platforms: ["x"],
-    preview: "Success isn't about avoiding challenges...",
-  },
-];
+// Mock data removed - now using real data from API
+
+interface DraftPost {
+  id: string | number;
+  title: string;
+  category: string;
+  platforms: string[];
+  preview?: string;
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   AI: "bg-purple-100 text-purple-700",
@@ -78,11 +64,47 @@ export function SchedulePostModal({
   onSchedule,
   preselectedDate,
 }: SchedulePostModalProps) {
+  const { user } = useAuth();
   const [step, setStep] = useState<"select" | "schedule">("select");
-  const [selectedDraft, setSelectedDraft] = useState<typeof MOCK_DRAFTS[0] | null>(null);
+  const [selectedDraft, setSelectedDraft] = useState<DraftPost | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(preselectedDate || null);
   const [selectedTime, setSelectedTime] = useState("9:00 AM");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [drafts, setDrafts] = useState<DraftPost[]>([]);
+  const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
+
+  // Fetch draft posts when modal opens
+  useEffect(() => {
+    async function fetchDrafts() {
+      if (!isOpen || !user || step !== 'select') return;
+      
+      setIsLoadingDrafts(true);
+      try {
+        const response = await fetch(`/api/posts?userId=${user.id}&status=draft&limit=20`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            const formattedDrafts: DraftPost[] = (result.posts || []).map((post: any) => ({
+              id: post.id,
+              title: post.title || 'Untitled Post',
+              category: post.category || 'uncategorized',
+              platforms: (post.post_platforms || []).map((pp: any) => 
+                pp.platform === 'twitter' ? 'x' : pp.platform
+              ),
+              preview: post.content?.substring(0, 100) || '',
+            }));
+            setDrafts(formattedDrafts);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching drafts:', error);
+      } finally {
+        setIsLoadingDrafts(false);
+      }
+    }
+
+    fetchDrafts();
+  }, [isOpen, user, step]);
 
   if (!isOpen) return null;
 
@@ -111,7 +133,7 @@ export function SchedulePostModal({
     calendarDays.push(day);
   }
 
-  const handleDraftSelect = (draft: typeof MOCK_DRAFTS[0]) => {
+  const handleDraftSelect = (draft: DraftPost) => {
     setSelectedDraft(draft);
     setStep("schedule");
   };
@@ -171,41 +193,53 @@ export function SchedulePostModal({
                 <p className="text-sm text-gray-600 mb-4">
                   Choose a draft from your content library to schedule.
                 </p>
-                {MOCK_DRAFTS.map((draft) => (
-                  <button
-                    key={draft.id}
-                    onClick={() => handleDraftSelect(draft)}
-                    className="w-full p-4 border border-gray-200 rounded-xl text-left hover:border-[#6D28D9]/30 hover:bg-[#6D28D9]/5 transition-all duration-200 group"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-[#6D28D9]/10">
-                        <FileText className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">
-                            {draft.title}
-                          </h4>
-                          <Badge className={`${CATEGORY_COLORS[draft.category]} text-xs`}>
-                            {draft.category}
-                          </Badge>
+                {isLoadingDrafts ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-sm text-gray-500">Loading drafts...</div>
+                  </div>
+                ) : drafts.length > 0 ? (
+                  drafts.map((draft) => (
+                    <button
+                      key={draft.id}
+                      onClick={() => handleDraftSelect(draft)}
+                      className="w-full p-4 border border-gray-200 rounded-xl text-left hover:border-[#6D28D9]/30 hover:bg-[#6D28D9]/5 transition-all duration-200 group"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-[#6D28D9]/10">
+                          <FileText className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
                         </div>
-                        <p className="text-xs text-gray-500 line-clamp-1">{draft.preview}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          {draft.platforms.includes("linkedin") && (
-                            <IconLinkedIn className="h-3.5 w-3.5 text-[#0A66C2]" />
-                          )}
-                          {draft.platforms.includes("x") && (
-                            <IconX className="h-3.5 w-3.5 text-black" />
-                          )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="text-sm font-medium text-gray-900 truncate">
+                              {draft.title}
+                            </h4>
+                            <Badge className={`${CATEGORY_COLORS[draft.category]} text-xs`}>
+                              {draft.category}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-gray-500 line-clamp-1">{draft.preview}</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            {draft.platforms.includes("linkedin") && (
+                              <IconLinkedIn className="h-3.5 w-3.5 text-[#0A66C2]" />
+                            )}
+                            {draft.platforms.includes("x") && (
+                              <IconX className="h-3.5 w-3.5 text-black" />
+                            )}
+                          </div>
                         </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
                       </div>
-                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500">No drafts available</p>
+                    <p className="text-xs text-gray-400 mt-1">Generate content first to schedule posts</p>
+                  </div>
+                )}
 
-                {MOCK_DRAFTS.length === 0 && (
+                {!isLoadingDrafts && drafts.length === 0 && (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-sm text-gray-500">No drafts available</p>

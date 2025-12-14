@@ -109,7 +109,22 @@ const CATEGORIES = [
 
 // Mock data removed - now using real data from API
 
-function PostRow({ post, index }: { post: typeof DRAFT_POSTS[0]; index: number }) {
+interface PostRowData {
+  id: string | number;
+  title: string;
+  category: string;
+  categoryColor: string;
+  attachments: number;
+  comments: number;
+  status: string;
+  statusColor: string;
+  priority: string;
+  priorityColor: string;
+  daysLeft: number;
+  progress: number;
+}
+
+function PostRow({ post, index }: { post: PostRowData; index: number }) {
   return (
     <div 
       className="flex items-center gap-4 px-4 py-4 hover:bg-gray-50/50 transition-all duration-200 group"
