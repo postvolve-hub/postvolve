@@ -91,7 +91,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create media container
-    const containerUrl = `https://graph.facebook.com/v21.0/${igUserId}/media`;
+    // Instagram Login API uses graph.instagram.com endpoints (not graph.facebook.com)
+    const containerUrl = `https://graph.instagram.com/${igUserId}/media`;
     console.log("Instagram post: Creating container", { url: containerUrl, igUserId });
     
     const containerResp = await fetch(containerUrl, {
@@ -149,7 +150,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Step 2: Publish the media container
-    const publishUrl = `https://graph.facebook.com/v21.0/${igUserId}/media_publish`;
+    // Instagram Login API uses graph.instagram.com endpoints (not graph.facebook.com)
+    const publishUrl = `https://graph.instagram.com/${igUserId}/media_publish`;
     console.log("Instagram post: Publishing", { url: publishUrl, creationId });
     
     const publishResp = await fetch(publishUrl, {
