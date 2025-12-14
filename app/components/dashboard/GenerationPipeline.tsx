@@ -23,6 +23,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
+import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
+import { useAuth } from "@/hooks/use-auth";
+import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
 
 type StageStatus = "pending" | "processing" | "completed" | "error" | "skipped";
 type GenerationLane = "url" | "prompt";
@@ -117,6 +120,7 @@ const STATUS_STYLES: Record<StageStatus, { bg: string; border: string; icon: Rea
 };
 
 export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPipelineProps) {
+  const { user } = useAuth();
   const [selectedLane, setSelectedLane] = useState<GenerationLane>("url");
   const [inputValue, setInputValue] = useState("");
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
@@ -130,6 +134,8 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
     content: string;
     imageUrl: string;
   } | null>(null);
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [generatedPostId, setGeneratedPostId] = useState<string | null>(null);
 
   // Manage image preview URL
   useEffect(() => {
@@ -299,10 +305,11 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
       
       // Set generated content from API response
       const firstContent = result.result?.content?.[0];
+      setGeneratedPostId(result.postId || null);
       setGeneratedContent({
         title: result.result?.title || "Generated Post",
         content: firstContent?.content || result.result?.content?.[0] || "Generated content",
-        imageUrl: result.result?.image?.imageUrl || "https://via.placeholder.com/800x600?text=No+Image",
+        imageUrl: result.result?.image?.imageUrl || PLACEHOLDER_IMAGES.noImage,
       });
       
       // Stage 4: Review
@@ -638,11 +645,11 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                   </div>
                   <div className="row-span-2">
                     <Label className="text-sm font-medium text-gray-700 mb-2 block">Preview Image</Label>
-                    <div className="rounded-xl overflow-hidden border border-gray-200">
+                    <div className="rounded-xl overflow-hidden border border-gray-200 aspect-square">
                       <img
                         src={generatedContent.imageUrl}
                         alt="Generated"
-                        className="w-full h-40 object-cover"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                   </div>
@@ -672,11 +679,60 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                   <p className="text-xs text-blue-600">Choose when to publish your content.</p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <button className="p-6 rounded-xl border-2 border-[#6D28D9] bg-[#6D28D9]/5 text-center hover:bg-[#6D28D9]/10 transition-colors">
+                <div className="grid grid-cols-3 gap-4">
+                  <button 
+                    onClick={() => setScheduleModalOpen(true)}
+                    className="p-6 rounded-xl border-2 border-[#6D28D9] bg-[#6D28D9]/5 text-center hover:bg-[#6D28D9]/10 transition-colors"
+                  >
                     <Calendar className="h-8 w-8 text-[#6D28D9] mx-auto mb-2" />
                     <span className="text-sm font-medium text-gray-900">Schedule for Later</span>
                     <p className="text-xs text-gray-500 mt-1">Pick date & time</p>
+                  </button>
+                  <button 
+                    onClick={async () => {
+                      if (!user || !generatedPostId) {
+                        toast({
+                          title: "Error",
+                          description: "Post ID not found. Please try again.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      try {
+                        const response = await fetch(`/api/posts/${generatedPostId}/publish`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ userId: user.id }),
+                        });
+
+                        if (!response.ok) {
+                          const error = await response.json();
+                          throw new Error(error.message || 'Failed to publish post');
+                        }
+
+                        toast({
+                          title: "Post Published",
+                          description: "Your post has been published successfully!",
+                        });
+
+                        window.dispatchEvent(new CustomEvent('postGenerated'));
+                        onComplete?.(generatedContent);
+                        onClose();
+                      } catch (error: any) {
+                        console.error('Publish error:', error);
+                        toast({
+                          title: "Publish Failed",
+                          description: error.message || "Failed to publish post. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    className="p-6 rounded-xl border-2 border-blue-500 bg-blue-50 text-center hover:bg-blue-100 transition-colors"
+                  >
+                    <Play className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <span className="text-sm font-medium text-gray-900">Post Now</span>
+                    <p className="text-xs text-gray-500 mt-1">Publish immediately</p>
                   </button>
                   <button 
                     onClick={finishGeneration}
@@ -742,6 +798,55 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
           </div>
         </div>
       </div>
+
+      {/* Schedule Modal */}
+      {generatedPostId && (
+        <SchedulePostModal
+          isOpen={scheduleModalOpen}
+          onClose={() => setScheduleModalOpen(false)}
+          onSchedule={async (postId, date, time) => {
+            if (!user) return;
+            
+            try {
+              // Combine date and time into ISO string
+              // Ensure time is in HH:MM format (24-hour)
+              const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
+              const scheduledAt = new Date(`${date}T${timeFormatted}:00`).toISOString();
+              
+              const response = await fetch('/api/scheduler/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: user.id,
+                  postId: generatedPostId,
+                  scheduledAt,
+                }),
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to schedule post');
+              }
+
+              toast({
+                title: "Post Scheduled",
+                description: `Your post has been scheduled for ${date} at ${time}.`,
+              });
+              
+              setScheduleModalOpen(false);
+              window.dispatchEvent(new CustomEvent('postGenerated'));
+              onComplete?.(generatedContent);
+              onClose();
+            } catch (error: any) {
+              console.error('Schedule error:', error);
+              toast({
+                title: "Schedule Failed",
+                description: error.message || 'Failed to schedule post. Please try again.',
+                variant: "destructive",
+              });
+            }
+          }}
+        />
+      )}
     </>
   );
 }

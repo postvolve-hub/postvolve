@@ -23,6 +23,7 @@ import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabaseClient";
 import { getAccessPermissions, type Subscription } from "@/lib/subscription-access";
+import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
 
 // Custom Icons
 const IconSparkles = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -39,7 +40,6 @@ const IconZap = ({ className = "h-4 w-4" }: { className?: string }) => (
   </svg>
 );
 
-const CATEGORIES = ["All", "Tech", "AI", "Business", "Motivation"];
 
 // Lane Icons
 const IconRobot = ({ className = "h-3 w-3" }: { className?: string }) => (
@@ -98,7 +98,6 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function ContentGeneration() {
   const { user } = useAuth();
-  const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState<"all" | "draft" | "scheduled" | "posted">("all");
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -191,21 +190,8 @@ export default function ContentGeneration() {
     };
   }, [user]);
 
-  // Filter by category and status
+  // Filter by status only
   const filteredContent = content.filter(post => {
-    // Category filter
-    if (selectedCategory !== "All") {
-      const categoryMap: Record<string, string> = {
-        'AI': 'ai',
-        'Tech': 'tech',
-        'Business': 'business',
-        'Motivation': 'motivation',
-      };
-      if (post.category !== categoryMap[selectedCategory]) {
-        return false;
-      }
-    }
-    
     // Status filter
     if (selectedStatus !== "all") {
       if (selectedStatus === "draft" && post.status !== "draft") {
@@ -383,68 +369,48 @@ export default function ContentGeneration() {
           </div>
         </div>
 
-        {/* Status & Category Filters */}
-        <div className="flex flex-col gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-75">
-          {/* Status Filter */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedStatus("all")}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                selectedStatus === "all"
-                  ? "bg-[#6D28D9] text-white shadow-sm"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              All Posts
-            </button>
-            <button
-              onClick={() => setSelectedStatus("draft")}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                selectedStatus === "draft"
-                  ? "bg-[#6D28D9] text-white shadow-sm"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              Saved ({groupedPosts.draft.length})
-            </button>
-            <button
-              onClick={() => setSelectedStatus("scheduled")}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                selectedStatus === "scheduled"
-                  ? "bg-[#6D28D9] text-white shadow-sm"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              Scheduled ({groupedPosts.scheduled.length})
-            </button>
-            <button
-              onClick={() => setSelectedStatus("posted")}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                selectedStatus === "posted"
-                  ? "bg-[#6D28D9] text-white shadow-sm"
-                  : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              Posted ({groupedPosts.posted.length})
-            </button>
-          </div>
-          
-          {/* Category Filter */}
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((category) => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  selectedCategory === category
-                    ? "bg-[#6D28D9] text-white shadow-sm"
-                    : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
+        {/* Status Filter */}
+        <div className="flex flex-wrap gap-2 animate-in slide-in-from-bottom-2 duration-500 delay-75">
+          <button
+            onClick={() => setSelectedStatus("all")}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              selectedStatus === "all"
+                ? "bg-[#6D28D9] text-white shadow-sm"
+                : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            All Posts
+          </button>
+          <button
+            onClick={() => setSelectedStatus("draft")}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              selectedStatus === "draft"
+                ? "bg-[#6D28D9] text-white shadow-sm"
+                : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Saved ({groupedPosts.draft.length})
+          </button>
+          <button
+            onClick={() => setSelectedStatus("scheduled")}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              selectedStatus === "scheduled"
+                ? "bg-[#6D28D9] text-white shadow-sm"
+                : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Scheduled ({groupedPosts.scheduled.length})
+          </button>
+          <button
+            onClick={() => setSelectedStatus("posted")}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+              selectedStatus === "posted"
+                ? "bg-[#6D28D9] text-white shadow-sm"
+                : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Posted ({groupedPosts.posted.length})
+          </button>
         </div>
 
         {/* Loading State */}
@@ -472,7 +438,7 @@ export default function ContentGeneration() {
                   <div className="flex flex-col md:flex-row min-w-0">
                     <div className="md:w-3/5 relative">
                       <img
-                        src={post.image_url || "https://via.placeholder.com/800x600?text=No+Image"}
+                        src={post.image_url || PLACEHOLDER_IMAGES.noImage}
                         alt={post.title}
                         className="w-full h-48 md:h-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
@@ -549,11 +515,8 @@ export default function ContentGeneration() {
           <div className="bg-white rounded-2xl border border-gray-100">
             <EmptyState 
               variant="drafts"
-              title={selectedCategory !== "All" ? `No ${selectedCategory} drafts` : "No drafts yet"}
-              description={selectedCategory !== "All" 
-                ? `Generate new content in the ${selectedCategory} category to see posts here.`
-                : "Generate your first AI-powered content to get started."
-              }
+              title="No posts yet"
+              description="Generate your first AI-powered content to get started."
               action={{
                 label: "Generate Content",
                 onClick: () => setIsGenerateModalOpen(true)

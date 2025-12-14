@@ -20,6 +20,7 @@ import { ImageUploadModal } from "@/components/dashboard/ImageUploadModal";
 import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
 
 // Social Platform Icons
 const IconLinkedIn = ({ className = "h-5 w-5" }: { className?: string }) => (
@@ -256,11 +257,11 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
 
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
             {/* Image Section */}
-            <div className="relative rounded-2xl overflow-hidden mb-6 bg-gray-100 group">
+            <div className="relative rounded-2xl overflow-hidden mb-6 bg-gray-100 group aspect-square">
               <img
-                src={currentImageUrl || post.image_url || "https://via.placeholder.com/800x600?text=No+Image"}
+                src={currentImageUrl || post.image_url || PLACEHOLDER_IMAGES.noImage}
                 alt={post.title}
-                className="w-full h-56 object-cover"
+                className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                 <div className="flex gap-2">
@@ -314,7 +315,9 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                 
                 try {
                   // Combine date and time into ISO string
-                  const scheduledAt = new Date(`${date}T${time}`).toISOString();
+                  // Ensure time is in HH:MM format (24-hour)
+                  const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
+                  const scheduledAt = new Date(`${date}T${timeFormatted}:00`).toISOString();
                   
                   const response = await fetch('/api/scheduler/posts', {
                     method: 'POST',

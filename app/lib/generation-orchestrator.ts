@@ -112,8 +112,9 @@ export async function generateContent(
     } catch (error: any) {
       console.warn('[Orchestrator] Image generation failed, using placeholder:', error.message);
       // Fallback to placeholder image
+      const { getPlaceholderImage } = await import('./image-placeholder');
       imageResult = {
-        imageUrl: 'https://via.placeholder.com/1200x630?text=Image+Generation+Failed',
+        imageUrl: getPlaceholderImage('Image Generation Failed', 1200),
         model: 'placeholder',
         quality: 'low',
         prompt: 'Placeholder - generation failed',

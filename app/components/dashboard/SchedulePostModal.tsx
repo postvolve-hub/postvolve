@@ -51,10 +51,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Business: "bg-emerald-100 text-emerald-700",
 };
 
-const TIME_OPTIONS = [
-  "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-  "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"
-];
+// Removed fixed time options - now using dynamic time input
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -69,7 +66,8 @@ export function SchedulePostModal({
   const [step, setStep] = useState<"select" | "schedule">("select");
   const [selectedDraft, setSelectedDraft] = useState<DraftPost | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(preselectedDate || null);
-  const [selectedTime, setSelectedTime] = useState("9:00 AM");
+  const [selectedTime, setSelectedTime] = useState("09:00");
+  const [timeInput, setTimeInput] = useState("09:00");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [drafts, setDrafts] = useState<DraftPost[]>([]);
   const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
@@ -140,7 +138,7 @@ export function SchedulePostModal({
   };
 
   const handleSchedule = () => {
-    if (selectedDraft && selectedDate) {
+    if (selectedDraft && selectedDate && selectedTime) {
       onSchedule?.(selectedDraft.id, selectedDate, selectedTime);
       handleClose();
     }
@@ -150,7 +148,8 @@ export function SchedulePostModal({
     setStep("select");
     setSelectedDraft(null);
     setSelectedDate(preselectedDate || null);
-    setSelectedTime("9:00 AM");
+    setSelectedTime("09:00");
+    setTimeInput("09:00");
     onClose();
   };
 
@@ -334,20 +333,21 @@ export function SchedulePostModal({
                     <Clock className="h-4 w-4 text-gray-500" />
                     <h4 className="text-sm font-medium text-gray-900">Select Time</h4>
                   </div>
-                  <div className="grid grid-cols-4 gap-2">
-                    {TIME_OPTIONS.map((time) => (
-                      <button
-                        key={time}
-                        onClick={() => setSelectedTime(time)}
-                        className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                          selectedTime === time
-                            ? "bg-[#6D28D9] text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                        }`}
-                      >
-                        {time}
-                      </button>
-                    ))}
+                  <div className="space-y-3">
+                    <div>
+                      <input
+                        type="time"
+                        value={timeInput}
+                        onChange={(e) => {
+                          setTimeInput(e.target.value);
+                          setSelectedTime(e.target.value);
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:border-transparent"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Select any time you want your post to be published
+                    </p>
                   </div>
                 </div>
 
@@ -357,7 +357,13 @@ export function SchedulePostModal({
                     <div className="flex items-center gap-2 text-emerald-700">
                       <Check className="h-4 w-4" />
                       <span className="text-sm font-medium">
-                        Scheduled for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {selectedTime}
+                        Scheduled for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {(() => {
+                          const [hours, minutes] = selectedTime.split(':');
+                          const hour24 = parseInt(hours);
+                          const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
+                          const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                          return `${hour12}:${minutes} ${ampm}`;
+                        })()}
                       </span>
                     </div>
                   </div>
@@ -380,7 +386,7 @@ export function SchedulePostModal({
               {step === "schedule" && (
                 <Button
                   onClick={handleSchedule}
-                  disabled={!selectedDate}
+                  disabled={!selectedDate || !selectedTime}
                   className="bg-[#6D28D9] hover:bg-[#5B21B6] rounded-xl"
                 >
                   <Calendar className="h-4 w-4 mr-2" />
