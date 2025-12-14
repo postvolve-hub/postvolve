@@ -166,7 +166,9 @@ export default function Scheduler() {
 
     try {
       // Combine date and time into ISO string
-      const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
+      // Ensure time is in HH:MM format (24-hour)
+      const timeFormatted = time.includes(':') ? time.split(':').slice(0, 2).join(':') : time;
+      const scheduledAt = new Date(`${date}T${timeFormatted}:00`).toISOString();
 
       const response = await fetch('/api/scheduler/posts', {
         method: 'POST',

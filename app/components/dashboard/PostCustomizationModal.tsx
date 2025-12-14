@@ -463,7 +463,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
               {/* Platform Preview Card */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Preview ({currentPlatform?.name})
+                  Preview
                 </Label>
                 <div className="border border-gray-200 rounded-xl overflow-hidden">
                   {/* Preview Header */}

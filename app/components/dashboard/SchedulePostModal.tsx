@@ -357,12 +357,17 @@ export function SchedulePostModal({
                     <div className="flex items-center gap-2 text-emerald-700">
                       <Check className="h-4 w-4" />
                       <span className="text-sm font-medium">
-                        Scheduled for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {(() => {
+                        Scheduled for {(() => {
+                          // Parse date string to avoid timezone issues
+                          const [year, month, day] = selectedDate.split('-').map(Number);
+                          const date = new Date(year, month - 1, day);
+                          return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+                        })()} at {(() => {
                           const [hours, minutes] = selectedTime.split(':');
                           const hour24 = parseInt(hours);
                           const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
                           const ampm = hour24 >= 12 ? 'PM' : 'AM';
-                          return `${hour12}:${minutes} ${ampm}`;
+                          return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
                         })()}
                       </span>
                     </div>

@@ -8,7 +8,8 @@ import {
   Image as ImageIcon,
   Filter,
   MoreHorizontal,
-  Plus
+  Plus,
+  Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -464,18 +465,57 @@ export default function ContentGeneration() {
                         {post.content && post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content || 'No content'}
                       </p>
                       <div className="space-y-2 mt-auto">
-                        <Button
-                          onClick={() => {
-                            if (permissions?.canViewDrafts) {
-                              handleEditPost(post);
-                            }
-                          }}
-                          className="w-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white transition-all duration-200 rounded-xl h-9 text-sm"
-                          disabled={!permissions?.canViewDrafts}
-                        >
-                          <Edit3 className="h-3.5 w-3.5 mr-2" />
-                          Review & Edit
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => {
+                              if (permissions?.canViewDrafts) {
+                                handleEditPost(post);
+                              }
+                            }}
+                            className="flex-1 bg-[#6D28D9] hover:bg-[#5B21B6] text-white transition-all duration-200 rounded-xl h-9 text-sm"
+                            disabled={!permissions?.canViewDrafts}
+                          >
+                            <Edit3 className="h-3.5 w-3.5 mr-2" />
+                            Review & Edit
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              if (!user) return;
+                              
+                              try {
+                                const response = await fetch(`/api/posts/${post.id}/publish`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ userId: user.id }),
+                                });
+
+                                if (!response.ok) {
+                                  const error = await response.json();
+                                  throw new Error(error.message || 'Failed to publish post');
+                                }
+
+                                toast({
+                                  title: "Post Published",
+                                  description: "Your post has been published successfully!",
+                                });
+
+                                await refreshPosts();
+                              } catch (error: any) {
+                                console.error('Publish error:', error);
+                                toast({
+                                  title: "Publish Failed",
+                                  description: error.message || "Failed to publish post. Please try again.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 rounded-xl h-9 text-sm"
+                            disabled={!permissions?.canViewDrafts}
+                          >
+                            <Play className="h-3.5 w-3.5 mr-2" />
+                            Post Now
+                          </Button>
+                        </div>
                         <div className="flex gap-2 min-w-0">
                           <Button
                             variant="outline"
