@@ -74,9 +74,9 @@ const PLATFORM_CONFIG: Record<Platform, {
     color: "text-[#1877F2]",
     bgColor: "bg-[#1877F2]",
     permissions: [
-      "Access your public profile",
-      "Post to your pages",
-      "View page insights",
+      "Access your Facebook Pages",
+      "Post content to your Pages",
+      "View page information",
     ],
   },
   instagram: {
@@ -86,8 +86,8 @@ const PLATFORM_CONFIG: Record<Platform, {
     bgColor: "bg-[#E4405F]",
     permissions: [
       "Access your Instagram account",
-      "Post images and videos",
-      "View basic insights",
+      "Post photos and videos",
+      "View your profile information",
     ],
   },
 };
@@ -234,16 +234,8 @@ export function ConnectAccountModal({
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Connecting...</h3>
               <p className="text-sm text-gray-500">
-                {platform === "instagram" 
-                  ? "Redirecting you to Facebook to authorize access to your Instagram account."
-                  : `Redirecting you to ${config.name} for authorization.`
-                }
+                Redirecting you to {config.name} for authorization.
               </p>
-              {platform === "instagram" && (
-                <p className="text-xs text-gray-400 mt-2">
-                  This is required because Instagram accounts are linked to Facebook Pages.
-                </p>
-              )}
             </div>
           )}
 
@@ -287,27 +279,8 @@ export function ConnectAccountModal({
                   ))}
                 </ul>
 
-                {/* Instagram-specific explanation about Facebook login */}
-                {platform === "instagram" && (
-                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-lg bg-amber-100">
-                        <IconFacebook className="h-4 w-4 text-amber-700" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-xs font-medium text-amber-900 mb-1">
-                          Facebook Login Required
-                        </p>
-                        <p className="text-xs text-amber-800 leading-relaxed">
-                          Instagram Business accounts are linked to Facebook Pages. You'll be redirected to Facebook to authorize access to your Instagram account. This is secure and required by Instagram's API.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* FB/IG professional account tip */}
-                {(platform === "instagram" || platform === "facebook") && (
+                {/* Facebook-specific tip about Pages */}
+                {platform === "facebook" && (
                   <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
                     <div className="flex items-start gap-3">
                       <div className="p-1.5 rounded-lg bg-blue-100">
@@ -315,18 +288,56 @@ export function ConnectAccountModal({
                       </div>
                       <div className="flex-1">
                         <p className="text-xs font-medium text-blue-900 mb-1">
-                          Professional account required for posting
+                          Facebook Page required
                         </p>
                         <p className="text-xs text-blue-800 leading-relaxed">
-                          For Instagram/Facebook posting, switch to a free Professional account—here&apos;s how{" "}
+                          To post to Facebook, you need to create a Facebook Page. After connecting, you'll be able to select which Page to use for posting.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Instagram-specific tip */}
+                {platform === "instagram" && (
+                  <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-blue-100">
+                        <AlertCircle className="h-4 w-4 text-blue-700" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-blue-900 mb-1">
+                          Professional account required
+                        </p>
+                        <p className="text-xs text-blue-800 leading-relaxed">
+                          Your Instagram account must be a Professional (Business or Creator) account to enable posting. You can switch to a free Professional account in your Instagram settings.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Facebook professional account tip */}
+                {platform === "facebook" && (
+                  <div className="mt-4 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-amber-100">
+                        <AlertCircle className="h-4 w-4 text-amber-700" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-medium text-amber-900 mb-1">
+                          Professional account recommended
+                        </p>
+                        <p className="text-xs text-amber-800 leading-relaxed">
+                          For best results, ensure your Facebook Page is set up as a Professional account. Learn more{" "}
                           <a
                             href="https://www.facebook.com/help/502981923235522"
                             target="_blank"
                             rel="noreferrer"
                             className="underline"
                           >
-                            (Meta&apos;s guide)
-                          </a>. We&apos;ll handle the rest.
+                            here
+                          </a>.
                         </p>
                       </div>
                     </div>
