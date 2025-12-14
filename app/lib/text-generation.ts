@@ -3,9 +3,9 @@
  * Orchestrates multi-platform text generation with optimization
  */
 
-import { generateText, refinePrompt, summarizeUrlContent } from './openrouter';
+import { generateTextForPlatform, refinePrompt, summarizeUrlContent } from './openrouter';
 import { buildTextGenerationPrompt, getPlatformSystemPrompt, type TextGenerationContext } from './prompts/text-generation';
-import type { PlatformType } from '@/shared/types/database.types';
+import type { PlatformType } from '@shared/types/database.types';
 
 // Map database platform type to our internal platform type
 type Platform = 'linkedin' | 'x' | 'facebook' | 'instagram';
@@ -146,9 +146,8 @@ export async function optimizeExistingContentForPlatform(
   platform: Platform,
   category?: string
 ): Promise<string> {
-  const { generateTextForPlatform } = await import('./openrouter');
   const optimized = await generateTextForPlatform(platform, `Optimize this content for ${platform}:\n\n${content}`, {
-    category,
+    category: category as any,
     temperature: 0.7,
   });
 

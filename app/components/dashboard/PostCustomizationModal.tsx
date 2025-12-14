@@ -121,7 +121,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const characterCount = postContent.length;
   const currentPlatform = PLATFORMS.find(p => p.id === previewPlatform);
   const isOverLimit = currentPlatform ? characterCount > currentPlatform.charLimit : false;
-  const lane = post.lane || "auto";
+  const lane = (post.generation_lane || "auto") as keyof typeof LANE_INFO;
   const laneInfo = LANE_INFO[lane];
 
   const togglePlatform = (platformId: string) => {
@@ -237,7 +237,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
               isOpen={imageUploadOpen}
               onClose={() => setImageUploadOpen(false)}
               onUpload={handleImageUpload}
-              currentImage={currentImageUrl || post.imageUrl}
+              currentImage={currentImageUrl || post.image_url || ''}
             />
 
             <div className="space-y-5">

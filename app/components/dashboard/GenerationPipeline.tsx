@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "@/hooks/use-toast";
 
 type StageStatus = "pending" | "processing" | "completed" | "error" | "skipped";
 type GenerationLane = "url" | "prompt";

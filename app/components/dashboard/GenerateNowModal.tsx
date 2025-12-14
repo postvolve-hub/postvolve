@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 
 // Social Platform Icons
 const IconLinkedIn = ({ className = "h-5 w-5" }: { className?: string }) => (
@@ -153,7 +154,8 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
 
     try {
       // Get user ID from auth
-      const { data: { user } } = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getUser());
+      const { supabase } = await import('@/lib/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('User not authenticated');
       }

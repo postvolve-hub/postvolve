@@ -71,6 +71,9 @@ Format your response as JSON:
     let qualityData: QualityScore;
     try {
       // Extract JSON from response (might have markdown code blocks)
+      if (!result || !result.content) {
+        throw new Error('No content in response');
+      }
       const jsonMatch = result.content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         qualityData = JSON.parse(jsonMatch[0]);
@@ -146,6 +149,9 @@ Guidelines:
       max_tokens: 2000,
     });
 
+    if (!result || !result.content) {
+      return content;
+    }
     return result.content.trim();
   } catch (error: any) {
     console.error('[Content Enhancement] Error:', error);

@@ -177,6 +177,16 @@ export default function ContentGeneration() {
     }
 
     fetchPosts();
+
+    // Listen for post generation events
+    const handlePostGenerated = () => {
+      fetchPosts();
+    };
+
+    window.addEventListener('postGenerated', handlePostGenerated);
+    return () => {
+      window.removeEventListener('postGenerated', handlePostGenerated);
+    };
   }, [user]);
 
   const filteredContent = selectedCategory === "All" 
@@ -352,7 +362,7 @@ export default function ContentGeneration() {
         {!isLoading && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-100">
             {filteredContent.map((post, index) => {
-              const categoryDisplay = post.category.charAt(0).toUpperCase() + post.category.slice(1);
+              const categoryDisplay = post.category ? post.category.charAt(0).toUpperCase() + post.category.slice(1) : 'Tech';
               const lane = post.generation_lane || 'auto';
               const laneConfig = LANE_CONFIG[lane];
               const LaneIcon = laneConfig.icon;
@@ -389,7 +399,7 @@ export default function ContentGeneration() {
                         {post.title}
                       </h3>
                       <p className="text-sm text-gray-500 mb-4 line-clamp-3 flex-1">
-                        {post.content.substring(0, 150)}...
+                        {post.content && post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content || 'No content'}
                       </p>
                       <div className="space-y-2">
                         <Button

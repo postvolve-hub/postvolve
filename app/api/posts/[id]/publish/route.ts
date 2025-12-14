@@ -13,25 +13,98 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-// Platform publishers (we'll implement these)
+// Platform publishers - call real API endpoints
 async function publishToLinkedIn(postId: string, content: string, userId: string) {
-  // TODO: Implement LinkedIn publisher
-  return { success: true, postId: `linkedin_${Date.now()}` };
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/social/linkedin/post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, message: content }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'LinkedIn publish failed');
+    }
+
+    const result = await response.json();
+    return { success: true, postId: result.result?.id || `linkedin_${Date.now()}` };
+  } catch (error: any) {
+    console.error('[Publish LinkedIn] Error:', error);
+    throw error;
+  }
 }
 
 async function publishToX(postId: string, content: string, userId: string) {
-  // TODO: Implement X publisher (use existing /api/social/x/post)
-  return { success: true, postId: `x_${Date.now()}` };
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/social/x/post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, message: content }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'X publish failed');
+    }
+
+    const result = await response.json();
+    // X API returns result.data.id
+    return { success: true, postId: result.result?.data?.id || result.result?.id || `x_${Date.now()}` };
+  } catch (error: any) {
+    console.error('[Publish X] Error:', error);
+    throw error;
+  }
 }
 
 async function publishToFacebook(postId: string, content: string, userId: string) {
-  // TODO: Implement Facebook publisher
-  return { success: true, postId: `facebook_${Date.now()}` };
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/social/facebook/post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, message: content }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Facebook publish failed');
+    }
+
+    const result = await response.json();
+    return { success: true, postId: result.result?.id || `facebook_${Date.now()}` };
+  } catch (error: any) {
+    console.error('[Publish Facebook] Error:', error);
+    throw error;
+  }
 }
 
 async function publishToInstagram(postId: string, content: string, imageUrl: string, userId: string) {
-  // TODO: Implement Instagram publisher
-  return { success: true, postId: `instagram_${Date.now()}` };
+  try {
+    if (!imageUrl) {
+      throw new Error('Instagram requires an image URL');
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const response = await fetch(`${baseUrl}/api/social/instagram/post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, message: content, imageUrl }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Instagram publish failed');
+    }
+
+    const result = await response.json();
+    return { success: true, postId: result.result?.id || `instagram_${Date.now()}` };
+  } catch (error: any) {
+    console.error('[Publish Instagram] Error:', error);
+    throw error;
+  }
 }
 
 export async function POST(
