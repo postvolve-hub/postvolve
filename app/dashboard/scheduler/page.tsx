@@ -63,7 +63,7 @@ export default function Scheduler() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [postToDelete, setPostToDelete] = useState<number | null>(null);
+  const [postToDelete, setPostToDelete] = useState<string | number | null>(null);
   const [scheduledPosts, setScheduledPosts] = useState<any[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
@@ -161,7 +161,7 @@ export default function Scheduler() {
     return scheduledPosts.filter(post => post.date === dateStr);
   };
 
-  const handleSchedulePost = async (postId: number, date: string, time: string) => {
+  const handleSchedulePost = async (postId: string | number, date: string, time: string) => {
     if (!user) return;
 
     try {
@@ -214,7 +214,7 @@ export default function Scheduler() {
     }
   };
 
-  const handleDeletePost = (postId: number) => {
+  const handleDeletePost = (postId: string | number) => {
     setPostToDelete(postId);
     setDeleteModalOpen(true);
   };
