@@ -146,12 +146,83 @@ export function GenerateNowModal({ isOpen, onClose }: GenerateNowModalProps) {
   };
 
   const handleGenerate = async () => {
+    if (!canGenerate()) return;
+
     setIsGenerating(true);
-    // Simulate generation delay
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setIsGenerating(false);
-    // In real implementation, this would call the API and return the generated content
-    handleClose();
+    setStep("generating");
+
+    try {
+      // Get user ID from auth
+      const { data: { user } } = await import('@/lib/supabaseClient').then(m => m.supabase.auth.getUser());
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      let response: Response;
+      
+      if (mode === "url") {
+        // Call URL generation endpoint
+        response = await fetch('/api/generate/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            url,
+            category: selectedCategory,
+            platforms: selectedPlatforms,
+            userPrompt: undefined,
+          }),
+        });
+      } else {
+        // Call prompt generation endpoint
+        // First, upload image if provided
+        let imageUrl = undefined;
+        if (uploadedFile) {
+          // TODO: Implement image upload to storage
+          // For now, we'll skip image upload and let the backend handle it
+          // You can add image upload to Supabase Storage here
+        }
+
+        response = await fetch('/api/generate/prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            prompt: prompt,
+            category: selectedCategory,
+            platforms: selectedPlatforms,
+            imageUrl: imageUrl,
+          }),
+        });
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Generation failed');
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Content Generated",
+          description: "Your new content has been added to drafts.",
+        });
+        handleClose();
+        // Trigger page refresh
+        window.dispatchEvent(new CustomEvent('postGenerated'));
+      } else {
+        throw new Error(result.message || 'Generation failed');
+      }
+    } catch (error: any) {
+      console.error('Generation error:', error);
+      setIsGenerating(false);
+      toast({
+        title: "Generation Failed",
+        description: error.message || 'Failed to generate content. Please try again.',
+        variant: "destructive",
+      });
+    }
   };
 
   const canGenerate = () => {

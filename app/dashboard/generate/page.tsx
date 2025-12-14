@@ -71,44 +71,23 @@ const LANE_CONFIG = {
   custom: { label: "Custom", icon: IconPencil, color: "bg-emerald-100 text-emerald-700" },
 };
 
-const MOCK_CONTENT = [
-  {
-    id: 1,
-    title: "The Rise of Autonomous AI Agents",
-    category: "AI",
-    description: "Discover how AI agents are revolutionizing task automation and decision-making across industries. From customer service to creative workflows, autonomous agents are becoming essential business tools.",
-    imageUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop",
-    status: "draft",
-    lane: "auto" as const,
-  },
-  {
-    id: 2,
-    title: "5 Cloud Technologies Transforming Business",
-    category: "Tech",
-    description: "Cloud computing continues to evolve. Here are the top 5 technologies that will shape enterprise infrastructure in the coming years.",
-    imageUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&h=600&fit=crop",
-    status: "draft",
-    lane: "auto" as const,
-  },
-  {
-    id: 3,
-    title: "Building Resilience in Uncertain Times",
-    category: "Motivation",
-    description: "Success isn't about avoiding challenges—it's about developing the resilience to overcome them. Learn the mindset shifts that separate high performers from the rest.",
-    imageUrl: "https://images.unsplash.com/photo-1519834785169-98be25ec3f84?w=800&h=600&fit=crop",
-    status: "draft",
-    lane: "url" as const,
-  },
-  {
-    id: 4,
-    title: "Startup Funding: Series A Strategies",
-    category: "Business",
-    description: "Navigating the path from seed to Series A requires strategic planning. Here's what investors are looking for in 2025.",
-    imageUrl: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&h=600&fit=crop",
-    status: "draft",
-    lane: "custom" as const,
-  },
-];
+// Post type matching database schema
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  category: 'tech' | 'ai' | 'business' | 'motivation';
+  generation_lane: 'auto' | 'url' | 'custom';
+  image_url: string | null;
+  status: string;
+  created_at: string;
+  post_platforms?: Array<{
+    id: string;
+    platform: string;
+    content: string;
+    status: string;
+  }>;
+}
 
 const CATEGORY_COLORS: Record<string, string> = {
   AI: "bg-purple-100 text-purple-700 border-purple-200",
@@ -120,14 +99,15 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function ContentGeneration() {
   const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedPost, setSelectedPost] = useState<typeof MOCK_CONTENT[0] | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
   const [isPipelineOpen, setIsPipelineOpen] = useState(false);
-  const [content, setContent] = useState(MOCK_CONTENT);
+  const [content, setContent] = useState<Post[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [skipModalOpen, setSkipModalOpen] = useState(false);
-  const [postToSkip, setPostToSkip] = useState<number | null>(null);
-  const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
+  const [postToSkip, setPostToSkip] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
 
@@ -162,41 +142,122 @@ export default function ContentGeneration() {
     fetchSubscription();
   }, [user]);
 
+  // Fetch posts from API
+  useEffect(() => {
+    async function fetchPosts() {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/posts?userId=${user.id}&status=draft&limit=50`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts');
+        }
+
+        const data = await response.json();
+        if (data.success) {
+          setContent(data.posts || []);
+        }
+      } catch (error) {
+        console.error("Error fetching posts:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load posts. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchPosts();
+  }, [user]);
+
   const filteredContent = selectedCategory === "All" 
     ? content 
-    : content.filter(post => post.category === selectedCategory);
+    : content.filter(post => {
+        const categoryMap: Record<string, string> = {
+          'AI': 'ai',
+          'Tech': 'tech',
+          'Business': 'business',
+          'Motivation': 'motivation',
+        };
+        return post.category === categoryMap[selectedCategory];
+      });
 
-  const handleEditPost = (post: typeof MOCK_CONTENT[0]) => {
+  const handleEditPost = (post: Post) => {
     setSelectedPost(post);
     setIsModalOpen(true);
   };
 
-  const handleSkipPost = (postId: number) => {
-    setPostToSkip(postId);
-    setSkipModalOpen(true);
-  };
+  const handleSkipPost = async (postId: string) => {
+    if (!user) return;
+    
+    try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
 
-  const confirmSkipPost = () => {
-    if (postToSkip !== null) {
-      setContent(prev => prev.filter(p => p.id !== postToSkip));
+      if (!response.ok) {
+        throw new Error('Failed to delete post');
+      }
+
+      setContent(prev => prev.filter(p => p.id !== postId));
       toast({
-        title: "Draft Skipped",
+        title: "Draft Deleted",
         description: "The draft has been removed from your queue.",
       });
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete post. Please try again.",
+        variant: "destructive",
+      });
     }
-    setSkipModalOpen(false);
-    setPostToSkip(null);
   };
 
-  const handleRegeneratePost = async (postId: number) => {
+  const handleRegeneratePost = async (postId: string) => {
     setRegeneratingId(postId);
-    // Simulate regeneration
+    // TODO: Implement regeneration API call
     await new Promise(resolve => setTimeout(resolve, 2000));
     setRegeneratingId(null);
     toast({
       title: "Content Regenerated",
       description: "A new version has been generated for this draft.",
     });
+  };
+
+  const refreshPosts = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `/api/posts?userId=${user.id}&status=draft&limit=50`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch posts');
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setContent(data.posts || []);
+      }
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -280,92 +341,100 @@ export default function ContentGeneration() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <RefreshCw className="h-8 w-8 text-[#6D28D9] animate-spin" />
+          </div>
+        )}
+
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-100">
-          {filteredContent.map((post, index) => (
-            <div
-              key={post.id}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md hover:scale-[1.01] group"
-              style={{ animationDelay: `${index * 75}ms` }}
-            >
-              <div className="flex flex-col md:flex-row">
-                <div className="md:w-3/5 relative">
-                  <img
-                    src={post.imageUrl}
-                    alt={post.title}
-                    className="w-full h-48 md:h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  />
-                  <div className="absolute top-3 left-3 flex gap-2">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${CATEGORY_COLORS[post.category]}`}>
-                      {post.category}
-                    </span>
-                  </div>
-                  {/* Lane Badge */}
-                  {post.lane && (
-                    <div className="absolute top-3 right-3">
-                      {(() => {
-                        const laneConfig = LANE_CONFIG[post.lane];
-                        const LaneIcon = laneConfig.icon;
-                        return (
-                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${laneConfig.color}`}>
-                            <LaneIcon />
-                            {laneConfig.label}
-                          </span>
-                        );
-                      })()}
+        {!isLoading && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-in slide-in-from-bottom-2 duration-500 delay-100">
+            {filteredContent.map((post, index) => {
+              const categoryDisplay = post.category.charAt(0).toUpperCase() + post.category.slice(1);
+              const lane = post.generation_lane || 'auto';
+              const laneConfig = LANE_CONFIG[lane];
+              const LaneIcon = laneConfig.icon;
+              
+              return (
+                <div
+                  key={post.id}
+                  className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md hover:scale-[1.01] group"
+                  style={{ animationDelay: `${index * 75}ms` }}
+                >
+                  <div className="flex flex-col md:flex-row">
+                    <div className="md:w-3/5 relative">
+                      <img
+                        src={post.image_url || "https://via.placeholder.com/800x600?text=No+Image"}
+                        alt={post.title}
+                        className="w-full h-48 md:h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                      <div className="absolute top-3 left-3 flex gap-2">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${CATEGORY_COLORS[categoryDisplay] || CATEGORY_COLORS['Tech']}`}>
+                          {categoryDisplay}
+                        </span>
+                      </div>
+                      {/* Lane Badge */}
+                      <div className="absolute top-3 right-3">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${laneConfig.color}`}>
+                          <LaneIcon />
+                          {laneConfig.label}
+                        </span>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </div>
-                <div className="md:w-2/5 p-4 flex flex-col">
-                  <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {post.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4 line-clamp-3 flex-1">
-                    {post.description}
-                  </p>
-                  <div className="space-y-2">
-                    <Button
-                      onClick={() => {
-                        if (permissions?.canViewDrafts) {
-                          handleEditPost(post);
-                        }
-                      }}
-                      className="w-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white transition-all duration-200 rounded-xl h-9 text-sm"
-                      disabled={!permissions?.canViewDrafts}
-                    >
-                      <Edit3 className="h-3.5 w-3.5 mr-2" />
-                      Review & Edit
-                    </Button>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
-                        onClick={() => {
-                          if (permissions?.canGenerateContent) {
-                            handleRegeneratePost(post.id);
-                          }
-                        }}
-                        disabled={regeneratingId === post.id || !permissions?.canGenerateContent}
-                      >
-                        <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
-                        {regeneratingId === post.id ? "..." : "Regenerate"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                        className="flex-1 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 text-sm"
-                        onClick={() => handleSkipPost(post.id)}
-                    >
-                        <SkipForward className="h-3.5 w-3.5 mr-1.5" />
-                        Skip
-                    </Button>
+                    <div className="md:w-2/5 p-4 flex flex-col">
+                      <h3 className="text-base font-semibold text-gray-900 mb-2 line-clamp-2">
+                        {post.title}
+                      </h3>
+                      <p className="text-sm text-gray-500 mb-4 line-clamp-3 flex-1">
+                        {post.content.substring(0, 150)}...
+                      </p>
+                      <div className="space-y-2">
+                        <Button
+                          onClick={() => {
+                            if (permissions?.canViewDrafts) {
+                              handleEditPost(post);
+                            }
+                          }}
+                          className="w-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white transition-all duration-200 rounded-xl h-9 text-sm"
+                          disabled={!permissions?.canViewDrafts}
+                        >
+                          <Edit3 className="h-3.5 w-3.5 mr-2" />
+                          Review & Edit
+                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-gray-200 text-gray-600 hover:bg-gray-50 transition-all duration-200 rounded-xl h-9 text-sm"
+                            onClick={() => {
+                              if (permissions?.canGenerateContent) {
+                                handleRegeneratePost(post.id);
+                              }
+                            }}
+                            disabled={regeneratingId === post.id || !permissions?.canGenerateContent}
+                          >
+                            <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
+                            {regeneratingId === post.id ? "..." : "Regenerate"}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="flex-1 border-gray-200 text-gray-500 hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-all duration-200 rounded-xl h-9 text-sm"
+                            onClick={() => handleSkipPost(post.id)}
+                          >
+                            <SkipForward className="h-3.5 w-3.5 mr-1.5" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredContent.length === 0 && (
@@ -404,10 +473,16 @@ export default function ContentGeneration() {
           setSkipModalOpen(false);
           setPostToSkip(null);
         }}
-        onConfirm={confirmSkipPost}
-        title="Skip Draft"
-        description="Are you sure you want to skip this draft? It will be removed from your queue and you won't be able to recover it."
-        confirmText="Skip Draft"
+        onConfirm={() => {
+          if (postToSkip) {
+            handleSkipPost(postToSkip);
+          }
+          setSkipModalOpen(false);
+          setPostToSkip(null);
+        }}
+        title="Delete Draft"
+        description="Are you sure you want to delete this draft? It will be permanently removed and you won't be able to recover it."
+        confirmText="Delete Draft"
         cancelText="Keep Draft"
         variant="warning"
       />
@@ -420,6 +495,7 @@ export default function ContentGeneration() {
             title: "Content Generated",
             description: "Your new content has been added to drafts.",
           });
+          refreshPosts();
         }}
       />
     </DashboardLayout>

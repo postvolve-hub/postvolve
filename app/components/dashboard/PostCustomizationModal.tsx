@@ -45,13 +45,19 @@ const IconInstagram = ({ className = "h-5 w-5" }: { className?: string }) => (
 );
 
 interface Post {
-  id: number;
+  id: string;
   title: string;
-  category: string;
-  description: string;
-  imageUrl: string;
+  content: string;
+  category: 'tech' | 'ai' | 'business' | 'motivation';
+  generation_lane?: 'auto' | 'url' | 'custom';
+  image_url: string | null;
   status: string;
-  lane?: "auto" | "url" | "custom";
+  post_platforms?: Array<{
+    id: string;
+    platform: string;
+    content: string;
+    status: string;
+  }>;
 }
 
 interface PostCustomizationModalProps {
@@ -92,8 +98,21 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   useEffect(() => {
     if (post) {
       setPostTitle(post.title);
-      setPostContent(post.description);
-      setCurrentImageUrl(post.imageUrl);
+      // Use first platform content or main content
+      const firstPlatformContent = post.post_platforms?.[0]?.content;
+      setPostContent(firstPlatformContent || post.content);
+      setCurrentImageUrl(post.image_url || '');
+      
+      // Set selected platforms from post_platforms
+      if (post.post_platforms && post.post_platforms.length > 0) {
+        const platforms = post.post_platforms.map(pp => {
+          // Map database platform names to UI names
+          if (pp.platform === 'twitter') return 'x';
+          return pp.platform;
+        });
+        setSelectedPlatforms(platforms);
+        setPreviewPlatform(platforms[0] || 'linkedin');
+      }
     }
   }, [post]);
 
@@ -174,7 +193,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
             {/* Image Section */}
             <div className="relative rounded-2xl overflow-hidden mb-6 bg-gray-100 group">
               <img
-                src={currentImageUrl || post.imageUrl}
+                src={currentImageUrl || post.image_url || "https://via.placeholder.com/800x600?text=No+Image"}
                 alt={post.title}
                 className="w-full h-56 object-cover"
               />
@@ -207,8 +226,8 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
               </div>
               {/* Category Badge */}
               <div className="absolute top-3 left-3">
-                <Badge className={`${CATEGORY_COLORS[post.category] || "bg-gray-100 text-gray-700"} border-0`}>
-                  {post.category}
+                <Badge className={`${CATEGORY_COLORS[post.category.charAt(0).toUpperCase() + post.category.slice(1)] || "bg-gray-100 text-gray-700"} border-0`}>
+                  {post.category.charAt(0).toUpperCase() + post.category.slice(1)}
                 </Badge>
               </div>
             </div>
@@ -351,10 +370,10 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                     <p className="text-sm text-gray-800 whitespace-pre-wrap">
                       {postContent || "Your post content will appear here..."}
                     </p>
-                    {post.imageUrl && (
+                    {(currentImageUrl || post.image_url) && (
                       <div className="mt-3 rounded-lg overflow-hidden">
                         <img
-                          src={post.imageUrl}
+                          src={currentImageUrl || post.image_url || ''}
                           alt="Preview"
                           className="w-full h-40 object-cover"
                         />
@@ -374,7 +393,56 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
             <div className="flex gap-3">
             <Button
               variant="outline"
-              onClick={onClose}
+              onClick={async () => {
+                if (!post) return;
+                
+                // Get user
+                const { supabase } = await import('@/lib/supabaseClient');
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
+                  toast({
+                    title: "Authentication Required",
+                    description: "Please sign in to save posts.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                try {
+                  // Update post with new content
+                  const response = await fetch(`/api/posts/${post.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId: user.id,
+                      title: postTitle,
+                      content: postContent,
+                      imageUrl: currentImageUrl,
+                      platforms: selectedPlatforms.map(platform => ({
+                        platform: platform === 'x' ? 'twitter' : platform,
+                        content: postContent,
+                      })),
+                    }),
+                  });
+
+                  if (!response.ok) {
+                    throw new Error('Failed to save post');
+                  }
+
+                  toast({
+                    title: "Draft Saved",
+                    description: "Your changes have been saved.",
+                  });
+                  onClose();
+                } catch (error: any) {
+                  console.error('Save error:', error);
+                  toast({
+                    title: "Save Failed",
+                    description: error.message || 'Failed to save post. Please try again.',
+                    variant: "destructive",
+                  });
+                }
+              }}
                 className="border-gray-200 text-gray-600 hover:bg-gray-100 rounded-xl"
             >
               <Save className="h-4 w-4 mr-2" />
@@ -383,9 +451,59 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
             <Button
                 className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl"
                 disabled={selectedPlatforms.some(p => getCharacterStatus(p) === "over")}
+                onClick={async () => {
+                  if (!post) return;
+                  
+                  // Get user
+                  const { supabase } = await import('@/lib/supabaseClient');
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (!user) {
+                    toast({
+                      title: "Authentication Required",
+                      description: "Please sign in to save posts.",
+                      variant: "destructive",
+                    });
+                    return;
+                  }
+                  
+                  try {
+                    // Update post with new content
+                    const response = await fetch(`/api/posts/${post.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: user.id,
+                        title: postTitle,
+                        content: postContent,
+                        imageUrl: currentImageUrl,
+                        platforms: selectedPlatforms.map(platform => ({
+                          platform: platform === 'x' ? 'twitter' : platform,
+                          content: postContent,
+                        })),
+                      }),
+                    });
+
+                    if (!response.ok) {
+                      throw new Error('Failed to update post');
+                    }
+
+                    toast({
+                      title: "Post Updated",
+                      description: "Your post has been saved successfully.",
+                    });
+                    onClose();
+                  } catch (error: any) {
+                    console.error('Update error:', error);
+                    toast({
+                      title: "Update Failed",
+                      description: error.message || 'Failed to update post. Please try again.',
+                      variant: "destructive",
+                    });
+                  }
+                }}
             >
               <Calendar className="h-4 w-4 mr-2" />
-              Schedule Post
+              Save & Schedule
             </Button>
             </div>
           </div>

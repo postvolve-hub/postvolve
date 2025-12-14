@@ -191,37 +191,106 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
     setOverallProgress(10);
     
     try {
+      // Get user
+      const { supabase } = await import('@/lib/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       // Stage 1: Content Extraction (skip for prompt lane)
       if (selectedLane === "url") {
-        await simulateStage(1, 2000);
+        updateStage(1, { status: "processing" });
+        setCurrentStageIndex(1);
+        setOverallProgress(20);
+        // Real extraction happens in API
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        updateStage(1, { status: "completed" });
       } else {
         updateStage(1, { status: "skipped" });
         setOverallProgress(25);
       }
       
       // Stage 2: AI Processing
-      await simulateStage(2, 3000);
+      updateStage(2, { status: "processing" });
+      setCurrentStageIndex(2);
+      setOverallProgress(40);
       
       // Stage 3: Image Generation
-      await simulateStage(3, 2500);
+      updateStage(3, { status: "processing" });
+      setCurrentStageIndex(3);
+      setOverallProgress(60);
       
-      // Set generated content
+      // Call real API
+      let response: Response;
+      if (selectedLane === "url") {
+        response = await fetch('/api/generate/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            url: inputValue,
+            category: 'tech', // Default, can be made configurable
+            platforms: ['linkedin', 'x', 'facebook', 'instagram'],
+          }),
+        });
+      } else {
+        // Upload image if provided
+        let imageUrl = undefined;
+        if (uploadedImage) {
+          // TODO: Implement image upload to storage
+        }
+
+        response = await fetch('/api/generate/prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            prompt: inputValue,
+            category: 'tech', // Default, can be made configurable
+            platforms: ['linkedin', 'x', 'facebook', 'instagram'],
+            imageUrl: imageUrl,
+          }),
+        });
+      }
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Generation failed');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Generation failed');
+      }
+
+      // Update stages
+      updateStage(2, { status: "completed" });
+      updateStage(3, { status: "completed" });
+      setOverallProgress(80);
+      
+      // Set generated content from API response
+      const firstContent = result.result?.content?.[0];
       setGeneratedContent({
-        title: "AI-Generated Post Title",
-        content: "This is the AI-generated content based on your input. It has been optimized for engagement and formatted for your selected platforms.",
-        imageUrl: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&h=600&fit=crop",
+        title: result.result?.title || "Generated Post",
+        content: firstContent?.content || result.result?.content?.[0] || "Generated content",
+        imageUrl: result.result?.image?.imageUrl || "https://via.placeholder.com/800x600?text=No+Image",
       });
       
       // Stage 4: Review
       updateStage(4, { status: "processing" });
       setCurrentStageIndex(4);
       setOverallProgress(85);
+      setIsGenerating(false);
       
-    } catch (error) {
-      updateStage(currentStageIndex, { 
+    } catch (error: any) {
+      console.error('Generation error:', error);
+      updateStage(currentStageIndex >= 0 ? currentStageIndex : 2, { 
         status: "error", 
-        error: "Generation failed. Please try again." 
+        error: error.message || "Generation failed. Please try again." 
       });
+      setIsGenerating(false);
     }
   };
 
@@ -232,15 +301,67 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
     setOverallProgress(95);
   };
 
-  const finishGeneration = () => {
-    updateStage(5, { status: "completed" });
-    setOverallProgress(100);
-    setCurrentStageIndex(6);
+  const finishGeneration = async () => {
+    if (!generatedContent) return;
     
-    setTimeout(() => {
-      onComplete?.(generatedContent);
-      onClose();
-    }, 1000);
+    updateStage(5, { status: "processing" });
+    setCurrentStageIndex(5);
+    
+    try {
+      // Get user
+      const { supabase } = await import('@/lib/supabaseClient');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Save post to database
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          title: generatedContent.title,
+          content: generatedContent.content,
+          imageUrl: generatedContent.imageUrl,
+          category: 'tech', // Default
+          lane: selectedLane === 'url' ? 'url' : 'custom',
+          platforms: [
+            { platform: 'linkedin', content: generatedContent.content },
+            { platform: 'x', content: generatedContent.content },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save post');
+      }
+
+      updateStage(5, { status: "completed" });
+      setOverallProgress(100);
+      setCurrentStageIndex(6);
+      
+      toast({
+        title: "Content Generated",
+        description: "Your new content has been added to drafts.",
+      });
+      
+      setTimeout(() => {
+        onComplete?.(generatedContent);
+        onClose();
+      }, 1000);
+    } catch (error: any) {
+      console.error('Save error:', error);
+      updateStage(5, { 
+        status: "error", 
+        error: error.message || "Failed to save post. Please try again." 
+      });
+      toast({
+        title: "Save Failed",
+        description: error.message || "Failed to save post. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const isInputStage = currentStageIndex === -1;
