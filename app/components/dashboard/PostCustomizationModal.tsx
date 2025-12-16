@@ -22,6 +22,7 @@ import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal"
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
+import { getUserFriendlyErrorMessage } from "@/lib/error-messages";
 
 // Social Platform Icons
 const IconLinkedIn = ({ className = "h-5 w-5" }: { className?: string }) => (
