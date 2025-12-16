@@ -27,6 +27,7 @@ import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
 import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal";
 import { useAuth } from "@/hooks/use-auth";
 import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
+import { convertToUTC, getUserTimezone } from "@/lib/timezone-utils";
 
 type StageStatus = "pending" | "processing" | "completed" | "error" | "skipped";
 type GenerationLane = "url" | "prompt";
