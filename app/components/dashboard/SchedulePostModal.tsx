@@ -139,7 +139,12 @@ export function SchedulePostModal({
 
   const handleSchedule = () => {
     if (selectedDraft && selectedDate && selectedTime) {
-      onSchedule?.(selectedDraft.id, selectedDate, selectedTime);
+      // Convert to UTC using user's timezone
+      const timezone = getUserTimezone();
+      const utcISOString = convertToUTC(selectedDate, selectedTime, timezone);
+      
+      // Pass UTC ISO string instead of separate date/time
+      onSchedule?.(selectedDraft.id, selectedDate, selectedTime, utcISOString);
       handleClose();
     }
   };

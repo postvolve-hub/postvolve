@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadModal } from "@/components/dashboard/ImageUploadModal";
 import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
+import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
@@ -176,9 +177,13 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
       }
     } catch (error: any) {
       console.error('Error regenerating image:', error);
+      const errorMessage = getUserFriendlyErrorMessage(
+        error.message || error,
+        { action: 'regenerate image' }
+      );
       toast({
         title: "Error",
-        description: error.message || "Failed to regenerate image. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -310,14 +315,19 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
             <SchedulePostModal
               isOpen={scheduleModalOpen}
               onClose={() => setScheduleModalOpen(false)}
-              onSchedule={async (postId, date, time) => {
+              onSchedule={async (postId, date, time, utcISOString) => {
                 if (!user) return;
                 
                 try {
-                  // Combine date and time into ISO string
-                  // Ensure time is in HH:MM format (24-hour)
-                  const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
-                  const scheduledAt = new Date(`${date}T${timeFormatted}:00`).toISOString();
+                  // Use provided UTC ISO string if available, otherwise convert
+                  let scheduledAt: string;
+                  if (utcISOString) {
+                    scheduledAt = utcISOString;
+                  } else {
+                    const timezone = getUserTimezone();
+                    const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
+                    scheduledAt = convertToUTC(date, timeFormatted, timezone);
+                  }
                   
                   const response = await fetch('/api/scheduler/posts', {
                     method: 'POST',
@@ -590,9 +600,13 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                     setScheduleModalOpen(true);
                   } catch (error: any) {
                     console.error('Update error:', error);
+                    const errorMessage = getUserFriendlyErrorMessage(
+                      error.message || error,
+                      { action: 'update post' }
+                    );
                     toast({
                       title: "Update Failed",
-                      description: error.message || 'Failed to update post. Please try again.',
+                      description: errorMessage,
                       variant: "destructive",
                     });
                   }

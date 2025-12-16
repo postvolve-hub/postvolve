@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "@/hooks/use-toast";
 import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
+import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal";
 import { useAuth } from "@/hooks/use-auth";
 import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
 
@@ -136,6 +137,9 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
   } | null>(null);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [generatedPostId, setGeneratedPostId] = useState<string | null>(null);
+  const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
+  const [publishResults, setPublishResults] = useState<any[]>([]);
+  const [isValidating, setIsValidating] = useState(false);
 
   // Manage image preview URL
   useEffect(() => {
@@ -804,14 +808,19 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
         <SchedulePostModal
           isOpen={scheduleModalOpen}
           onClose={() => setScheduleModalOpen(false)}
-          onSchedule={async (postId, date, time) => {
+          onSchedule={async (postId, date, time, utcISOString) => {
             if (!user) return;
             
             try {
-              // Combine date and time into ISO string
-              // Ensure time is in HH:MM format (24-hour)
-              const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
-              const scheduledAt = new Date(`${date}T${timeFormatted}:00`).toISOString();
+              // Use provided UTC ISO string if available, otherwise convert
+              let scheduledAt: string;
+              if (utcISOString) {
+                scheduledAt = utcISOString;
+              } else {
+                const timezone = getUserTimezone();
+                const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
+                scheduledAt = convertToUTC(date, timeFormatted, timezone);
+              }
               
               const response = await fetch('/api/scheduler/posts', {
                 method: 'POST',
@@ -847,6 +856,16 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
           }}
         />
       )}
+
+      <PublishSuccessModal
+        isOpen={publishSuccessOpen}
+        onClose={() => {
+          setPublishSuccessOpen(false);
+          setPublishResults([]);
+        }}
+        results={publishResults}
+        postTitle={generatedContent?.title}
+      />
     </>
   );
 }

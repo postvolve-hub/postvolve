@@ -161,14 +161,21 @@ export default function Scheduler() {
     return scheduledPosts.filter(post => post.date === dateStr);
   };
 
-  const handleSchedulePost = async (postId: string | number, date: string, time: string) => {
+  const handleSchedulePost = async (postId: string | number, date: string, time: string, utcISOString?: string) => {
     if (!user) return;
 
     try {
-      // Combine date and time into ISO string
-      // Ensure time is in HH:MM format (24-hour)
-      const timeFormatted = time.includes(':') ? time.split(':').slice(0, 2).join(':') : time;
-      const scheduledAt = new Date(`${date}T${timeFormatted}:00`).toISOString();
+      // Use provided UTC ISO string if available, otherwise convert
+      let scheduledAt: string;
+      if (utcISOString) {
+        scheduledAt = utcISOString;
+      } else {
+        // Fallback: convert using timezone utils
+        const { convertToUTC, getUserTimezone } = await import('@/lib/timezone-utils');
+        const timezone = getUserTimezone();
+        const timeFormatted = time.includes(':') ? time.split(':').slice(0, 2).join(':') : time;
+        scheduledAt = convertToUTC(date, timeFormatted, timezone);
+      }
 
       const response = await fetch('/api/scheduler/posts', {
         method: 'POST',

@@ -9,7 +9,11 @@ import {
   Filter,
   MoreHorizontal,
   Plus,
-  Play
+  Play,
+  Search,
+  CheckSquare,
+  Square,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -20,6 +24,7 @@ import { ConfirmationModal } from "@/components/dashboard/ConfirmationModal";
 import { EmptyState } from "@/components/dashboard/EmptyState";
 import { LockOverlay } from "@/components/dashboard/LockOverlay";
 import { PaymentUpdatePrompt } from "@/components/dashboard/PaymentUpdatePrompt";
+import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabaseClient";
@@ -99,6 +104,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function ContentGeneration() {
   const { user } = useAuth();
+  const { hasAnyConnectedAccount, isLoading: isLoadingAccounts } = useConnectedAccounts(user?.id || null);
   const [selectedStatus, setSelectedStatus] = useState<"all" | "draft" | "scheduled" | "posted">("all");
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -111,6 +117,13 @@ export default function ContentGeneration() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [permissions, setPermissions] = useState<any>(null);
+  const [publishSuccessOpen, setPublishSuccessOpen] = useState(false);
+  const [publishResults, setPublishResults] = useState<any[]>([]);
+  const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
+  const [isBulkMode, setIsBulkMode] = useState(false);
 
   // Fetch subscription and check permissions
   useEffect(() => {
@@ -191,7 +204,7 @@ export default function ContentGeneration() {
     };
   }, [user]);
 
-  // Filter by status only
+  // Filter by status and search query
   const filteredContent = content.filter(post => {
     // Status filter
     if (selectedStatus !== "all") {
@@ -207,6 +220,17 @@ export default function ContentGeneration() {
         if (!hasPosted) {
           return false;
         }
+      }
+    }
+    
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesTitle = post.title?.toLowerCase().includes(query);
+      const matchesContent = post.content?.toLowerCase().includes(query);
+      const matchesCategory = post.category?.toLowerCase().includes(query);
+      if (!matchesTitle && !matchesContent && !matchesCategory) {
+        return false;
       }
     }
     
@@ -370,6 +394,85 @@ export default function ContentGeneration() {
           </div>
         </div>
 
+        {/* Search and Bulk Actions Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center animate-in slide-in-from-bottom-2 duration-500 delay-50">
+          {/* Search */}
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search posts by title, content, or category..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#6D28D9]/20 focus:border-[#6D28D9]/30 transition-all"
+            />
+          </div>
+
+          {/* Bulk Actions */}
+          <div className="flex gap-2 items-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setIsBulkMode(!isBulkMode);
+                if (isBulkMode) {
+                  setSelectedPosts(new Set());
+                }
+              }}
+              className="border-gray-200 text-gray-600 hover:bg-gray-50"
+            >
+              {isBulkMode ? (
+                <>
+                  <Square className="h-4 w-4 mr-2" />
+                  Cancel Selection
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="h-4 w-4 mr-2" />
+                  Select Multiple
+                </>
+              )}
+            </Button>
+            
+            {isBulkMode && selectedPosts.size > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  if (!user || selectedPosts.size === 0) return;
+                  
+                  try {
+                    const deletePromises = Array.from(selectedPosts).map(postId =>
+                      fetch(`/api/posts/${postId}?userId=${user.id}`, { method: 'DELETE' })
+                    );
+                    
+                    await Promise.all(deletePromises);
+                    
+                    toast({
+                      title: "Posts Deleted",
+                      description: `Successfully deleted ${selectedPosts.size} post${selectedPosts.size > 1 ? 's' : ''}.`,
+                    });
+                    
+                    setSelectedPosts(new Set());
+                    setIsBulkMode(false);
+                    await refreshPosts();
+                  } catch (error: any) {
+                    toast({
+                      title: "Delete Failed",
+                      description: error.message || "Failed to delete posts. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                className="border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete ({selectedPosts.size})
+              </Button>
+            )}
+          </div>
+        </div>
+
         {/* Status Filter */}
         <div className="flex flex-wrap gap-2 animate-in slide-in-from-bottom-2 duration-500 delay-75">
           <button
@@ -482,38 +585,114 @@ export default function ContentGeneration() {
                             onClick={async () => {
                               if (!user) return;
                               
+                              setIsValidating(true);
+                              setPublishingPostId(post.id);
+                              
                               try {
+                                // Step 1: Validate platform connections
+                                const validateResponse = await fetch(
+                                  `/api/posts/${post.id}/validate-platforms?userId=${user.id}`
+                                );
+                                
+                                if (!validateResponse.ok) {
+                                  throw new Error('Failed to validate platform connections');
+                                }
+                                
+                                const validation = await validateResponse.json();
+                                
+                                if (!validation.valid) {
+                                  setIsValidating(false);
+                                  setPublishingPostId(null);
+                                  toast({
+                                    title: "Platforms Not Connected",
+                                    description: validation.message || "Please connect your social media accounts before publishing.",
+                                    variant: "destructive",
+                                  });
+                                  
+                                  // Redirect to settings if no accounts connected
+                                  if (validation.summary.missingPlatforms.length > 0 || 
+                                      validation.summary.expiredPlatforms.length > 0) {
+                                    setTimeout(() => {
+                                      window.location.href = '/dashboard/settings';
+                                    }, 2000);
+                                  }
+                                  return;
+                                }
+                                
+                                // Step 2: Get platforms from post
+                                const platforms = post.post_platforms?.map((pp: any) => 
+                                  pp.platform === 'twitter' ? 'x' : pp.platform
+                                ) || [];
+                                
+                                // Step 3: Publish
                                 const response = await fetch(`/api/posts/${post.id}/publish`, {
                                   method: 'POST',
                                   headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ userId: user.id }),
+                                  body: JSON.stringify({ 
+                                    userId: user.id,
+                                    platforms: platforms.length > 0 ? platforms : undefined,
+                                  }),
                                 });
+
+                                const result = await response.json();
 
                                 if (!response.ok) {
-                                  const error = await response.json();
-                                  throw new Error(error.message || 'Failed to publish post');
+                                  throw new Error(result.message || 'Failed to publish post');
                                 }
 
-                                toast({
-                                  title: "Post Published",
-                                  description: "Your post has been published successfully!",
-                                });
-
+                                // Step 4: Show success modal with results
+                                setPublishResults(result.results || []);
+                                setPublishSuccessOpen(true);
+                                setPublishingPostId(null);
+                                setIsValidating(false);
+                                
                                 await refreshPosts();
                               } catch (error: any) {
                                 console.error('Publish error:', error);
+                                setIsValidating(false);
+                                setPublishingPostId(null);
+                                
+                                const errorResponse = error.response?.data || error;
+                                const errorMessage = getUserFriendlyErrorMessage(
+                                  errorResponse?.message || error.message || error,
+                                  { platform: post.post_platforms?.[0]?.platform, postId: post.id }
+                                );
+                                
+                                const actionable = getActionableErrorMessage(
+                                  errorResponse?.message || error.message || error,
+                                  { platform: post.post_platforms?.[0]?.platform }
+                                );
+                                
                                 toast({
                                   title: "Publish Failed",
-                                  description: error.message || "Failed to publish post. Please try again.",
+                                  description: errorMessage,
                                   variant: "destructive",
+                                  action: actionable.action ? (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => window.location.href = actionable.action!.href}
+                                    >
+                                      {actionable.action.label}
+                                    </Button>
+                                  ) : undefined,
                                 });
                               }
                             }}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 rounded-xl h-9 text-sm"
-                            disabled={!permissions?.canViewDrafts}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 rounded-xl h-9 text-sm disabled:opacity-50"
+                            disabled={!permissions?.canViewDrafts || isValidating || publishingPostId === post.id}
                           >
-                            <Play className="h-3.5 w-3.5 mr-2" />
-                            Post Now
+                            {isValidating && publishingPostId === post.id ? (
+                              <>
+                                <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                                Publishing...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-3.5 w-3.5 mr-2" />
+                                Post Now
+                              </>
+                            )}
                           </Button>
                         </div>
                         <div className="flex gap-2 min-w-0">
@@ -607,6 +786,27 @@ export default function ContentGeneration() {
             description: "Your new content has been added to drafts.",
           });
           refreshPosts();
+        }}
+      />
+
+      <PublishSuccessModal
+        isOpen={publishSuccessOpen}
+        onClose={() => {
+          setPublishSuccessOpen(false);
+          setPublishResults([]);
+        }}
+        results={publishResults}
+        postTitle={selectedPost?.title}
+        onRetry={() => {
+          setPublishSuccessOpen(false);
+          // Retry logic will be handled by the publish button click
+          if (publishingPostId) {
+            // Trigger retry for failed platforms
+            const failedPlatforms = publishResults
+              .filter(r => !r.success)
+              .map(r => r.platform);
+            // This will be handled by the publish endpoint
+          }
         }}
       />
     </DashboardLayout>

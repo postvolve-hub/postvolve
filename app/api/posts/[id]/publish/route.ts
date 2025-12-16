@@ -118,9 +118,9 @@ export async function POST(
     const userId = body?.userId as string | undefined;
     const platforms = body?.platforms as string[] | undefined;
 
-    if (!userId || !platforms || platforms.length === 0) {
+    if (!userId) {
       return NextResponse.json(
-        { error: 'missing_params', message: 'userId and platforms are required' },
+        { error: 'missing_params', message: 'userId is required' },
         { status: 400 }
       );
     }
@@ -142,14 +142,68 @@ export async function POST(
       );
     }
 
+    // If platforms not provided, get from post_platforms
+    if (!platforms || platforms.length === 0) {
+      platforms = (post.post_platforms as any[])
+        ?.filter((pp: any) => pp.status === 'draft' || pp.status === 'scheduled')
+        .map((pp: any) => pp.platform === 'twitter' ? 'x' : pp.platform) || [];
+    }
+
+    if (platforms.length === 0) {
+      return NextResponse.json(
+        { error: 'no_platforms', message: 'No platforms selected for publishing' },
+        { status: 400 }
+      );
+    }
+
+    // Validate platform connections before publishing
+    const { validatePlatformConnections } = await import('@/lib/platform-validation');
+    const validation = await validatePlatformConnections(userId, platforms);
+    
+    if (!validation.allConnected) {
+      const missing = validation.missingPlatforms.join(', ');
+      const expired = validation.expiredPlatforms.join(', ');
+      let errorMsg = 'Some platforms are not connected: ';
+      if (missing) errorMsg += missing;
+      if (expired) errorMsg += (missing ? ', ' : '') + expired + ' (expired)';
+      
+      return NextResponse.json(
+        { 
+          error: 'platforms_not_connected', 
+          message: errorMsg,
+          validation: validation,
+        },
+        { status: 400 }
+      );
+    }
+
     // Update post status
     await supabaseAdmin
       .from('posts')
       .update({ status: 'publishing' })
       .eq('id', postId);
 
+    // Helper function to generate platform URLs
+    const getPlatformUrl = (platform: string, postId: string): string | null => {
+      const urlMap: Record<string, (id: string) => string> = {
+        linkedin: (id) => `https://www.linkedin.com/feed/update/${id}`,
+        x: (id) => `https://x.com/i/web/status/${id}`,
+        twitter: (id) => `https://x.com/i/web/status/${id}`,
+        facebook: (id) => `https://www.facebook.com/${id}`,
+        instagram: (id) => `https://www.instagram.com/p/${id}/`,
+      };
+      
+      const urlGenerator = urlMap[platform.toLowerCase()];
+      if (!urlGenerator) return null;
+      try {
+        return urlGenerator(postId);
+      } catch {
+        return null;
+      }
+    };
+
     // Publish to each platform
-    const publishResults: Array<{ platform: string; success: boolean; postId?: string; error?: string }> = [];
+    const publishResults: Array<{ platform: string; success: boolean; postId?: string; url?: string; error?: string }> = [];
 
     for (const platform of platforms) {
       try {
@@ -184,13 +238,16 @@ export async function POST(
             throw new Error(`Unknown platform: ${platform}`);
         }
 
+        // Generate platform URL
+        const platformUrl = result.postId ? getPlatformUrl(platform, result.postId) : null;
+
         // Update platform entry
         await supabaseAdmin
           .from('post_platforms')
           .update({
             status: 'posted',
             platform_post_id: result.postId,
-            posted_at: new Date().toISOString(), // FIX: Use posted_at not published_at
+            posted_at: new Date().toISOString(),
           })
           .eq('id', platformContent.id);
 
@@ -198,6 +255,7 @@ export async function POST(
           platform,
           success: true,
           postId: result.postId,
+          url: platformUrl || undefined,
         });
       } catch (error: any) {
         console.error(`[Publish] Error publishing to ${platform}:`, error);
@@ -216,7 +274,7 @@ export async function POST(
         publishResults.push({
           platform,
           success: false,
-          error: error.message,
+          error: error.message || 'Unknown error occurred',
         });
       }
     }
