@@ -116,7 +116,7 @@ export async function POST(
     const postId = params.id;
     const body = await request.json().catch(() => null);
     const userId = body?.userId as string | undefined;
-    const platforms = body?.platforms as string[] | undefined;
+    let platforms = body?.platforms as string[] | undefined;
 
     if (!userId) {
       return NextResponse.json(
