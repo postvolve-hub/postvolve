@@ -30,7 +30,7 @@ const IconX = ({ className = "h-4 w-4" }: { className?: string }) => (
 interface SchedulePostModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSchedule?: (postId: string | number, date: string, time: string) => void;
+  onSchedule?: (postId: string | number, date: string, time: string, utcISOString?: string) => void;
   preselectedDate?: string;
 }
 
