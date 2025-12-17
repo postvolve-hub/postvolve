@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Rethink_Sans, Plus_Jakarta_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const inter = Inter({
+const rethinkSans = Rethink_Sans({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
@@ -46,7 +46,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth" data-scroll-behavior="smooth">
-      <body className={`${inter.variable} ${plusJakarta.variable} font-sans`}>
+      <body className={`${rethinkSans.variable} ${plusJakarta.variable} font-sans`}>
         <Providers>{children}</Providers>
       </body>
     </html>
