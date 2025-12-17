@@ -68,3 +68,5 @@ The function is automatically called by `pg_cron` every 10 minutes. You can also
 See `EDGE_FUNCTION_SETUP.md` for detailed troubleshooting guide.
 
 
+
+

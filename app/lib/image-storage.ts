@@ -96,3 +96,5 @@ export function isExternalImageUrl(url: string): boolean {
   return url.startsWith('http://') || url.startsWith('https://');
 }
 
+
+
