@@ -30,6 +30,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabaseClient";
 import { getAccessPermissions, type Subscription } from "@/lib/subscription-access";
 import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
+import { useConnectedAccounts } from "@/lib/hooks/use-connected-accounts";
+import { getUserFriendlyErrorMessage, getActionableErrorMessage } from "@/lib/error-messages";
 
 // Custom Icons
 const IconSparkles = ({ className = "h-4 w-4" }: { className?: string }) => (
