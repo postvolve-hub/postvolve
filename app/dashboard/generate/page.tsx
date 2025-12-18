@@ -357,8 +357,8 @@ export default function ContentGeneration() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-in slide-in-from-bottom-2 duration-500">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">News Card Generation</h2>
-            <p className="text-sm text-gray-500 mt-1">Review and customize AI-generated news cards for your audience.</p>
+            <h2 className="text-xl font-bold text-gray-900">Content Generation</h2>
+            <p className="text-sm text-gray-500 mt-1">Review and customize AI-generated viral-ready posts for your audience.</p>
           </div>
           <div className="flex gap-2 relative">
             {permissions && !permissions.canGenerateContent && (

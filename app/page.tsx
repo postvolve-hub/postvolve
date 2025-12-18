@@ -3,7 +3,7 @@
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Check, ArrowRight } from "lucide-react";
+import { Check, ArrowRight, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,8 +36,8 @@ const IconViralTemplates = () => (
   </svg>
 );
 
-const IconScheduling = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-purple-500">
+const IconScheduling = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className || "h-6 w-6 text-purple-500"}>
     <path d="M8 2v4" />
     <path d="M16 2v4" />
     <rect width="18" height="18" x="3" y="4" rx="2" />
@@ -84,8 +84,8 @@ const IconMotivation = () => (
 );
 
 // Stats Section Custom Icons
-const IconTrendingUp = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary">
+const IconTrendingUp = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className || "h-6 w-6 text-primary"}>
     <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
     <polyline points="16 7 22 7 22 13" />
   </svg>
@@ -100,8 +100,8 @@ const IconUsers = () => (
   </svg>
 );
 
-const IconZap = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary">
+const IconZap = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className || "h-6 w-6 text-primary"}>
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
   </svg>
 );
@@ -281,38 +281,65 @@ const Hero = () => {
       <div className="container mx-auto px-4 md:px-6 flex flex-col items-center text-center relative z-20">
         
         <FadeIn delay={0.1}>
-          <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-primary bg-primary/10 hover:bg-primary/20 border-primary/20 rounded-full text-xs font-semibold tracking-wide uppercase transition-all duration-300">
-            Automated Authority
+          <Badge variant="secondary" className="mb-5 px-3.5 py-1 text-primary bg-primary/10 hover:bg-primary/20 border-primary/20 rounded-full text-[11px] font-semibold tracking-wide uppercase transition-all duration-300">
+            Viral-Ready Posts on Autopilot
           </Badge>
         </FadeIn>
 
         <FadeIn delay={0.2}>
-          <h1 className="font-heading text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground max-w-4xl mb-6 leading-[1.1]">
-            Viral News Cards That Drive <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-600">Real Engagement.</span>
+          <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground max-w-4xl mb-5 leading-[1.15]">
+            Get Viral-Ready Posts <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-600">Generated & Published Automatically</span>
           </h1>
         </FadeIn>
 
         <FadeIn delay={0.3}>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mb-10 leading-relaxed mx-auto">
-            Generate, Schedule, Post, and Analyze Viral News Cards, Automatically. 
-            Stop spending hours researching and designing daily.
+          <p className="text-base md:text-lg text-foreground max-w-3xl mb-3 leading-relaxed mx-auto font-medium">
+            Set your schedule once. We handle everything—generation, optimization, and publishing across LinkedIn, X, Facebook, and Instagram.
           </p>
+          <p className="text-sm md:text-base text-muted-foreground max-w-2xl mb-6 leading-relaxed mx-auto">
+            Join 500+ entrepreneurs and marketers saving 10 hours per week on content creation.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mt-6 mb-6">
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-primary/5 rounded-lg border border-primary/20">
+              <Check className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-xs md:text-sm font-semibold text-foreground">2 Minutes Per Day</span>
+            </div>
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-primary/5 rounded-lg border border-primary/20">
+              <Check className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-xs md:text-sm font-semibold text-foreground">10 Hours Saved Per Week</span>
+            </div>
+            <div className="flex items-center gap-2 px-3.5 py-2 bg-primary/5 rounded-lg border border-primary/20">
+              <Check className="h-4 w-4 text-primary flex-shrink-0" />
+              <span className="text-xs md:text-sm font-semibold text-foreground">Works 24/7 Automatically</span>
+            </div>
+          </div>
         </FadeIn>
 
-        <FadeIn delay={0.4} className="w-full max-w-2xl mt-6 mb-8 md:mb-20">
+        <FadeIn delay={0.4} className="w-full max-w-2xl mt-4 mb-8 md:mb-20">
           <div className="flex flex-col sm:flex-row items-center gap-3 mb-4">
             <Input 
               type="email" 
               placeholder="Enter your work email address..." 
-              className="h-20 sm:h-12 rounded-lg border-muted-foreground/20 focus-visible:ring-primary transition-all duration-300 flex-1 w-full sm:w-auto text-lg sm:text-sm placeholder:text-base sm:placeholder:text-base px-5 sm:px-3"
+              className="h-12 rounded-lg border-muted-foreground/20 focus-visible:ring-primary transition-all duration-300 flex-1 w-full sm:w-auto text-sm placeholder:text-sm px-4"
             />
-            <Button size="lg" className="w-full sm:w-auto h-14 sm:h-12 px-8 bg-primary hover:bg-primary/90 text-white font-semibold shadow-xl shadow-primary/25 transition-all duration-300 hover:scale-105 whitespace-nowrap text-base sm:text-sm">
-              Get Started Free
+            <Button size="lg" className="w-full sm:w-auto h-12 px-6 bg-primary hover:bg-primary/90 text-white font-semibold shadow-xl shadow-primary/25 transition-all duration-300 hover:scale-105 whitespace-nowrap text-sm">
+              Start Free Trial →
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            7-day free trial. Connect accounts instantly.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span>7-day free trial</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span>Cancel anytime</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span>Set it once, forget it forever</span>
+            </div>
+          </div>
         </FadeIn>
 
         {/* Dashboard Mockup - Mac Window Style with 3D Scroll Effect */}
@@ -425,17 +452,17 @@ const Features = () => {
     {
       icon: <IconSixSecond />,
       title: "The 6-Second Content Engine",
-      description: "Our asynchronous backend pulls fresh data and generates full visual assets and captions, ready for review in under 6 seconds.",
+      description: "Our AI engine generates full visual assets and captions, optimized for each platform, ready for review in under 6 seconds.",
     },
     {
       icon: <IconViralTemplates />,
-      title: "Viral News Card Templates",
-      description: "Automatically applies high-contrast, data-driven design to ensure your posts cut through the noise and are instantly shareable.",
+      title: "Viral-Ready Post Optimization",
+      description: "Automatically applies platform-specific optimization to ensure your posts cut through the noise and are instantly shareable.",
     },
     {
       icon: <IconScheduling />,
-      title: "Set It and Forget It Posting",
-      description: "Connect your social accounts, select your posting category (Tech, AI, Business), and enable the daily auto-scheduler.",
+      title: "Set It Once, Forget It Forever",
+      description: "Connect your social accounts, select your categories, and set your schedule. We handle everything else—generation, optimization, and publishing—automatically.",
     }
   ];
 
@@ -448,7 +475,7 @@ const Features = () => {
               The Content Engine That Replaces 4 Tools
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Streamline your entire social media workflow from ideation to publication.
+              Full automation with minimal interference. We handle research, creation, and publishing. You just review and approve.
             </p>
           </FadeIn>
         </div>
@@ -472,6 +499,281 @@ const Features = () => {
             </StaggerItem>
           ))}
         </StaggerContainer>
+      </div>
+    </section>
+  );
+};
+
+const HowItWorks = () => {
+  const steps = [
+    {
+      number: "1",
+      title: "Set Your Schedule",
+      subtitle: "One-Time Setup",
+      description: "Choose your posting times, select categories (Tech, AI, Business, Motivation), and connect your social accounts. Takes 5 minutes.",
+      icon: <IconScheduling />
+    },
+    {
+      number: "2",
+      title: "We Do The Work",
+      subtitle: "Automatic",
+      description: "We generate viral-ready posts (visual + text) optimized for each platform. Content is created from trending topics and your selected categories. (News scraping from trending sources coming soon)",
+      icon: <IconZap />
+    },
+    {
+      number: "3",
+      title: "You Review & Approve",
+      subtitle: "2 Minutes/Day",
+      description: "Review generated drafts, edit if needed, and approve for publishing. Full control while maintaining automation.",
+      icon: <CheckCircle className="h-6 w-6 text-primary" />
+    },
+    {
+      number: "4",
+      title: "We Publish Automatically",
+      subtitle: "24/7",
+      description: "Posts go live at scheduled times across all platforms. Analytics tracked automatically. Your authority grows while you sleep.",
+      icon: <IconTrendingUp />
+    }
+  ];
+
+  return (
+    <section id="how-it-works" className="py-24 bg-background">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="text-center mb-16">
+          <FadeIn>
+            <Badge variant="outline" className="mb-4 text-primary border-primary/20 bg-primary/5">
+              Simple Process
+            </Badge>
+            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
+              How It Works: Set It Once, Forget It Forever
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              Full automation with minimal interference.
+            </p>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              We handle everything—you just review and approve.
+            </p>
+          </FadeIn>
+        </div>
+
+        <StaggerContainer className="max-w-5xl mx-auto">
+          {steps.map((step, index) => (
+            <StaggerItem key={index}>
+              <Card className="border-border/40 bg-background hover:bg-secondary/10 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 mb-6">
+                <CardContent className="p-6 md:p-8">
+                  <div className="flex flex-col md:flex-row items-start gap-6">
+                    <div className="flex-shrink-0">
+                      <div className="relative">
+                        <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-primary/10 to-blue-500/10 flex items-center justify-center text-primary">
+                          {step.icon}
+                        </div>
+                        <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">
+                          {step.number}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CardTitle className="text-xl font-semibold">{step.title}</CardTitle>
+                        <Badge variant="outline" className="text-xs">{step.subtitle}</Badge>
+                      </div>
+                      <CardDescription className="text-base leading-relaxed">
+                        {step.description}
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </StaggerItem>
+          ))}
+        </StaggerContainer>
+      </div>
+    </section>
+  );
+};
+
+const AutomationAdvantage = () => {
+  return (
+    <section className="py-24 bg-secondary/30">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="text-center mb-16">
+          <FadeIn>
+            <Badge variant="outline" className="mb-4 text-primary border-primary/20 bg-primary/5">
+              Time Savings
+            </Badge>
+            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
+              10 Hours of Work → 2 Minutes of Review
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              See exactly how much time you'll save with full automation.
+            </p>
+          </FadeIn>
+        </div>
+
+        <FadeIn delay={0.2}>
+          <div className="max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Manual Process */}
+              <Card className="border-red-200/50 bg-red-50/30 flex flex-col h-full">
+                <CardHeader>
+                  <CardTitle className="text-xl text-red-700">Manual Process</CardTitle>
+                  <CardDescription className="text-red-600">Per Week</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col flex-grow">
+                  <div className="space-y-4 flex-grow">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">Research</span>
+                      <span className="font-semibold text-gray-900">2 hours</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">Writing</span>
+                      <span className="font-semibold text-gray-900">3 hours</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">Design</span>
+                      <span className="font-semibold text-gray-900">2 hours</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">Scheduling</span>
+                      <span className="font-semibold text-gray-900">1 hour</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">Publishing</span>
+                      <span className="font-semibold text-gray-900">2 hours</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-red-200 pt-4 mt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-lg text-red-700">Total</span>
+                      <span className="font-bold text-2xl text-red-700">10 hours</span>
+                    </div>
+                    <div className="mt-2 text-sm text-red-700/70">
+                      All manual work, every week
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* With PostVolve */}
+              <Card className="border-primary/30 bg-primary/5 flex flex-col h-full">
+                <CardHeader>
+                  <CardTitle className="text-xl text-primary">With PostVolve</CardTitle>
+                  <CardDescription className="text-primary/70">Per Week</CardDescription>
+                </CardHeader>
+                <CardContent className="flex flex-col flex-grow">
+                  <div className="space-y-4 flex-grow">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-700">Review & Approve</span>
+                      <span className="font-semibold text-gray-900">14 minutes</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500 line-through">Research</span>
+                      <span className="text-sm text-gray-500">Automated</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500 line-through">Writing</span>
+                      <span className="text-sm text-gray-500">Automated</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500 line-through">Design</span>
+                      <span className="text-sm text-gray-500">Automated</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500 line-through">Scheduling</span>
+                      <span className="text-sm text-gray-500">Automated</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-500 line-through">Publishing</span>
+                      <span className="text-sm text-gray-500">Automated</span>
+                    </div>
+                  </div>
+                  <div className="border-t border-primary/20 pt-4 mt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-lg text-primary">Total</span>
+                      <span className="font-bold text-2xl text-primary">14 minutes</span>
+                    </div>
+                    <div className="mt-2 text-sm text-primary/70">
+                      Time Saved: <span className="font-semibold">9.75 hours/week</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </FadeIn>
+      </div>
+    </section>
+  );
+};
+
+const ReviewWorkflow = () => {
+  return (
+    <section className="py-24 bg-background">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="text-center mb-16">
+          <FadeIn>
+            <Badge variant="outline" className="mb-4 text-primary border-primary/20 bg-primary/5">
+              Full Control
+            </Badge>
+            <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
+              Full Automation, Full Control
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+              We generate automatically. You review before publishing. Best of both worlds.
+            </p>
+          </FadeIn>
+        </div>
+
+        <FadeIn delay={0.2}>
+          <div className="max-w-4xl mx-auto">
+            <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-blue-500/5">
+              <CardContent className="p-8 md:p-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <IconZap className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">We Generate Automatically</h3>
+                        <p className="text-muted-foreground">AI creates viral-ready posts 24/7 based on your schedule and categories.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">You Review Before Publishing</h3>
+                        <p className="text-muted-foreground">Every post requires your approval. Edit, customize, or regenerate—you're in control.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <IconScheduling className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">Edit If Needed</h3>
+                        <p className="text-muted-foreground">Full customization available. Modify text, regenerate images, or adjust timing.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <IconTrendingUp className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-lg mb-2">We Handle Publishing</h3>
+                        <p className="text-muted-foreground">Once approved, we publish automatically at scheduled times across all platforms.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </FadeIn>
       </div>
     </section>
   );
@@ -633,7 +935,7 @@ const Stats = () => {
       icon: <IconTrendingUp />,
       value: "10,000+",
       label: "Posts Generated",
-      description: "Viral news cards created"
+      description: "Viral-ready posts created"
     },
     {
       icon: <IconUsers />,
@@ -673,7 +975,7 @@ const Stats = () => {
               Trusted Results That Speak for Themselves
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-              Join hundreds of professionals who've transformed their social media presence with PostVolve's viral news cards.
+              Join hundreds of professionals who've transformed their social media presence with PostVolve's automated viral-ready posts.
             </p>
           </FadeIn>
         </div>
@@ -735,7 +1037,7 @@ const FinalCTA = () => {
               Ready to Build Your <span className="whitespace-nowrap inline-block"><span className="text-white font-extrabold">Automated</span> <span className="text-white/70 font-bold">Authority</span></span>?
             </h2>
             <p className="text-lg md:text-xl text-white/90 mb-10 leading-relaxed max-w-2xl mx-auto">
-              Join hundreds of thought leaders who've transformed their social media presence with viral news cards. Start your free 7-day trial today.
+              Join hundreds of thought leaders who've transformed their social media presence with automated viral-ready posts. Start your free 7-day trial today.
             </p>
           </FadeIn>
 
@@ -817,8 +1119,11 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
+        <HowItWorks />
         <ContentCategories />
         <Features />
+        <AutomationAdvantage />
+        <ReviewWorkflow />
         <Stats />
         <SocialProof />
         <FinalCTA />

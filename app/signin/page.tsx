@@ -324,7 +324,7 @@ function SignInContent() {
             transition={{ duration: 0.5, delay: 0.5 }}
             className="text-4xl font-bold mb-6"
           >
-            Generate Viral News Cards Automatically
+            Your Authority, Automated
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -332,14 +332,14 @@ function SignInContent() {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="text-lg text-white/80 mb-8"
           >
-            PostVolve helps you create viral news cards that drive real engagement. 
-            Stop spending hours researching and designing daily.
+            PostVolve generates viral-ready posts automatically and publishes them across all platforms. 
+            Set it once, forget it forever.
           </motion.p>
           <div className="space-y-4">
             {[
-              { num: "1", text: "AI-powered news card generation" },
-              { num: "2", text: "Schedule your news cards" },
-              { num: "3", text: "Automatically post to social media" },
+              { num: "1", text: "AI-powered viral-ready post generation" },
+              { num: "2", text: "Schedule your posts automatically" },
+              { num: "3", text: "Multi-platform publishing" },
               { num: "4", text: "Track engagement analytics" },
             ].map((item, index) => (
               <motion.div

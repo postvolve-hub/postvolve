@@ -21,17 +21,17 @@ export const metadata: Metadata = {
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
   ),
   title: "PostVolve - Automated Authority",
-  description: "Viral News Cards That Drive Real Engagement. Generate, Schedule, Post, and Analyze News Cards Automatically.",
+  description: "Viral-Ready Posts on Autopilot. Generate, Schedule, Post, and Analyze Social Media Posts Automatically.",
   openGraph: {
     title: "PostVolve - Automated Authority",
-    description: "Viral News Cards That Drive Real Engagement. Generate, Schedule, Post, and Analyze News Cards Automatically.",
+    description: "Viral-Ready Posts on Autopilot. Generate, Schedule, Post, and Analyze Social Media Posts Automatically.",
     type: "website",
     images: ["/opengraph.png"],
   },
   twitter: {
     card: "summary_large_image",
     title: "PostVolve - Automated Authority",
-    description: "Viral News Cards That Drive Real Engagement. Generate, Schedule, Post, and Analyze News Cards Automatically.",
+    description: "Viral-Ready Posts on Autopilot. Generate, Schedule, Post, and Analyze Social Media Posts Automatically.",
     images: ["/opengraph.png"],
   },
   icons: {

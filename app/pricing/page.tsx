@@ -466,25 +466,25 @@ const CompareAllPlans = () => {
 const FAQ = () => {
   const faqs = [
     {
-      question: "How does the news card generation work?",
+      question: "How does the viral-ready post generation work?",
       answer:
-        "PostVolve uses AI to pull the latest news and trends from your selected categories (Tech, AI, Business, Motivation, or a Custom content voice), then automatically generates visually compelling news cards with engaging captions. The entire process takes under 6 seconds, and you can review and customize before posting.",
+        "PostVolve uses AI to generate viral-ready posts (visual + text) based on your selected categories (Tech, AI, Business, Motivation, or Custom). The AI creates platform-optimized content in under 6 seconds. You review and approve before publishing. News scraping from trending sources is coming soon.",
     },
     {
-      question: "Can I customize the generated news cards?",
-      answer: "Absolutely! Every generated news card can be reviewed and edited. You can modify the caption, adjust the visual design, change the posting schedule, or regenerate if it doesn't match your style. Full control while maintaining automation."
+      question: "Can I customize the generated posts?",
+      answer: "Absolutely! Every generated post can be reviewed and edited. You can modify the caption, adjust the visual design, change the posting schedule, or regenerate if it doesn't match your style. Full control while maintaining automation."
     },
     {
       question: "Which social media platforms are supported?",
-      answer: "Currently, PostVolve supports LinkedIn and Twitter/X, with more platforms coming soon. You can connect multiple accounts and schedule posts across all of them simultaneously."
+      answer: "PostVolve supports LinkedIn, X (Twitter), Facebook, and Instagram. You can connect multiple accounts per platform and schedule posts across all of them simultaneously."
     },
     {
       question: "What happens during the free trial?",
-      answer: "The 7-day free trial gives you full access to all features. You can generate unlimited news cards, connect your social accounts, schedule posts, and access analytics. A card is required to start your trial, but you won't be charged until the trial ends. You can cancel anytime during the trial."
+      answer: "The 7-day free trial gives you full access to all features. You can generate unlimited viral-ready posts, connect your social accounts, schedule posts, and access analytics. A card is required to start your trial, but you won't be charged until the trial ends. You can cancel anytime during the trial."
     },
     {
       question: "How does the auto-posting scheduler work?",
-      answer: "Once enabled, PostVolve automatically generates fresh news cards daily and posts them at your preferred time. You can set different schedules for different categories, pause anytime, or review posts before they go live. You're always in control."
+      answer: "Set your schedule once. PostVolve automatically generates fresh viral-ready posts daily and posts them at your preferred time. You can set different schedules for different categories, pause anytime, or review posts before they go live. You're always in control."
     },
     {
       question: "Is there a limit on how many posts I can generate?",
@@ -571,7 +571,7 @@ const FinalCTA = () => {
               Ready to Build Your <span className="whitespace-nowrap inline-block"><span className="text-white font-extrabold">Automated</span> <span className="text-white/70 font-bold">Authority</span></span>?
             </h2>
             <p className="text-lg md:text-xl text-white/90 mb-10 leading-relaxed max-w-2xl mx-auto">
-              Join hundreds of thought leaders who've transformed their social media presence with viral news cards. Start your free 7-day trial today.
+              Join hundreds of thought leaders who've transformed their social media presence with automated viral-ready posts. Start your free 7-day trial today.
             </p>
           </FadeIn>
 
