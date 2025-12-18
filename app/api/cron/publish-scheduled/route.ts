@@ -85,9 +85,32 @@ async function handleCronRequest(request: NextRequest) {
     for (const post of scheduledPosts) {
       const postId = post.id;
       const userId = post.user_id;
-      const platforms = (post.post_platforms as any[])
+      
+      // Get platforms with scheduled status
+      let platforms = (post.post_platforms as any[])
         ?.filter((pp: any) => pp.status === 'scheduled')
         .map((pp: any) => pp.platform === 'twitter' ? 'x' : pp.platform) || [];
+
+      // FALLBACK: If no platforms have 'scheduled' status, check for draft/pending platforms
+      // This handles cases where post_platforms weren't updated during scheduling
+      if (platforms.length === 0) {
+        console.warn(`[Publish Scheduled] Post ${postId} has no scheduled platforms, checking for draft/pending...`);
+        const fallbackPlatforms = (post.post_platforms as any[])
+          ?.filter((pp: any) => pp.status === 'draft' || pp.status === 'pending')
+          .map((pp: any) => pp.platform === 'twitter' ? 'x' : pp.platform) || [];
+        
+        if (fallbackPlatforms.length > 0) {
+          console.log(`[Publish Scheduled] Using fallback platforms for post ${postId}: ${fallbackPlatforms.join(', ')}`);
+          platforms = fallbackPlatforms;
+          
+          // Update platform statuses to scheduled for consistency
+          await supabaseAdmin
+            .from('post_platforms')
+            .update({ status: 'scheduled' })
+            .eq('post_id', postId)
+            .in('status', ['draft', 'pending']);
+        }
+      }
 
       if (platforms.length === 0) {
         console.warn(`[Publish Scheduled] Post ${postId} has no platforms to publish to`);

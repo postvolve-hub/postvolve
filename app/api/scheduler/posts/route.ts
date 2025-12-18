@@ -107,8 +107,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // First, verify the post exists and belongs to the user
+    const { data: existingPost, error: fetchError } = await supabaseAdmin
+      .from('posts')
+      .select('id, status')
+      .eq('id', postId)
+      .eq('user_id', userId)
+      .single();
+
+    if (fetchError || !existingPost) {
+      console.error('[Scheduler Posts] Post not found or access denied:', fetchError);
+      return NextResponse.json(
+        { error: 'not_found', message: 'Post not found or access denied' },
+        { status: 404 }
+      );
+    }
+
     // Update post to scheduled status
-    const { data: post, error } = await supabaseAdmin
+    const { data: post, error: updateError } = await supabaseAdmin
       .from('posts')
       .update({
         status: 'scheduled',
@@ -119,17 +135,33 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) {
-      console.error('[Scheduler Posts] Error scheduling:', error);
+    if (updateError) {
+      console.error('[Scheduler Posts] Error updating post status:', updateError);
       return NextResponse.json(
         { error: 'database_error', message: 'Failed to schedule post' },
         { status: 500 }
       );
     }
 
+    // CRITICAL FIX: Update post_platforms status to 'scheduled' so cron job can find them
+    const { error: platformError } = await supabaseAdmin
+      .from('post_platforms')
+      .update({ status: 'scheduled' })
+      .eq('post_id', postId)
+      .in('status', ['draft', 'pending']); // Only update draft/pending platforms
+
+    if (platformError) {
+      console.error('[Scheduler Posts] Error updating platform status:', platformError);
+      // Don't fail the request, but log the error
+      // The post is scheduled, platforms will be checked during publishing
+    } else {
+      console.log(`[Scheduler Posts] Updated post_platforms to scheduled for post ${postId}`);
+    }
+
     return NextResponse.json({
       success: true,
       post,
+      message: 'Post scheduled successfully',
     });
   } catch (error: any) {
     console.error('[Scheduler Posts] Error:', error);
