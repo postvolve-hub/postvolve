@@ -247,11 +247,11 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
       />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div 
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-semibold text-gray-900">Customize Post</h2>
               <Badge variant="outline" className={`text-xs ${laneInfo.color}`}>
@@ -266,7 +266,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
             </button>
           </div>
 
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+          <div className="p-6 overflow-y-auto flex-1 min-h-0">
             {/* Image Section */}
             <div className="relative rounded-2xl overflow-hidden mb-6 bg-gray-100 group aspect-square">
               <img
@@ -475,55 +475,20 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                   </p>
                 )}
               </div>
-
-              {/* Platform Preview Card */}
-              <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Preview
-                </Label>
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  {/* Preview Header */}
-                  <div className="p-3 bg-gray-50 border-b border-gray-200 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6D28D9] to-[#4C1D95] flex items-center justify-center text-white font-semibold text-sm">
-                      PV
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">PostVolve User</p>
-                      <p className="text-xs text-gray-500">Just now • {currentPlatform?.name}</p>
-                    </div>
-                  </div>
-                  {/* Preview Content */}
-                  <div className="p-4">
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">
-                      {postContent || "Your post content will appear here..."}
-                    </p>
-                    {(currentImageUrl || post.image_url) && (
-                      <div className="mt-3 rounded-lg overflow-hidden">
-                        <img
-                          src={currentImageUrl || post.image_url || ''}
-                          alt="Preview"
-                          className="w-full h-40 object-cover"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-            {/* Main Action Buttons - Full Width, Stacked */}
-            <div className="flex flex-col gap-2 mb-3" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex-shrink-0">
+            {/* Main Action Buttons - Side by Side */}
+            <div className="flex gap-2 mb-3">
               <Button
-                className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl h-12 font-semibold"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                className="flex-1 bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl h-12 font-semibold"
                 onClick={async () => {
                   if (!post || !user) return;
                   
                   try {
-                    // Save the post with updated content first
+                    // Save the post with updated content
                     const response = await fetch(`/api/posts/${post.id}`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json' },
@@ -540,14 +505,16 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                     });
 
                     if (!response.ok) {
-                      throw new Error('Failed to update post');
+                      throw new Error('Failed to save post');
                     }
 
-                    // Post is already saved, modal stays open for editing
                     toast({
-                      title: "Changes Saved",
-                      description: "Your edits have been saved. Continue editing or publish when ready.",
+                      title: "Draft Saved",
+                      description: "Your changes have been saved successfully.",
                     });
+                    
+                    onClose();
+                    window.dispatchEvent(new CustomEvent('postGenerated'));
                   } catch (error: any) {
                     console.error('Save error:', error);
                     const errorMessage = getUserFriendlyErrorMessage(
@@ -562,13 +529,12 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                   }
                 }}
               >
-                <Eye className="h-4 w-4 mr-2" />
-                Review & Edit
+                <Save className="h-4 w-4 mr-2" />
+                Save Draft
               </Button>
               
               <Button
-                className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-12 font-semibold"
-                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-12 font-semibold"
                 disabled={selectedPlatforms.some(p => getCharacterStatus(p) === "over") || isPublishing}
                 onClick={async () => {
                   if (!post || !user) return;

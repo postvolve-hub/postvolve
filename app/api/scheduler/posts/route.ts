@@ -107,10 +107,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // First, verify the post exists and belongs to the user
+    // First, verify the post exists and belongs to the user, and get its content
     const { data: existingPost, error: fetchError } = await supabaseAdmin
       .from('posts')
-      .select('id, status')
+      .select('id, status, content, title')
       .eq('id', postId)
       .eq('user_id', userId)
       .single();
@@ -144,18 +144,58 @@ export async function POST(request: NextRequest) {
     }
 
     // CRITICAL FIX: Update post_platforms status to 'scheduled' so cron job can find them
-    const { error: platformError } = await supabaseAdmin
+    // First, check if post_platforms exist
+    const { data: existingPlatforms, error: fetchPlatformsError } = await supabaseAdmin
       .from('post_platforms')
-      .update({ status: 'scheduled' })
-      .eq('post_id', postId)
-      .in('status', ['draft', 'pending']); // Only update draft/pending platforms
+      .select('id, platform, status')
+      .eq('post_id', postId);
 
-    if (platformError) {
-      console.error('[Scheduler Posts] Error updating platform status:', platformError);
-      // Don't fail the request, but log the error
-      // The post is scheduled, platforms will be checked during publishing
+    if (fetchPlatformsError) {
+      console.error('[Scheduler Posts] Error fetching post_platforms:', fetchPlatformsError);
     } else {
-      console.log(`[Scheduler Posts] Updated post_platforms to scheduled for post ${postId}`);
+      console.log(`[Scheduler Posts] Post ${postId} has ${existingPlatforms?.length || 0} post_platforms entries`);
+      
+      if (!existingPlatforms || existingPlatforms.length === 0) {
+        console.error(`[Scheduler Posts] CRITICAL: Post ${postId} has NO post_platforms entries! Creating default platforms...`);
+        
+        // Create default post_platforms entries if they don't exist
+        // Default to LinkedIn and X (most common platforms)
+        const defaultPlatforms = [
+          { platform: 'linkedin', content: existingPost.content || '' },
+          { platform: 'twitter', content: existingPost.content || '' },
+        ];
+        
+        const platformEntries = defaultPlatforms.map((p) => ({
+          post_id: postId,
+          platform: p.platform,
+          content: p.content,
+          status: 'scheduled' as const,
+        }));
+        
+        const { error: createError } = await supabaseAdmin
+          .from('post_platforms')
+          .insert(platformEntries);
+        
+        if (createError) {
+          console.error('[Scheduler Posts] Error creating default post_platforms:', createError);
+        } else {
+          console.log(`[Scheduler Posts] Created ${platformEntries.length} default post_platforms for post ${postId}`);
+        }
+      } else {
+        // Update ALL post_platforms to 'scheduled' status (not just draft/pending)
+        // This ensures the cron job can find them regardless of their current status
+        const { error: platformError, count } = await supabaseAdmin
+          .from('post_platforms')
+          .update({ status: 'scheduled' })
+          .eq('post_id', postId)
+          .select('id', { count: 'exact', head: false });
+
+        if (platformError) {
+          console.error('[Scheduler Posts] Error updating platform status:', platformError);
+        } else {
+          console.log(`[Scheduler Posts] Updated ${count || existingPlatforms.length} post_platforms to scheduled for post ${postId}`);
+        }
+      }
     }
 
     return NextResponse.json({
