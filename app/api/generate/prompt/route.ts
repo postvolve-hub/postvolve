@@ -87,12 +87,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Create platform-specific entries
-    const platformEntries = result.content.map((text) => ({
-      post_id: post.id,
-      platform: text.platform === 'x' ? 'twitter' : text.platform,
-      content: text.content,
-      status: 'pending',
-    }));
+    // Use platforms from request if provided, otherwise use result.content platforms
+    const requestedPlatforms = (platforms as any[]) || result.content.map(c => c.platform);
+    const platformEntries = requestedPlatforms.map((platformId) => {
+      // Find content for this platform, or use first content as fallback
+      const platformContent = result.content.find(c => c.platform === platformId);
+      return {
+        post_id: post.id,
+        platform: platformId === 'x' ? 'twitter' : platformId,
+        content: platformContent?.content || result.content[0]?.content || post.content,
+        status: 'draft', // Changed from 'pending' to 'draft' for consistency
+      };
+    });
 
     if (platformEntries.length > 0) {
       const { error: platformError } = await supabaseAdmin
@@ -101,7 +107,12 @@ export async function POST(request: NextRequest) {
 
       if (platformError) {
         console.error('[Generate Prompt] Platform entries error:', platformError);
+        // Don't fail the request, but log the error
+      } else {
+        console.log(`[Generate Prompt] Created ${platformEntries.length} platform entries for post ${post.id}`);
       }
+    } else {
+      console.warn(`[Generate Prompt] No platform entries created for post ${post.id} - this will cause publishing issues!`);
     }
 
     // Log activity

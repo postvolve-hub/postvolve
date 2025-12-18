@@ -9,7 +9,10 @@ import {
   RefreshCw, 
   Check,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  Eye,
+  Play,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,6 +105,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const [imageUploadOpen, setImageUploadOpen] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState("");
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     if (post) {
@@ -509,76 +513,17 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
-            <p className="text-xs text-gray-500">
-              Posting to {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? "s" : ""}
-            </p>
-            <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                if (!post) return;
-                
-                // Get user
-                const { supabase } = await import('@/lib/supabaseClient');
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                  toast({
-                    title: "Authentication Required",
-                    description: "Please sign in to save posts.",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                
-                try {
-                  // Update post with new content
-                  const response = await fetch(`/api/posts/${post.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      userId: user.id,
-                      title: postTitle,
-                      content: postContent,
-                      imageUrl: currentImageUrl,
-                      platforms: selectedPlatforms.map(platform => ({
-                        platform: platform === 'x' ? 'twitter' : platform,
-                        content: postContent,
-                      })),
-                    }),
-                  });
-
-                  if (!response.ok) {
-                    throw new Error('Failed to save post');
-                  }
-
-                  toast({
-                    title: "Draft Saved",
-                    description: "Your changes have been saved.",
-                  });
-                  onClose();
-                } catch (error: any) {
-                  console.error('Save error:', error);
-                  toast({
-                    title: "Save Failed",
-                    description: error.message || 'Failed to save post. Please try again.',
-                    variant: "destructive",
-                  });
-                }
-              }}
-                className="border-gray-200 text-gray-600 hover:bg-gray-100 rounded-xl"
-            >
-              <Save className="h-4 w-4 mr-2" />
-                Save Draft
-            </Button>
-            <Button
-                className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl"
-                disabled={selectedPlatforms.some(p => getCharacterStatus(p) === "over")}
+          <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+            {/* Main Action Buttons - Full Width, Stacked */}
+            <div className="flex flex-col gap-2 mb-3" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+              <Button
+                className="bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl h-12 font-semibold"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 onClick={async () => {
                   if (!post || !user) return;
                   
                   try {
-                    // First, save the post with updated content
+                    // Save the post with updated content first
                     const response = await fetch(`/api/posts/${post.id}`, {
                       method: 'PUT',
                       headers: { 'Content-Type': 'application/json' },
@@ -598,25 +543,225 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                       throw new Error('Failed to update post');
                     }
 
-                    // Then open schedule modal
-                    setScheduleModalOpen(true);
+                    // Post is already saved, modal stays open for editing
+                    toast({
+                      title: "Changes Saved",
+                      description: "Your edits have been saved. Continue editing or publish when ready.",
+                    });
                   } catch (error: any) {
-                    console.error('Update error:', error);
+                    console.error('Save error:', error);
                     const errorMessage = getUserFriendlyErrorMessage(
                       error.message || error,
-                      { action: 'update post' }
+                      { action: 'save post' }
                     );
                     toast({
-                      title: "Update Failed",
+                      title: "Save Failed",
                       description: errorMessage,
                       variant: "destructive",
                     });
                   }
                 }}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Save & Schedule
-            </Button>
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Review & Edit
+              </Button>
+              
+              <Button
+                className="bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-12 font-semibold"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                disabled={selectedPlatforms.some(p => getCharacterStatus(p) === "over") || isPublishing}
+                onClick={async () => {
+                  if (!post || !user) return;
+                  
+                  setIsPublishing(true);
+                  try {
+                    // First, save the post with updated content
+                    const saveResponse = await fetch(`/api/posts/${post.id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: user.id,
+                        title: postTitle,
+                        content: postContent,
+                        imageUrl: currentImageUrl,
+                        platforms: selectedPlatforms.map(platform => ({
+                          platform: platform === 'x' ? 'twitter' : platform,
+                          content: postContent,
+                        })),
+                      }),
+                    });
+
+                    if (!saveResponse.ok) {
+                      throw new Error('Failed to update post');
+                    }
+
+                    // Validate platform connections
+                    const validateResponse = await fetch(`/api/platforms/validate?userId=${user.id}&platforms=${selectedPlatforms.join(',')}`);
+                    if (!validateResponse.ok) {
+                      const validation = await validateResponse.json();
+                      if (!validation.valid) {
+                        toast({
+                          title: "Platforms Not Connected",
+                          description: validation.message || "Please connect your social media accounts before publishing.",
+                          variant: "destructive",
+                        });
+                        setIsPublishing(false);
+                        return;
+                      }
+                    }
+
+                    // Then publish
+                    const publishResponse = await fetch(`/api/posts/${post.id}/publish`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        userId: user.id,
+                        platforms: selectedPlatforms,
+                      }),
+                    });
+
+                    if (!publishResponse.ok) {
+                      const error = await publishResponse.json();
+                      throw new Error(error.message || 'Failed to publish post');
+                    }
+
+                    const result = await publishResponse.json();
+                    
+                    toast({
+                      title: "Post Published",
+                      description: `Successfully published to ${result.results?.filter((r: any) => r.success).length || 0} platform(s)!`,
+                    });
+
+                    onClose();
+                    window.dispatchEvent(new CustomEvent('postGenerated'));
+                  } catch (error: any) {
+                    console.error('Publish error:', error);
+                    const errorMessage = getUserFriendlyErrorMessage(
+                      error.message || error,
+                      { action: 'publish post' }
+                    );
+                    toast({
+                      title: "Publish Failed",
+                      description: errorMessage,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setIsPublishing(false);
+                  }
+                }}
+              >
+                {isPublishing ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Post Now
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Secondary Actions - Smaller buttons */}
+            <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                Posting to {selectedPlatforms.length} platform{selectedPlatforms.length !== 1 ? "s" : ""}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRegenerate()}
+                  disabled={isRegenerating}
+                  className="border-gray-200 text-gray-600 hover:bg-gray-100 rounded-xl h-9"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 mr-1.5 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  Regenerate
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!post || !user) return;
+                    
+                    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+                      return;
+                    }
+                    
+                    try {
+                      const response = await fetch(`/api/posts/${post.id}?userId=${user.id}`, {
+                        method: 'DELETE',
+                      });
+
+                      if (!response.ok) {
+                        throw new Error('Failed to delete post');
+                      }
+
+                      toast({
+                        title: "Post Deleted",
+                        description: "The post has been deleted successfully.",
+                      });
+                      onClose();
+                      window.dispatchEvent(new CustomEvent('postGenerated'));
+                    } catch (error: any) {
+                      console.error('Delete error:', error);
+                      toast({
+                        title: "Delete Failed",
+                        description: error.message || 'Failed to delete post. Please try again.',
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="border-red-200 text-red-600 hover:bg-red-50 rounded-xl h-9"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!post || !user) return;
+                    
+                    try {
+                      // Save the post with updated content
+                      const response = await fetch(`/api/posts/${post.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          userId: user.id,
+                          title: postTitle,
+                          content: postContent,
+                          imageUrl: currentImageUrl,
+                          platforms: selectedPlatforms.map(platform => ({
+                            platform: platform === 'x' ? 'twitter' : platform,
+                            content: postContent,
+                          })),
+                        }),
+                      });
+
+                      if (!response.ok) {
+                        throw new Error('Failed to save post');
+                      }
+
+                      // Then open schedule modal
+                      setScheduleModalOpen(true);
+                    } catch (error: any) {
+                      console.error('Save error:', error);
+                      toast({
+                        title: "Save Failed",
+                        description: error.message || 'Failed to save post. Please try again.',
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="border-gray-200 text-gray-600 hover:bg-gray-100 rounded-xl h-9"
+                >
+                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                  Schedule
+                </Button>
+              </div>
             </div>
           </div>
         </div>

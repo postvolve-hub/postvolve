@@ -17,6 +17,7 @@ import {
   Play,
   X
 } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -121,12 +122,45 @@ const STATUS_STYLES: Record<StageStatus, { bg: string; border: string; icon: Rea
   },
 };
 
+// Platform icons and config
+const IconLinkedIn = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" className={className}>
+    <path d="M26.111,3H5.889c-1.595,0-2.889,1.293-2.889,2.889V26.111c0,1.595,1.293,2.889,2.889,2.889H26.111c1.595,0,2.889-1.293,2.889-2.889V5.889c0-1.595-1.293-2.889-2.889-2.889ZM10.861,25.389h-3.877V12.87h3.877v12.519Zm-1.957-14.158c-1.267,0-2.293-1.034-2.293-2.31s1.026-2.31,2.293-2.31,2.292,1.034,2.292,2.31-1.026,2.31-2.292,2.31Zm16.485,14.158h-3.858v-6.571c0-1.802-.685-2.809-2.111-2.809-1.551,0-2.362,1.048-2.362,2.809v6.571h-3.718V12.87h3.718v1.686s1.118-2.069,3.775-2.069,4.556,1.621,4.556,4.975v7.926Z" fill="currentColor" fillRule="evenodd" />
+  </svg>
+);
+
+const IconX = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className={className}>
+    <path d="M 6.9199219 6 L 21.136719 26.726562 L 6.2285156 44 L 9.40625 44 L 22.544922 28.777344 L 32.986328 44 L 43 44 L 28.123047 22.3125 L 42.203125 6 L 39.027344 6 L 26.716797 20.261719 L 16.933594 6 L 6.9199219 6 z" fill="currentColor" />
+  </svg>
+);
+
+const IconFacebook = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className={className}>
+    <path d="M25,3C12.85,3,3,12.85,3,25c0,11.03,8.125,20.137,18.712,21.728V30.831h-5.443v-5.783h5.443v-3.848 c0-6.371,3.104-9.168,8.399-9.168c2.536,0,3.877,0.188,4.512,0.274v5.048h-3.612c-2.248,0-3.033,2.131-3.033,4.533v3.161h6.588 l-0.894,5.783h-5.694v15.944C38.716,45.318,47,36.137,47,25C47,12.85,37.15,3,25,3z" fill="currentColor" />
+  </svg>
+);
+
+const IconInstagram = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" className={className}>
+    <path d="M 16 3 C 8.83 3 3 8.83 3 16 L 3 34 C 3 41.17 8.83 47 16 47 L 34 47 C 41.17 47 47 41.17 47 34 L 47 16 C 47 8.83 41.17 3 34 3 L 16 3 z M 37 11 C 38.1 11 39 11.9 39 13 C 39 14.1 38.1 15 37 15 C 35.9 15 35 14.1 35 13 C 35 11.9 35.9 11 37 11 z M 25 14 C 31.07 14 36 18.93 36 25 C 36 31.07 31.07 36 25 36 C 18.93 36 14 31.07 14 25 C 14 18.93 18.93 14 25 14 z M 25 16 C 20.04 16 16 20.04 16 25 C 16 29.96 20.04 34 25 34 C 29.96 34 34 29.96 34 25 C 34 20.04 29.96 16 25 16 z" fill="currentColor" />
+  </svg>
+);
+
+const PLATFORMS = [
+  { id: "linkedin", name: "LinkedIn", icon: IconLinkedIn, color: "text-[#0A66C2]" },
+  { id: "x", name: "X", icon: IconX, color: "text-black" },
+  { id: "facebook", name: "Facebook", icon: IconFacebook, color: "text-[#1877F2]" },
+  { id: "instagram", name: "Instagram", icon: IconInstagram, color: "text-[#E4405F]" },
+];
+
 export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPipelineProps) {
   const { user } = useAuth();
   const [selectedLane, setSelectedLane] = useState<GenerationLane>("url");
   const [inputValue, setInputValue] = useState("");
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "x"]);
   const [stages, setStages] = useState<Stage[]>(INITIAL_STAGES);
   const [currentStageIndex, setCurrentStageIndex] = useState(-1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -164,8 +198,19 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
       setUploadedImage(null);
       setImagePreviewUrl(null);
       setGeneratedContent(null);
+      setSelectedPlatforms(["linkedin", "x"]);
     }
   }, [isOpen]);
+
+  const togglePlatform = (platformId: string) => {
+    setSelectedPlatforms(prev => {
+      if (prev.includes(platformId)) {
+        if (prev.length === 1) return prev; // Don't allow deselecting if it's the only one
+        return prev.filter(p => p !== platformId);
+      }
+      return [...prev, platformId];
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -243,7 +288,7 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
             userId: user.id,
             url: inputValue,
             category: 'tech', // Default, can be made configurable
-            platforms: ['linkedin', 'x', 'facebook', 'instagram'],
+            platforms: selectedPlatforms.length > 0 ? selectedPlatforms : ['linkedin', 'x'],
           }),
         });
       } else {
@@ -286,7 +331,7 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
             userId: user.id,
             prompt: inputValue,
             category: 'tech', // Default, can be made configurable
-            platforms: ['linkedin', 'x', 'facebook', 'instagram'],
+            platforms: selectedPlatforms.length > 0 ? selectedPlatforms : ['linkedin', 'x'],
             imageUrl: imageUrl,
           }),
         });
@@ -511,6 +556,41 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                   </div>
                 </div>
 
+                {/* Platform Selection */}
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Target Platforms
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {PLATFORMS.map((platform) => {
+                      const isSelected = selectedPlatforms.includes(platform.id);
+                      const IconComponent = platform.icon;
+                      return (
+                        <button
+                          key={platform.id}
+                          onClick={() => togglePlatform(platform.id)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all duration-200 ${
+                            isSelected
+                              ? "border-[#6D28D9] bg-[#6D28D9]/5"
+                              : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <IconComponent className={`h-4 w-4 ${platform.color}`} />
+                          <span className={`text-sm ${isSelected ? "font-medium text-gray-900" : "text-gray-600"}`}>
+                            {platform.name}
+                          </span>
+                          {isSelected && (
+                            <CheckCircle className="h-3.5 w-3.5 text-[#6D28D9]" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    AI will optimize content for each selected platform.
+                  </p>
+                </div>
+
                 <div>
                   {selectedLane === "url" && (
                     <>
@@ -684,14 +764,51 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                   <p className="text-xs text-blue-600">Choose when to publish your content.</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col gap-2">
                   <button 
-                    onClick={() => setScheduleModalOpen(true)}
-                    className="p-6 rounded-xl border-2 border-[#6D28D9] bg-[#6D28D9]/5 text-center hover:bg-[#6D28D9]/10 transition-colors"
+                    onClick={async () => {
+                      // Save post first, then open PostCustomizationModal for review and edit
+                      if (generatedPostId && user && generatedContent) {
+                        try {
+                          // Update post with current content
+                          const updateResponse = await fetch(`/api/posts/${generatedPostId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              userId: user.id,
+                              title: generatedContent.title,
+                              content: generatedContent.content,
+                              imageUrl: generatedContent.imageUrl,
+                              platforms: selectedPlatforms.map(platform => ({
+                                platform: platform === 'x' ? 'twitter' : platform,
+                                content: generatedContent.content,
+                              })),
+                            }),
+                          });
+
+                          if (!updateResponse.ok) {
+                            throw new Error('Failed to update post');
+                          }
+
+                          // Close pipeline and trigger event to open customization modal
+                          onClose();
+                          window.dispatchEvent(new CustomEvent('openPostCustomization', { 
+                            detail: { postId: generatedPostId } 
+                          }));
+                        } catch (error: any) {
+                          console.error('Error updating post:', error);
+                          toast({
+                            title: "Error",
+                            description: "Failed to open post editor. Please try again.",
+                            variant: "destructive",
+                          });
+                        }
+                      }
+                    }}
+                    className="w-full p-4 rounded-xl border-2 border-[#6D28D9] bg-[#6D28D9] text-white hover:bg-[#5B21B6] transition-colors flex items-center justify-center gap-2"
                   >
-                    <Calendar className="h-8 w-8 text-[#6D28D9] mx-auto mb-2" />
-                    <span className="text-sm font-medium text-gray-900">Schedule for Later</span>
-                    <p className="text-xs text-gray-500 mt-1">Pick date & time</p>
+                    <Eye className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Review & Edit</span>
                   </button>
                   <button 
                     onClick={async () => {
@@ -733,19 +850,17 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                         });
                       }
                     }}
-                    className="p-6 rounded-xl border-2 border-blue-500 bg-blue-50 text-center hover:bg-blue-100 transition-colors"
+                    className="w-full p-4 rounded-xl border-2 border-blue-500 bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Play className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <span className="text-sm font-medium text-gray-900">Post Now</span>
-                    <p className="text-xs text-gray-500 mt-1">Publish immediately</p>
+                    <Play className="h-5 w-5" />
+                    <span className="text-sm font-semibold">Post Now</span>
                   </button>
                   <button 
-                    onClick={finishGeneration}
-                    className="p-6 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-center hover:bg-emerald-100 transition-colors"
+                    onClick={() => setScheduleModalOpen(true)}
+                    className="w-full p-3 rounded-xl border-2 border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
                   >
-                    <Play className="h-8 w-8 text-emerald-600 mx-auto mb-2" />
-                    <span className="text-sm font-medium text-gray-900">Save as Draft</span>
-                    <p className="text-xs text-gray-500 mt-1">Review later</p>
+                    <Calendar className="h-4 w-4" />
+                    <span className="text-sm font-medium">Schedule for Later</span>
                   </button>
                 </div>
               </div>
@@ -782,7 +897,7 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
               {isInputStage && (
                 <Button
                   onClick={startGeneration}
-                  disabled={!inputValue.trim()}
+                  disabled={!inputValue.trim() || selectedPlatforms.length === 0}
                   className="bg-[#6D28D9] hover:bg-[#5B21B6] rounded-xl"
                 >
                   <Play className="h-4 w-4 mr-2" />

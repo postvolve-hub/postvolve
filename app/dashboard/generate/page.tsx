@@ -127,6 +127,49 @@ export default function ContentGeneration() {
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
 
+  // Listen for openPostCustomization event from GenerationPipeline
+  useEffect(() => {
+    const handleOpenCustomization = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const postId = customEvent.detail?.postId;
+      if (postId) {
+        // Find the post and open customization modal
+        let post = content.find(p => p.id === postId);
+        if (post) {
+          setSelectedPost(post);
+          setIsModalOpen(true);
+        } else {
+          // Post might not be loaded yet, refresh and try again
+          await refreshPosts();
+          // Wait a bit for state to update, then find the post
+          setTimeout(() => {
+            const updatedPost = content.find(p => p.id === postId);
+            if (updatedPost) {
+              setSelectedPost(updatedPost);
+              setIsModalOpen(true);
+            } else {
+              // If still not found, fetch directly
+              fetch(`/api/posts/${postId}?userId=${user?.id}`)
+                .then(res => res.json())
+                .then(data => {
+                  if (data.success && data.post) {
+                    setSelectedPost(data.post);
+                    setIsModalOpen(true);
+                  }
+                })
+                .catch(err => console.error('Error fetching post:', err));
+            }
+          }, 500);
+        }
+      }
+    };
+
+    window.addEventListener('openPostCustomization', handleOpenCustomization);
+    return () => {
+      window.removeEventListener('openPostCustomization', handleOpenCustomization);
+    };
+  }, [content, user]);
+
   // Fetch subscription and check permissions
   useEffect(() => {
     async function fetchSubscription() {
@@ -570,18 +613,18 @@ export default function ContentGeneration() {
                         {post.content && post.content.length > 150 ? `${post.content.substring(0, 150)}...` : post.content || 'No content'}
                       </p>
                       <div className="space-y-2 mt-auto">
-                        <div className="flex gap-2">
+                        <div className="flex flex-col gap-2">
                           <Button
                             onClick={() => {
                               if (permissions?.canViewDrafts) {
                                 handleEditPost(post);
                               }
                             }}
-                            className="flex-1 bg-[#6D28D9] hover:bg-[#5B21B6] text-white transition-all duration-200 rounded-xl h-9 text-sm"
+                            className="w-full bg-[#6D28D9] hover:bg-[#5B21B6] text-white transition-all duration-200 rounded-xl h-9 text-sm"
                             disabled={!permissions?.canViewDrafts}
                           >
                             <Edit3 className="h-3.5 w-3.5 mr-2" />
-                            Review & Edit
+                            Review
                           </Button>
                           <Button
                             onClick={async () => {
@@ -681,7 +724,7 @@ export default function ContentGeneration() {
                                 });
                               }
                             }}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 rounded-xl h-9 text-sm disabled:opacity-50"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 rounded-xl h-9 text-sm disabled:opacity-50"
                             disabled={!permissions?.canViewDrafts || isValidating || publishingPostId === post.id}
                           >
                             {isValidating && publishingPostId === post.id ? (
@@ -692,7 +735,7 @@ export default function ContentGeneration() {
                             ) : (
                               <>
                                 <Play className="h-3.5 w-3.5 mr-2" />
-                                Post Now
+                                Post
                               </>
                             )}
                           </Button>
