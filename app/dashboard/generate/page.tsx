@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { 
   RefreshCw, 
   Edit3, 
@@ -106,6 +107,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function ContentGeneration() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const { hasAnyConnectedAccount, isLoading: isLoadingAccounts } = useConnectedAccounts(user?.id || null);
   const [selectedStatus, setSelectedStatus] = useState<"all" | "draft" | "scheduled" | "posted">("all");
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -248,6 +250,34 @@ export default function ContentGeneration() {
       window.removeEventListener('postGenerated', handlePostGenerated);
     };
   }, [user]);
+
+  // Handle postId query parameter to open post directly
+  useEffect(() => {
+    const postId = searchParams?.get('postId');
+    if (postId && content.length > 0 && !isModalOpen) {
+      const post = content.find(p => p.id === postId);
+      if (post) {
+        setSelectedPost(post);
+        setIsModalOpen(true);
+        // Clean up URL
+        window.history.replaceState({}, '', '/dashboard/generate');
+      } else if (!isLoading) {
+        // Post not found, try fetching it directly
+        if (user) {
+          fetch(`/api/posts/${postId}?userId=${user.id}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data.success && data.post) {
+                setSelectedPost(data.post);
+                setIsModalOpen(true);
+                window.history.replaceState({}, '', '/dashboard/generate');
+              }
+            })
+            .catch(err => console.error('Error fetching post:', err));
+        }
+      }
+    }
+  }, [searchParams, content, isModalOpen, isLoading, user]);
 
   // Filter by status and search query
   const filteredContent = content.filter(post => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   X, 
   Calendar, 
@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/hooks/use-auth";
-import { convertToUTC, getUserTimezone } from "@/lib/timezone-utils";
 
 // Social Platform Icons
 const IconLinkedIn = ({ className = "h-4 w-4" }: { className?: string }) => (
@@ -31,19 +29,35 @@ const IconX = ({ className = "h-4 w-4" }: { className?: string }) => (
 interface SchedulePostModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSchedule?: (postId: string | number, date: string, time: string, utcISOString?: string) => void;
+  onSchedule?: (postId: number | string, date: string, time: string, utcISOString?: string) => void;
   preselectedDate?: string;
+  postId?: string | number; // Optional: if provided, skip draft selection
+  postTitle?: string; // Optional: for display when postId is provided
 }
 
-// Mock data removed - now using real data from API
-
-interface DraftPost {
-  id: string | number;
-  title: string;
-  category: string;
-  platforms: string[];
-  preview?: string;
-}
+const MOCK_DRAFTS = [
+  {
+    id: 1,
+    title: "The Rise of Autonomous AI Agents",
+    category: "AI",
+    platforms: ["linkedin", "twitter"],
+    preview: "Discover how AI agents are revolutionizing task automation...",
+  },
+  {
+    id: 2,
+    title: "5 Cloud Technologies Transforming Business",
+    category: "Tech",
+    platforms: ["linkedin"],
+    preview: "Cloud computing continues to evolve...",
+  },
+  {
+    id: 3,
+    title: "Building Resilience in Uncertain Times",
+    category: "Motivation",
+    platforms: ["twitter"],
+    preview: "Success isn't about avoiding challenges...",
+  },
+];
 
 const CATEGORY_COLORS: Record<string, string> = {
   AI: "bg-purple-100 text-purple-700",
@@ -52,7 +66,10 @@ const CATEGORY_COLORS: Record<string, string> = {
   Business: "bg-emerald-100 text-emerald-700",
 };
 
-// Removed fixed time options - now using dynamic time input
+const TIME_OPTIONS = [
+  "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
+  "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM", "6:00 PM", "7:00 PM", "8:00 PM", "9:00 PM"
+];
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -62,49 +79,14 @@ export function SchedulePostModal({
   onClose,
   onSchedule,
   preselectedDate,
+  postId,
+  postTitle,
 }: SchedulePostModalProps) {
-  const { user } = useAuth();
-  const [step, setStep] = useState<"select" | "schedule">("select");
-  const [selectedDraft, setSelectedDraft] = useState<DraftPost | null>(null);
+  const [step, setStep] = useState<"select" | "schedule">(postId ? "schedule" : "select");
+  const [selectedDraft, setSelectedDraft] = useState<typeof MOCK_DRAFTS[0] | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(preselectedDate || null);
-  const [selectedTime, setSelectedTime] = useState("09:00");
-  const [timeInput, setTimeInput] = useState("09:00");
+  const [selectedTime, setSelectedTime] = useState("9:00 AM");
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [drafts, setDrafts] = useState<DraftPost[]>([]);
-  const [isLoadingDrafts, setIsLoadingDrafts] = useState(false);
-
-  // Fetch draft posts when modal opens
-  useEffect(() => {
-    async function fetchDrafts() {
-      if (!isOpen || !user || step !== 'select') return;
-      
-      setIsLoadingDrafts(true);
-      try {
-        const response = await fetch(`/api/posts?userId=${user.id}&status=draft&limit=20`);
-        if (response.ok) {
-          const result = await response.json();
-          if (result.success) {
-            const formattedDrafts: DraftPost[] = (result.posts || []).map((post: any) => ({
-              id: post.id,
-              title: post.title || 'Untitled Post',
-              category: post.category || 'uncategorized',
-              platforms: (post.post_platforms || []).map((pp: any) => 
-                pp.platform === 'twitter' ? 'x' : pp.platform
-              ),
-              preview: post.content?.substring(0, 100) || '',
-            }));
-            setDrafts(formattedDrafts);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching drafts:', error);
-      } finally {
-        setIsLoadingDrafts(false);
-      }
-    }
-
-    fetchDrafts();
-  }, [isOpen, user, step]);
 
   if (!isOpen) return null;
 
@@ -133,20 +115,18 @@ export function SchedulePostModal({
     calendarDays.push(day);
   }
 
-  const handleDraftSelect = (draft: DraftPost) => {
+  const handleDraftSelect = (draft: typeof MOCK_DRAFTS[0]) => {
     setSelectedDraft(draft);
     setStep("schedule");
   };
 
   const handleSchedule = () => {
-    if (selectedDraft && selectedDate && selectedTime) {
-      // Convert to UTC using user's timezone
-      const timezone = getUserTimezone();
-      const utcISOString = convertToUTC(selectedDate, selectedTime, timezone);
-      
-      // Pass UTC ISO string instead of separate date/time
-      onSchedule?.(selectedDraft.id, selectedDate, selectedTime, utcISOString);
-      handleClose();
+    if (selectedDate) {
+      const idToUse = postId || selectedDraft?.id;
+      if (idToUse) {
+        onSchedule?.(idToUse, selectedDate, selectedTime);
+        handleClose();
+      }
     }
   };
 
@@ -154,8 +134,7 @@ export function SchedulePostModal({
     setStep("select");
     setSelectedDraft(null);
     setSelectedDate(preselectedDate || null);
-    setSelectedTime("09:00");
-    setTimeInput("09:00");
+    setSelectedTime("9:00 AM");
     onClose();
   };
 
@@ -199,53 +178,41 @@ export function SchedulePostModal({
                 <p className="text-sm text-gray-600 mb-4">
                   Choose a draft from your content library to schedule.
                 </p>
-                {isLoadingDrafts ? (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="text-sm text-gray-500">Loading drafts...</div>
-                  </div>
-                ) : drafts.length > 0 ? (
-                  drafts.map((draft) => (
-                    <button
-                      key={draft.id}
-                      onClick={() => handleDraftSelect(draft)}
-                      className="w-full p-4 border border-gray-200 rounded-xl text-left hover:border-[#6D28D9]/30 hover:bg-[#6D28D9]/5 transition-all duration-200 group"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-[#6D28D9]/10">
-                          <FileText className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-sm font-medium text-gray-900 truncate">
-                              {draft.title}
-                            </h4>
-                            <Badge className={`${CATEGORY_COLORS[draft.category]} text-xs`}>
-                              {draft.category}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-gray-500 line-clamp-1">{draft.preview}</p>
-                          <div className="flex items-center gap-2 mt-2">
-                            {draft.platforms.includes("linkedin") && (
-                              <IconLinkedIn className="h-3.5 w-3.5 text-[#0A66C2]" />
-                            )}
-                            {draft.platforms.includes("x") && (
-                              <IconX className="h-3.5 w-3.5 text-black" />
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
+                {MOCK_DRAFTS.map((draft) => (
+                  <button
+                    key={draft.id}
+                    onClick={() => handleDraftSelect(draft)}
+                    className="w-full p-4 border border-gray-200 rounded-xl text-left hover:border-[#6D28D9]/30 hover:bg-[#6D28D9]/5 transition-all duration-200 group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 group-hover:bg-[#6D28D9]/10">
+                        <FileText className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
                       </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">No drafts available</p>
-                    <p className="text-xs text-gray-400 mt-1">Generate content first to schedule posts</p>
-                  </div>
-                )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">
+                            {draft.title}
+                          </h4>
+                          <Badge className={`${CATEGORY_COLORS[draft.category]} text-xs`}>
+                            {draft.category}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-500 line-clamp-1">{draft.preview}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          {draft.platforms.includes("linkedin") && (
+                            <IconLinkedIn className="h-3.5 w-3.5 text-[#0A66C2]" />
+                          )}
+                          {draft.platforms.includes("twitter") && (
+                            <IconX className="h-3.5 w-3.5 text-black" />
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-[#6D28D9]" />
+                    </div>
+                  </button>
+                ))}
 
-                {!isLoadingDrafts && drafts.length === 0 && (
+                {MOCK_DRAFTS.length === 0 && (
                   <div className="text-center py-8">
                     <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-sm text-gray-500">No drafts available</p>
@@ -256,22 +223,30 @@ export function SchedulePostModal({
             )}
 
             {/* Step 2: Pick Date & Time */}
-            {step === "schedule" && selectedDraft && (
+            {step === "schedule" && (selectedDraft || postId) && (
               <div className="space-y-6">
                 {/* Selected Draft Preview */}
-                <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
-                  <FileText className="h-5 w-5 text-[#6D28D9]" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{selectedDraft.title}</p>
-                    <p className="text-xs text-gray-500">{selectedDraft.category}</p>
+                {(selectedDraft || postTitle) && (
+                  <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                    <FileText className="h-5 w-5 text-[#6D28D9]" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {selectedDraft?.title || postTitle || "Post"}
+                      </p>
+                      {selectedDraft && (
+                        <p className="text-xs text-gray-500">{selectedDraft.category}</p>
+                      )}
+                    </div>
+                    {!postId && (
+                      <button
+                        onClick={() => setStep("select")}
+                        className="text-xs text-[#6D28D9] hover:underline"
+                      >
+                        Change
+                      </button>
+                    )}
                   </div>
-                  <button
-                    onClick={() => setStep("select")}
-                    className="text-xs text-[#6D28D9] hover:underline"
-                  >
-                    Change
-                  </button>
-                </div>
+                )}
 
                 {/* Calendar */}
                 <div>
@@ -339,21 +314,20 @@ export function SchedulePostModal({
                     <Clock className="h-4 w-4 text-gray-500" />
                     <h4 className="text-sm font-medium text-gray-900">Select Time</h4>
                   </div>
-                  <div className="space-y-3">
-                    <div>
-                      <input
-                        type="time"
-                        value={timeInput}
-                        onChange={(e) => {
-                          setTimeInput(e.target.value);
-                          setSelectedTime(e.target.value);
-                        }}
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#6D28D9] focus:border-transparent"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      Select any time you want your post to be published
-                    </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {TIME_OPTIONS.map((time) => (
+                      <button
+                        key={time}
+                        onClick={() => setSelectedTime(time)}
+                        className={`px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                          selectedTime === time
+                            ? "bg-[#6D28D9] text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -363,18 +337,7 @@ export function SchedulePostModal({
                     <div className="flex items-center gap-2 text-emerald-700">
                       <Check className="h-4 w-4" />
                       <span className="text-sm font-medium">
-                        Scheduled for {(() => {
-                          // Parse date string to avoid timezone issues
-                          const [year, month, day] = selectedDate.split('-').map(Number);
-                          const date = new Date(year, month - 1, day);
-                          return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-                        })()} at {(() => {
-                          const [hours, minutes] = selectedTime.split(':');
-                          const hour24 = parseInt(hours);
-                          const hour12 = hour24 === 0 ? 12 : hour24 > 12 ? hour24 - 12 : hour24;
-                          const ampm = hour24 >= 12 ? 'PM' : 'AM';
-                          return `${hour12}:${minutes.padStart(2, '0')} ${ampm}`;
-                        })()}
+                        Scheduled for {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at {selectedTime}
                       </span>
                     </div>
                   </div>
@@ -386,8 +349,8 @@ export function SchedulePostModal({
           {/* Footer */}
           <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
             <div className="text-xs text-gray-500">
-              {step === "schedule" && selectedDate && (
-                <>Posting to {selectedDraft?.platforms.length} platform{selectedDraft?.platforms.length !== 1 ? "s" : ""}</>
+              {step === "schedule" && selectedDate && selectedDraft && (
+                <>Posting to {selectedDraft.platforms.length} platform{selectedDraft.platforms.length !== 1 ? "s" : ""}</>
               )}
             </div>
             <div className="flex gap-3">
@@ -397,7 +360,7 @@ export function SchedulePostModal({
               {step === "schedule" && (
                 <Button
                   onClick={handleSchedule}
-                  disabled={!selectedDate || !selectedTime}
+                  disabled={!selectedDate}
                   className="bg-[#6D28D9] hover:bg-[#5B21B6] rounded-xl"
                 >
                   <Calendar className="h-4 w-4 mr-2" />

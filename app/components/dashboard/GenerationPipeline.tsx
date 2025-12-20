@@ -920,11 +920,12 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
       </div>
 
       {/* Schedule Modal */}
-      {generatedPostId && (
-        <SchedulePostModal
-          isOpen={scheduleModalOpen}
-          onClose={() => setScheduleModalOpen(false)}
-          onSchedule={async (postId, date, time, utcISOString) => {
+      <SchedulePostModal
+        isOpen={scheduleModalOpen}
+        onClose={() => setScheduleModalOpen(false)}
+        postId={generatedPostId || undefined}
+        postTitle={generatedContent?.title}
+        onSchedule={async (postId, date, time, utcISOString) => {
             if (!user) return;
             
             try {

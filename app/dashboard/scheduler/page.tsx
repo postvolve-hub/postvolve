@@ -464,16 +464,32 @@ export default function Scheduler() {
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-1">
-                        <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                        <button 
+                          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                          onClick={() => {
+                            // Navigate to generate page and open the post for editing
+                            window.location.href = `/dashboard/generate?postId=${post.id}`;
+                          }}
+                          title="Edit post"
+                        >
                           <Edit2 className="h-3.5 w-3.5 text-gray-500" />
                         </button>
                         <button 
                           className="p-1.5 rounded-lg hover:bg-red-50 transition-colors duration-200"
                           onClick={() => handleDeletePost(post.id)}
+                          title="Delete post"
                         >
                           <Trash2 className="h-3.5 w-3.5 text-red-500" />
                         </button>
-                        <button className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                        <button 
+                          className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                          onClick={() => {
+                            // Open schedule modal to reschedule
+                            setSelectedDate(post.date);
+                            setScheduleModalOpen(true);
+                          }}
+                          title="Reschedule post"
+                        >
                           <MoreVertical className="h-3.5 w-3.5 text-gray-500" />
                         </button>
                       </div>

@@ -124,11 +124,19 @@ interface PostRowData {
   progress: number;
 }
 
-function PostRow({ post, index }: { post: PostRowData; index: number }) {
+function PostRow({ post, index, onEdit }: { post: PostRowData; index: number; onEdit?: (postId: string | number) => void }) {
   return (
     <div 
-      className="flex items-center gap-4 px-4 py-4 hover:bg-gray-50/50 transition-all duration-200 group"
+      className="flex items-center gap-4 px-4 py-4 hover:bg-gray-50/50 transition-all duration-200 group cursor-pointer"
       style={{ animationDelay: `${index * 50}ms` }}
+      onClick={() => {
+        if (onEdit) {
+          onEdit(post.id);
+        } else {
+          // Default: navigate to generate page
+          window.location.href = `/dashboard/generate?postId=${post.id}`;
+        }
+      }}
     >
       {/* Title & Category */}
       <div className="flex-1 min-w-0">
@@ -171,7 +179,18 @@ function PostRow({ post, index }: { post: PostRowData; index: number }) {
       </div>
 
       {/* More actions */}
-      <button className="p-1 rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-all duration-200">
+      <button 
+        className="p-1 rounded hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-all duration-200"
+        onClick={(e) => {
+          e.stopPropagation(); // Prevent row click
+          if (onEdit) {
+            onEdit(post.id);
+          } else {
+            window.location.href = `/dashboard/generate?postId=${post.id}`;
+          }
+        }}
+        title="View/Edit post"
+      >
         <MoreHorizontal className="h-4 w-4 text-gray-400" />
       </button>
     </div>
@@ -444,7 +463,14 @@ export default function DashboardHome() {
               <>
                 <div className="divide-y divide-gray-100">
                   {draftPosts.map((post, index) => (
-                    <PostRow key={post.id} post={post} index={index} />
+                    <PostRow 
+                      key={post.id} 
+                      post={post} 
+                      index={index}
+                      onEdit={(postId) => {
+                        window.location.href = `/dashboard/generate?postId=${postId}`;
+                      }}
+                    />
                   ))}
                 </div>
                 {/* Add New Post Row */}
@@ -484,7 +510,14 @@ export default function DashboardHome() {
             ) : activePosts.length > 0 ? (
               <div className="divide-y divide-gray-100">
                 {activePosts.map((post, index) => (
-                  <PostRow key={post.id} post={post} index={index} />
+                  <PostRow 
+                    key={post.id} 
+                    post={post} 
+                    index={index}
+                    onEdit={(postId) => {
+                      window.location.href = `/dashboard/generate?postId=${postId}`;
+                    }}
+                  />
                 ))}
               </div>
             ) : (
