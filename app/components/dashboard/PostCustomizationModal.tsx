@@ -98,7 +98,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizationModalProps) {
   const { user } = useAuth();
-  const { isConnected, isLoading: isLoadingAccounts } = useConnectedAccounts(user?.id || null);
+  const { isConnected, isLoading: isLoadingAccounts, getConnectedPlatforms } = useConnectedAccounts(user?.id || null);
   const [postContent, setPostContent] = useState("");
   const [postTitle, setPostTitle] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -108,31 +108,50 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const [currentImageUrl, setCurrentImageUrl] = useState("");
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [hasInitializedPlatforms, setHasInitializedPlatforms] = useState(false);
 
+  // Get saved platforms from post (normalized to UI names)
+  const savedPlatformsFromPost = post?.post_platforms?.map(pp => 
+    pp.platform === 'twitter' ? 'x' : pp.platform
+  ) || [];
+
+  // Initialize basic post data immediately
   useEffect(() => {
     if (post) {
       setPostTitle(post.title);
-      // Use first platform content or main content
       const firstPlatformContent = post.post_platforms?.[0]?.content;
       setPostContent(firstPlatformContent || post.content);
       setCurrentImageUrl(post.image_url || '');
-      
-      // Set selected platforms from post_platforms (only if connected)
-      if (post.post_platforms && post.post_platforms.length > 0) {
-        const platforms = post.post_platforms.map(pp => {
-          // Map database platform names to UI names
-          if (pp.platform === 'twitter') return 'x';
-          return pp.platform;
-        });
-        // Filter to only include connected platforms for initial selection
-        const connectedPlatforms = platforms.filter(p => isConnected(p));
-        setSelectedPlatforms(connectedPlatforms.length > 0 ? connectedPlatforms : []);
-        setPreviewPlatform(connectedPlatforms[0] || platforms[0] || 'linkedin');
-      } else {
-        setSelectedPlatforms([]);
-      }
+      setPreviewPlatform(savedPlatformsFromPost[0] || 'linkedin');
     }
-  }, [post, isConnected]);
+  }, [post?.id]); // Only re-run when post changes
+  
+  // Initialize selected platforms AFTER accounts finish loading
+  useEffect(() => {
+    if (!isOpen || !post) {
+      setHasInitializedPlatforms(false);
+      return;
+    }
+    
+    // Wait for accounts to load before initializing platforms
+    if (isLoadingAccounts) return;
+    
+    // Only initialize once per modal open
+    if (hasInitializedPlatforms) return;
+    
+    const connectedList = getConnectedPlatforms();
+    
+    if (savedPlatformsFromPost.length > 0) {
+      // Pre-select saved platforms that are also connected
+      const validPlatforms = savedPlatformsFromPost.filter(p => connectedList.includes(p));
+      setSelectedPlatforms(validPlatforms);
+      setPreviewPlatform(validPlatforms[0] || savedPlatformsFromPost[0] || 'linkedin');
+    } else {
+      setSelectedPlatforms([]);
+    }
+    
+    setHasInitializedPlatforms(true);
+  }, [isOpen, post?.id, isLoadingAccounts, hasInitializedPlatforms, getConnectedPlatforms, savedPlatformsFromPost.join(',')]);
 
   if (!isOpen || !post) return null;
 

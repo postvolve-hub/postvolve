@@ -65,29 +65,48 @@ export function PublishConfirmModal({
   onPublishComplete,
 }: PublishConfirmModalProps) {
   const { user } = useAuth();
-  const { isConnected, isLoading: isLoadingAccounts } = useConnectedAccounts(user?.id || null);
+  const { isConnected, isLoading: isLoadingAccounts, getConnectedPlatforms } = useConnectedAccounts(user?.id || null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Initialize selected platforms from post's saved platforms
+  // Get saved platforms from post (normalized to UI names)
+  const savedPlatforms = post?.post_platforms?.map(pp => 
+    pp.platform === 'twitter' ? 'x' : pp.platform
+  ) || [];
+
+  // Initialize selected platforms AFTER accounts finish loading
   useEffect(() => {
-    if (isOpen && post?.post_platforms && post.post_platforms.length > 0) {
-      // Pre-select all platforms that are saved in the post
-      const savedPlatforms = post.post_platforms
-        .map(pp => pp.platform === 'twitter' ? 'x' : pp.platform);
-      // Filter to only include connected platforms for selection
-      const connectedSavedPlatforms = savedPlatforms.filter(p => isConnected(p));
-      setSelectedPlatforms(connectedSavedPlatforms);
-    } else if (isOpen) {
+    if (!isOpen) {
+      setHasInitialized(false);
+      setSelectedPlatforms([]);
+      return;
+    }
+    
+    // Wait for accounts to load before initializing
+    if (isLoadingAccounts) return;
+    
+    // Only initialize once per modal open
+    if (hasInitialized) return;
+    
+    // Get the connected platforms list
+    const connectedList = getConnectedPlatforms();
+    
+    if (savedPlatforms.length > 0) {
+      // Pre-select saved platforms that are also connected
+      const validPlatforms = savedPlatforms.filter(p => connectedList.includes(p));
+      setSelectedPlatforms(validPlatforms);
+    } else {
+      // No saved platforms - start empty
       setSelectedPlatforms([]);
     }
-  }, [isOpen, post, isConnected]);
+    
+    setHasInitialized(true);
+  }, [isOpen, isLoadingAccounts, hasInitialized, getConnectedPlatforms, savedPlatforms.join(',')]);
   
   // Check if a platform was saved in the post
   const isPlatformSavedInPost = (platformId: string): boolean => {
-    if (!post?.post_platforms) return false;
-    const dbPlatform = platformId === 'x' ? 'twitter' : platformId;
-    return post.post_platforms.some(pp => pp.platform === dbPlatform || pp.platform === platformId);
+    return savedPlatforms.includes(platformId);
   };
 
   if (!isOpen || !post) return null;
