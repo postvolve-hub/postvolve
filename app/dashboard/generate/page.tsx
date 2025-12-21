@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/dashboard/EmptyState";
 import { LockOverlay } from "@/components/dashboard/LockOverlay";
 import { PaymentUpdatePrompt } from "@/components/dashboard/PaymentUpdatePrompt";
 import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal";
+import { PublishConfirmModal } from "@/components/dashboard/PublishConfirmModal";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabaseClient";
@@ -125,6 +126,8 @@ function ContentGenerationContent() {
   const [publishResults, setPublishResults] = useState<any[]>([]);
   const [publishingPostId, setPublishingPostId] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [publishConfirmOpen, setPublishConfirmOpen] = useState(false);
+  const [postToPublish, setPostToPublish] = useState<Post | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPosts, setSelectedPosts] = useState<Set<string>>(new Set());
   const [isBulkMode, setIsBulkMode] = useState(false);
@@ -657,117 +660,16 @@ function ContentGenerationContent() {
                             Review
                           </Button>
                           <Button
-                            onClick={async () => {
+                            onClick={() => {
                               if (!user) return;
-                              
-                              setIsValidating(true);
-                              setPublishingPostId(post.id);
-                              
-                              try {
-                                // Step 1: Validate platform connections
-                                const validateResponse = await fetch(
-                                  `/api/posts/${post.id}/validate-platforms?userId=${user.id}`
-                                );
-                                
-                                if (!validateResponse.ok) {
-                                  throw new Error('Failed to validate platform connections');
-                                }
-                                
-                                const validation = await validateResponse.json();
-                                
-                                if (!validation.valid) {
-                                  setIsValidating(false);
-                                  setPublishingPostId(null);
-                                  toast({
-                                    title: "Platforms Not Connected",
-                                    description: validation.message || "Please connect your social media accounts before publishing.",
-                                    variant: "destructive",
-                                  });
-                                  
-                                  // Redirect to settings if no accounts connected
-                                  if (validation.summary.missingPlatforms.length > 0 || 
-                                      validation.summary.expiredPlatforms.length > 0) {
-                                    setTimeout(() => {
-                                      window.location.href = '/dashboard/settings';
-                                    }, 2000);
-                                  }
-                                  return;
-                                }
-                                
-                                // Step 2: Get platforms from post
-                                const platforms = post.post_platforms?.map((pp: any) => 
-                                  pp.platform === 'twitter' ? 'x' : pp.platform
-                                ) || [];
-                                
-                                // Step 3: Publish
-                                const response = await fetch(`/api/posts/${post.id}/publish`, {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ 
-                                    userId: user.id,
-                                    platforms: platforms.length > 0 ? platforms : undefined,
-                                  }),
-                                });
-
-                                const result = await response.json();
-
-                                if (!response.ok) {
-                                  throw new Error(result.message || 'Failed to publish post');
-                                }
-
-                                // Step 4: Show success modal with results
-                                setPublishResults(result.results || []);
-                                setPublishSuccessOpen(true);
-                                setPublishingPostId(null);
-                                setIsValidating(false);
-                                
-                                await refreshPosts();
-                              } catch (error: any) {
-                                console.error('Publish error:', error);
-                                setIsValidating(false);
-                                setPublishingPostId(null);
-                                
-                                const errorResponse = error.response?.data || error;
-                                const errorMessage = getUserFriendlyErrorMessage(
-                                  errorResponse?.message || error.message || error,
-                                  { platform: post.post_platforms?.[0]?.platform, postId: post.id }
-                                );
-                                
-                                const actionable = getActionableErrorMessage(
-                                  errorResponse?.message || error.message || error,
-                                  { platform: post.post_platforms?.[0]?.platform }
-                                );
-                                
-                                toast({
-                                  title: "Publish Failed",
-                                  description: errorMessage,
-                                  variant: "destructive",
-                                  action: actionable.action ? (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => window.location.href = actionable.action!.href}
-                                    >
-                                      {actionable.action.label}
-                                    </Button>
-                                  ) : undefined,
-                                });
-                              }
+                              setPostToPublish(post);
+                              setPublishConfirmOpen(true);
                             }}
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white transition-all duration-200 rounded-xl h-9 text-sm disabled:opacity-50"
-                            disabled={!permissions?.canViewDrafts || isValidating || publishingPostId === post.id}
+                            disabled={!permissions?.canViewDrafts}
                           >
-                            {isValidating && publishingPostId === post.id ? (
-                              <>
-                                <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
-                                Publishing...
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-3.5 w-3.5 mr-2" />
-                                Post
-                              </>
-                            )}
+                            <Play className="h-3.5 w-3.5 mr-2" />
+                            Post
                           </Button>
                         </div>
                         <div className="flex gap-2 min-w-0">
@@ -871,7 +773,7 @@ function ContentGenerationContent() {
           setPublishResults([]);
         }}
         results={publishResults}
-        postTitle={selectedPost?.title}
+        postTitle={selectedPost?.title || postToPublish?.title}
         onRetry={() => {
           setPublishSuccessOpen(false);
           // Retry logic will be handled by the publish button click
@@ -882,6 +784,22 @@ function ContentGenerationContent() {
               .map(r => r.platform);
             // This will be handled by the publish endpoint
           }
+        }}
+      />
+
+      <PublishConfirmModal
+        isOpen={publishConfirmOpen}
+        onClose={() => {
+          setPublishConfirmOpen(false);
+          setPostToPublish(null);
+        }}
+        post={postToPublish}
+        onPublishComplete={(results) => {
+          setPublishResults(results);
+          setPublishSuccessOpen(true);
+          setPublishConfirmOpen(false);
+          setPostToPublish(null);
+          refreshPosts();
         }}
       />
     </DashboardLayout>
