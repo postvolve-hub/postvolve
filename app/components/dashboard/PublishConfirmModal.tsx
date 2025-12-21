@@ -69,17 +69,26 @@ export function PublishConfirmModal({
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  // Initialize selected platforms from post's platforms
+  // Initialize selected platforms from post's saved platforms
   useEffect(() => {
-    if (isOpen && post?.post_platforms) {
-      const platforms = post.post_platforms
-        .map(pp => pp.platform === 'twitter' ? 'x' : pp.platform)
-        .filter(p => isConnected(p)); // Only pre-select connected platforms
-      setSelectedPlatforms(platforms);
+    if (isOpen && post?.post_platforms && post.post_platforms.length > 0) {
+      // Pre-select all platforms that are saved in the post
+      const savedPlatforms = post.post_platforms
+        .map(pp => pp.platform === 'twitter' ? 'x' : pp.platform);
+      // Filter to only include connected platforms for selection
+      const connectedSavedPlatforms = savedPlatforms.filter(p => isConnected(p));
+      setSelectedPlatforms(connectedSavedPlatforms);
     } else if (isOpen) {
       setSelectedPlatforms([]);
     }
   }, [isOpen, post, isConnected]);
+  
+  // Check if a platform was saved in the post
+  const isPlatformSavedInPost = (platformId: string): boolean => {
+    if (!post?.post_platforms) return false;
+    const dbPlatform = platformId === 'x' ? 'twitter' : platformId;
+    return post.post_platforms.some(pp => pp.platform === dbPlatform || pp.platform === platformId);
+  };
 
   if (!isOpen || !post) return null;
 
@@ -188,23 +197,22 @@ export function PublishConfirmModal({
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          {/* Post Preview */}
+          {/* Post Title Only */}
           <div className="bg-gray-50 rounded-xl p-4">
-            <h3 className="font-medium text-gray-900 text-sm line-clamp-2">{post.title}</h3>
-            {post.content && (
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{post.content}</p>
-            )}
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Publishing</p>
+            <h3 className="font-semibold text-gray-900 line-clamp-2">{post.title}</h3>
           </div>
 
           {/* Platform Selection */}
           <div>
             <label className="text-sm font-medium text-gray-700 mb-3 block">
-              Choose platforms to publish:
+              Select platforms to publish to:
             </label>
             <div className="grid grid-cols-2 gap-2">
               {PLATFORMS.map((platform) => {
                 const isSelected = selectedPlatforms.includes(platform.id);
                 const isPlatformConnected = isConnected(platform.id);
+                const isSavedInPost = isPlatformSavedInPost(platform.id);
                 const IconComponent = platform.icon;
 
                 return (
@@ -225,8 +233,10 @@ export function PublishConfirmModal({
                       <span className={`text-sm ${isSelected ? "font-medium text-gray-900" : "text-gray-600"}`}>
                         {platform.name}
                       </span>
-                      {!isPlatformConnected && !isLoadingAccounts && (
+                      {!isPlatformConnected && !isLoadingAccounts ? (
                         <p className="text-[10px] text-gray-400">Not connected</p>
+                      ) : isSavedInPost && (
+                        <p className="text-[10px] text-green-600">Content ready</p>
                       )}
                     </div>
                     {isSelected && (
@@ -237,7 +247,7 @@ export function PublishConfirmModal({
               })}
             </div>
             {selectedPlatforms.length === 0 && (
-              <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+              <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 Select at least one platform to publish
               </p>

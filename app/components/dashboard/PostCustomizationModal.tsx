@@ -117,18 +117,22 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
       setPostContent(firstPlatformContent || post.content);
       setCurrentImageUrl(post.image_url || '');
       
-      // Set selected platforms from post_platforms
+      // Set selected platforms from post_platforms (only if connected)
       if (post.post_platforms && post.post_platforms.length > 0) {
         const platforms = post.post_platforms.map(pp => {
           // Map database platform names to UI names
           if (pp.platform === 'twitter') return 'x';
           return pp.platform;
         });
-        setSelectedPlatforms(platforms);
-        setPreviewPlatform(platforms[0] || 'linkedin');
+        // Filter to only include connected platforms for initial selection
+        const connectedPlatforms = platforms.filter(p => isConnected(p));
+        setSelectedPlatforms(connectedPlatforms.length > 0 ? connectedPlatforms : []);
+        setPreviewPlatform(connectedPlatforms[0] || platforms[0] || 'linkedin');
+      } else {
+        setSelectedPlatforms([]);
       }
     }
-  }, [post]);
+  }, [post, isConnected]);
 
   if (!isOpen || !post) return null;
 
@@ -137,6 +141,13 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const isOverLimit = currentPlatform ? characterCount > currentPlatform.charLimit : false;
   const lane = (post.generation_lane || "auto") as keyof typeof LANE_INFO;
   const laneInfo = LANE_INFO[lane];
+  
+  // Check if a platform has saved content in the post
+  const isPlatformSavedInPost = (platformId: string): boolean => {
+    if (!post?.post_platforms) return false;
+    const dbPlatform = platformId === 'x' ? 'twitter' : platformId;
+    return post.post_platforms.some(pp => pp.platform === dbPlatform || pp.platform === platformId);
+  };
 
   const togglePlatform = (platformId: string) => {
     // If trying to select (not deselect), check if account is connected
@@ -405,6 +416,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                   {PLATFORMS.map((platform) => {
                     const isSelected = selectedPlatforms.includes(platform.id);
                     const isPlatformConnected = isConnected(platform.id);
+                    const hasSavedContent = isPlatformSavedInPost(platform.id);
                     const charStatus = getCharacterStatus(platform.id);
                     const IconComponent = platform.icon;
                     
@@ -422,18 +434,22 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                         }`}
                       >
                         <IconComponent className={`h-4 w-4 ${platform.color}`} />
-                        <span className={`text-sm ${isSelected ? "font-medium text-gray-900" : "text-gray-500"}`}>
-                          {platform.name}
-                        </span>
+                        <div className="flex flex-col items-start">
+                          <span className={`text-sm ${isSelected ? "font-medium text-gray-900" : "text-gray-500"}`}>
+                            {platform.name}
+                          </span>
+                          {!isPlatformConnected && !isLoadingAccounts ? (
+                            <span className="text-[9px] text-gray-400">Not connected</span>
+                          ) : hasSavedContent && (
+                            <span className="text-[9px] text-green-600">Content ready</span>
+                          )}
+                        </div>
                         {isSelected && (
                           <>
-                            {charStatus === "ok" && <Check className="h-3.5 w-3.5 text-green-500" />}
-                            {charStatus === "warning" && <AlertCircle className="h-3.5 w-3.5 text-amber-500" />}
-                            {charStatus === "over" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
+                            {charStatus === "ok" && <Check className="h-3.5 w-3.5 text-green-500 ml-auto" />}
+                            {charStatus === "warning" && <AlertCircle className="h-3.5 w-3.5 text-amber-500 ml-auto" />}
+                            {charStatus === "over" && <AlertCircle className="h-3.5 w-3.5 text-red-500 ml-auto" />}
                           </>
-                        )}
-                        {!isPlatformConnected && !isLoadingAccounts && (
-                          <span className="text-[10px] text-gray-400 ml-1">(not connected)</span>
                         )}
                       </button>
                     );
