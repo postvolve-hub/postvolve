@@ -97,17 +97,12 @@ export function PublishConfirmModal({
       const validPlatforms = savedPlatforms.filter(p => connectedList.includes(p));
       setSelectedPlatforms(validPlatforms);
     } else {
-      // No saved platforms - start empty
-      setSelectedPlatforms([]);
+      // No saved platforms - default to all connected platforms
+      setSelectedPlatforms(connectedList);
     }
     
     setHasInitialized(true);
   }, [isOpen, isLoadingAccounts, hasInitialized, getConnectedPlatforms, savedPlatforms.join(',')]);
-  
-  // Check if a platform was saved in the post
-  const isPlatformSavedInPost = (platformId: string): boolean => {
-    return savedPlatforms.includes(platformId);
-  };
 
   if (!isOpen || !post) return null;
 
@@ -214,64 +209,58 @@ export function PublishConfirmModal({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-4">
-          {/* Post Title Only */}
-          <div className="bg-gray-50 rounded-xl p-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Publishing</p>
-            <h3 className="font-semibold text-gray-900 line-clamp-2">{post.title}</h3>
-          </div>
-
-          {/* Platform Selection */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 mb-3 block">
-              Select platforms to publish to:
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {PLATFORMS.map((platform) => {
-                const isSelected = selectedPlatforms.includes(platform.id);
-                const isPlatformConnected = isConnected(platform.id);
-                const isSavedInPost = isPlatformSavedInPost(platform.id);
-                const IconComponent = platform.icon;
-
-                return (
-                  <button
-                    key={platform.id}
-                    onClick={() => togglePlatform(platform.id)}
-                    disabled={isLoadingAccounts || isPublishing}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200 ${
-                      isSelected
-                        ? "border-[#6D28D9] bg-[#6D28D9]/5"
-                        : isPlatformConnected
-                          ? "border-gray-200 hover:border-gray-300"
-                          : "border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed"
-                    }`}
-                  >
-                    <IconComponent className={`h-5 w-5 ${platform.color}`} />
-                    <div className="flex-1 text-left">
-                      <span className={`text-sm ${isSelected ? "font-medium text-gray-900" : "text-gray-600"}`}>
-                        {platform.name}
-                      </span>
-                      {!isPlatformConnected && !isLoadingAccounts ? (
-                        <p className="text-[10px] text-gray-400">Not connected</p>
-                      ) : isSavedInPost && (
-                        <p className="text-[10px] text-green-600">Content ready</p>
-                      )}
-                    </div>
-                    {isSelected && (
-                      <Check className="h-4 w-4 text-[#6D28D9]" />
-                    )}
-                  </button>
-                );
-              })}
+        {/* Content - Platform Selection Only */}
+        <div className="p-6">
+          {isLoadingAccounts ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-[#6D28D9]" />
+              <span className="ml-2 text-sm text-gray-500">Loading accounts...</span>
             </div>
-            {selectedPlatforms.length === 0 && (
-              <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Select at least one platform to publish
-              </p>
-            )}
-          </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                {PLATFORMS.map((platform) => {
+                  const isSelected = selectedPlatforms.includes(platform.id);
+                  const isPlatformConnected = isConnected(platform.id);
+                  const IconComponent = platform.icon;
+
+                  return (
+                    <button
+                      key={platform.id}
+                      onClick={() => togglePlatform(platform.id)}
+                      disabled={isPublishing}
+                      className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${
+                        isSelected
+                          ? "border-[#6D28D9] bg-[#6D28D9]/5"
+                          : isPlatformConnected
+                            ? "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                            : "border-gray-200 bg-gray-50 opacity-50"
+                      }`}
+                    >
+                      <IconComponent className={`h-6 w-6 ${platform.color}`} />
+                      <div className="flex-1 text-left">
+                        <span className={`text-sm ${isSelected ? "font-semibold text-gray-900" : "text-gray-600"}`}>
+                          {platform.name}
+                        </span>
+                        {!isPlatformConnected && (
+                          <p className="text-[10px] text-red-500">Not connected</p>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <Check className="h-5 w-5 text-[#6D28D9]" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedPlatforms.length === 0 && (
+                <p className="text-xs text-amber-600 mt-4 flex items-center justify-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Select at least one platform to publish
+                </p>
+              )}
+            </>
+          )}
         </div>
 
         {/* Footer */}

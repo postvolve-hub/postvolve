@@ -160,13 +160,6 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const isOverLimit = currentPlatform ? characterCount > currentPlatform.charLimit : false;
   const lane = (post.generation_lane || "auto") as keyof typeof LANE_INFO;
   const laneInfo = LANE_INFO[lane];
-  
-  // Check if a platform has saved content in the post
-  const isPlatformSavedInPost = (platformId: string): boolean => {
-    if (!post?.post_platforms) return false;
-    const dbPlatform = platformId === 'x' ? 'twitter' : platformId;
-    return post.post_platforms.some(pp => pp.platform === dbPlatform || pp.platform === platformId);
-  };
 
   const togglePlatform = (platformId: string) => {
     // If trying to select (not deselect), check if account is connected
@@ -431,52 +424,57 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
                   Target Platforms <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex flex-wrap gap-2">
-                  {PLATFORMS.map((platform) => {
-                    const isSelected = selectedPlatforms.includes(platform.id);
-                    const isPlatformConnected = isConnected(platform.id);
-                    const hasSavedContent = isPlatformSavedInPost(platform.id);
-                    const charStatus = getCharacterStatus(platform.id);
-                    const IconComponent = platform.icon;
-                    
-                    return (
-                      <button
-                        key={platform.id}
-                        onClick={() => togglePlatform(platform.id)}
-                        disabled={isLoadingAccounts}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all duration-200 ${
-                          isSelected
-                            ? "border-[#6D28D9] bg-[#6D28D9]/5"
-                            : isPlatformConnected
-                              ? "border-gray-200 hover:border-gray-300"
-                              : "border-gray-200 bg-gray-50 opacity-60"
-                        }`}
-                      >
-                        <IconComponent className={`h-4 w-4 ${platform.color}`} />
-                        <div className="flex flex-col items-start">
-                          <span className={`text-sm ${isSelected ? "font-medium text-gray-900" : "text-gray-500"}`}>
-                            {platform.name}
-                          </span>
-                          {!isPlatformConnected && !isLoadingAccounts ? (
-                            <span className="text-[9px] text-gray-400">Not connected</span>
-                          ) : hasSavedContent && (
-                            <span className="text-[9px] text-green-600">Content ready</span>
+                {isLoadingAccounts ? (
+                  <div className="flex items-center gap-2 py-2 text-sm text-gray-500">
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Loading accounts...
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {PLATFORMS.map((platform) => {
+                      const isSelected = selectedPlatforms.includes(platform.id);
+                      const isPlatformConnected = isConnected(platform.id);
+                      const charStatus = getCharacterStatus(platform.id);
+                      const IconComponent = platform.icon;
+                      
+                      return (
+                        <button
+                          key={platform.id}
+                          type="button"
+                          onClick={() => togglePlatform(platform.id)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all duration-200 ${
+                            isSelected
+                              ? "border-[#6D28D9] bg-[#6D28D9]/5"
+                              : isPlatformConnected
+                                ? "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                                : "border-gray-200 bg-gray-50 opacity-50"
+                          }`}
+                        >
+                          <IconComponent className={`h-4 w-4 ${platform.color}`} />
+                          <div className="flex flex-col items-start">
+                            <span className={`text-sm ${isSelected ? "font-medium text-gray-900" : "text-gray-500"}`}>
+                              {platform.name}
+                            </span>
+                            {!isPlatformConnected && (
+                              <span className="text-[9px] text-red-500">Not connected</span>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <>
+                              {charStatus === "ok" && <Check className="h-3.5 w-3.5 text-green-500 ml-auto" />}
+                              {charStatus === "warning" && <AlertCircle className="h-3.5 w-3.5 text-amber-500 ml-auto" />}
+                              {charStatus === "over" && <AlertCircle className="h-3.5 w-3.5 text-red-500 ml-auto" />}
+                            </>
                           )}
-                        </div>
-                        {isSelected && (
-                          <>
-                            {charStatus === "ok" && <Check className="h-3.5 w-3.5 text-green-500 ml-auto" />}
-                            {charStatus === "warning" && <AlertCircle className="h-3.5 w-3.5 text-amber-500 ml-auto" />}
-                            {charStatus === "over" && <AlertCircle className="h-3.5 w-3.5 text-red-500 ml-auto" />}
-                          </>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                {selectedPlatforms.length === 0 && (
-                  <p className="text-xs text-amber-600 mt-2">
-                    Please select at least one platform.
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {!isLoadingAccounts && selectedPlatforms.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    Please select at least one platform to continue.
                   </p>
                 )}
               </div>
@@ -545,6 +543,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
             <div className="flex gap-2 mb-3">
               <Button
                 className="flex-1 bg-[#6D28D9] hover:bg-[#5B21B6] text-white rounded-xl h-12 font-semibold"
+                disabled={selectedPlatforms.length === 0}
                 onClick={async () => {
                   if (!post || !user) return;
                   
