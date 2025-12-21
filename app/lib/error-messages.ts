@@ -33,8 +33,16 @@ export function getUserFriendlyErrorMessage(
     return 'Facebook account is not connected. Please connect your Facebook account in Settings.';
   }
   
-  if (errorString.includes('no_instagram_account') || errorString.includes('Instagram')) {
+  if (errorString.includes('no_instagram_account')) {
     return 'Instagram account is not connected. Please connect your Instagram account in Settings.';
+  }
+  
+  if (errorString.includes('publish_failed') && errorString.includes('Instagram')) {
+    return 'Failed to publish to Instagram. Please check that your account is a Business or Creator account and try again.';
+  }
+  
+  if (errorString.includes('container_creation_failed') || errorString.includes('image_required')) {
+    return 'Instagram requires an image. Please ensure your post has an image attached.';
   }
 
   // Connection status errors

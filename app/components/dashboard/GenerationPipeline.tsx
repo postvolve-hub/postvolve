@@ -27,6 +27,7 @@ import { toast } from "@/hooks/use-toast";
 import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
 import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal";
 import { useAuth } from "@/hooks/use-auth";
+import { useConnectedAccounts } from "@/lib/hooks/use-connected-accounts";
 import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
 import { convertToUTC, getUserTimezone } from "@/lib/timezone-utils";
 
@@ -156,11 +157,12 @@ const PLATFORMS = [
 
 export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPipelineProps) {
   const { user } = useAuth();
+  const { isConnected, isLoading: isLoadingAccounts } = useConnectedAccounts(user?.id || null);
   const [selectedLane, setSelectedLane] = useState<GenerationLane>("url");
   const [inputValue, setInputValue] = useState("");
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "x"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]); // Start with no platforms selected
   const [stages, setStages] = useState<Stage[]>(INITIAL_STAGES);
   const [currentStageIndex, setCurrentStageIndex] = useState(-1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -198,14 +200,27 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
       setUploadedImage(null);
       setImagePreviewUrl(null);
       setGeneratedContent(null);
-      setSelectedPlatforms(["linkedin", "x"]);
+      setSelectedPlatforms([]); // Start with no platforms selected
     }
   }, [isOpen]);
 
   const togglePlatform = (platformId: string) => {
+    // If trying to select (not deselect), check if account is connected
+    if (!selectedPlatforms.includes(platformId)) {
+      if (!isConnected(platformId)) {
+        const platformName = PLATFORMS.find(p => p.id === platformId)?.name || platformId;
+        toast({
+          title: "Account Not Connected",
+          description: `Please connect your ${platformName} account in Settings before selecting it.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setSelectedPlatforms(prev => {
       if (prev.includes(platformId)) {
-        if (prev.length === 1) return prev; // Don't allow deselecting if it's the only one
+        // Allow deselecting even if it's the last one
         return prev.filter(p => p !== platformId);
       }
       return [...prev, platformId];
@@ -559,20 +574,24 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                 {/* Platform Selection */}
                 <div>
                   <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Target Platforms
+                    Target Platforms <span className="text-red-500">*</span>
                   </Label>
                   <div className="flex flex-wrap gap-2">
                     {PLATFORMS.map((platform) => {
                       const isSelected = selectedPlatforms.includes(platform.id);
+                      const isPlatformConnected = isConnected(platform.id);
                       const IconComponent = platform.icon;
                       return (
                         <button
                           key={platform.id}
                           onClick={() => togglePlatform(platform.id)}
+                          disabled={isLoadingAccounts}
                           className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all duration-200 ${
                             isSelected
                               ? "border-[#6D28D9] bg-[#6D28D9]/5"
-                              : "border-gray-200 hover:border-gray-300"
+                              : isPlatformConnected
+                                ? "border-gray-200 hover:border-gray-300"
+                                : "border-gray-200 bg-gray-50 opacity-60"
                           }`}
                         >
                           <IconComponent className={`h-4 w-4 ${platform.color}`} />
@@ -582,13 +601,23 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
                           {isSelected && (
                             <CheckCircle className="h-3.5 w-3.5 text-[#6D28D9]" />
                           )}
+                          {!isPlatformConnected && !isLoadingAccounts && (
+                            <span className="text-[10px] text-gray-400 ml-1">(not connected)</span>
+                          )}
                         </button>
                       );
                     })}
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    AI will optimize content for each selected platform.
-                  </p>
+                  {selectedPlatforms.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      Please select at least one platform to continue.
+                    </p>
+                  )}
+                  {selectedPlatforms.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      AI will optimize content for each selected platform.
+                    </p>
+                  )}
                 </div>
 
                 <div>

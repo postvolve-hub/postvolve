@@ -33,8 +33,9 @@ export function useConnectedAccounts(userId: string | null) {
 
         if (error) throw error;
 
+        // Keep the original platform name (twitter stays as twitter in the data)
         const accountStatuses: ConnectedAccountStatus[] = (data || []).map((acc: any) => ({
-          platform: acc.platform === 'twitter' ? 'x' : acc.platform,
+          platform: acc.platform, // Keep original: twitter, linkedin, facebook, instagram
           connected: acc.status === 'connected',
           status: acc.status,
           username: acc.platform_username || acc.platform_display_name || null,
@@ -53,7 +54,16 @@ export function useConnectedAccounts(userId: string | null) {
   }, [userId]);
 
   const hasConnectedAccount = (platform: string): boolean => {
+    // Map UI platform names to database platform names
     const dbPlatform = platform === 'x' ? 'twitter' : platform;
+    return accounts.some(
+      acc => acc.platform === dbPlatform && acc.connected
+    );
+  };
+  
+  const isConnected = (platformId: string): boolean => {
+    // Map UI platform names to database platform names
+    const dbPlatform = platformId === 'x' ? 'twitter' : platformId;
     return accounts.some(
       acc => acc.platform === dbPlatform && acc.connected
     );
@@ -66,7 +76,7 @@ export function useConnectedAccounts(userId: string | null) {
   const getConnectedPlatforms = (): string[] => {
     return accounts
       .filter(acc => acc.connected)
-      .map(acc => acc.platform);
+      .map(acc => acc.platform === 'twitter' ? 'x' : acc.platform); // Map twitter to x for UI
   };
 
   return {
@@ -75,6 +85,7 @@ export function useConnectedAccounts(userId: string | null) {
     hasConnectedAccount,
     hasAnyConnectedAccount,
     getConnectedPlatforms,
+    isConnected,
   };
 }
 

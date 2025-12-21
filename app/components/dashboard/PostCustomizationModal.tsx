@@ -24,6 +24,7 @@ import { SchedulePostModal } from "@/components/dashboard/SchedulePostModal";
 import { PublishSuccessModal } from "@/components/dashboard/PublishSuccessModal";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useConnectedAccounts } from "@/lib/hooks/use-connected-accounts";
 import { PLACEHOLDER_IMAGES } from "@/lib/image-placeholder";
 import { getUserFriendlyErrorMessage } from "@/lib/error-messages";
 import { convertToUTC, getUserTimezone } from "@/lib/timezone-utils";
@@ -97,9 +98,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizationModalProps) {
   const { user } = useAuth();
+  const { isConnected, isLoading: isLoadingAccounts } = useConnectedAccounts(user?.id || null);
   const [postContent, setPostContent] = useState("");
   const [postTitle, setPostTitle] = useState("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["linkedin", "x"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [previewPlatform, setPreviewPlatform] = useState("linkedin");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [imageUploadOpen, setImageUploadOpen] = useState(false);
@@ -137,10 +139,22 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const laneInfo = LANE_INFO[lane];
 
   const togglePlatform = (platformId: string) => {
+    // If trying to select (not deselect), check if account is connected
+    if (!selectedPlatforms.includes(platformId)) {
+      if (!isConnected(platformId)) {
+        const platformName = PLATFORMS.find(p => p.id === platformId)?.name || platformId;
+        toast({
+          title: "Account Not Connected",
+          description: `Please connect your ${platformName} account in Settings before selecting it.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     setSelectedPlatforms(prev => {
       if (prev.includes(platformId)) {
-        // Don't allow deselecting if it's the only one
-        if (prev.length === 1) return prev;
+        // Allow deselecting
         return prev.filter(p => p !== platformId);
       }
       return [...prev, platformId];
@@ -385,11 +399,12 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
               {/* Platform Selection */}
               <div>
                 <Label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Target Platforms
+                  Target Platforms <span className="text-red-500">*</span>
                 </Label>
                 <div className="flex flex-wrap gap-2">
                   {PLATFORMS.map((platform) => {
                     const isSelected = selectedPlatforms.includes(platform.id);
+                    const isPlatformConnected = isConnected(platform.id);
                     const charStatus = getCharacterStatus(platform.id);
                     const IconComponent = platform.icon;
                     
@@ -397,10 +412,13 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                       <button
                         key={platform.id}
                         onClick={() => togglePlatform(platform.id)}
+                        disabled={isLoadingAccounts}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition-all duration-200 ${
                           isSelected
                             ? "border-[#6D28D9] bg-[#6D28D9]/5"
-                            : "border-gray-200 hover:border-gray-300 opacity-60"
+                            : isPlatformConnected
+                              ? "border-gray-200 hover:border-gray-300"
+                              : "border-gray-200 bg-gray-50 opacity-60"
                         }`}
                       >
                         <IconComponent className={`h-4 w-4 ${platform.color}`} />
@@ -414,10 +432,18 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
                             {charStatus === "over" && <AlertCircle className="h-3.5 w-3.5 text-red-500" />}
                           </>
                         )}
+                        {!isPlatformConnected && !isLoadingAccounts && (
+                          <span className="text-[10px] text-gray-400 ml-1">(not connected)</span>
+                        )}
                       </button>
                     );
                   })}
                 </div>
+                {selectedPlatforms.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    Please select at least one platform.
+                  </p>
+                )}
               </div>
 
               {/* Content with Platform Preview */}
@@ -535,7 +561,7 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
               
               <Button
                 className="flex-1 bg-blue-500 hover:bg-blue-600 text-white rounded-xl h-12 font-semibold"
-                disabled={selectedPlatforms.some(p => getCharacterStatus(p) === "over") || isPublishing}
+                disabled={selectedPlatforms.length === 0 || selectedPlatforms.some(p => getCharacterStatus(p) === "over") || isPublishing}
                 onClick={async () => {
                   if (!post || !user) return;
                   

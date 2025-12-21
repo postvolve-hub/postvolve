@@ -17,8 +17,8 @@ const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
 
 /**
  * POST /api/social/facebook/post
- * Body: { userId: string, message: string }
- * Test helper to post a simple message to the user's first Facebook Page.
+ * Body: { userId: string, message: string, imageUrl?: string }
+ * Post a message (with optional image) to the user's Facebook Page.
  * Uses the stored access_token (page token preferred) in connected_accounts.
  */
 export async function POST(request: NextRequest) {
@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => null);
     const userId = body?.userId as string | undefined;
     const message = body?.message as string | undefined;
+    const imageUrl = body?.imageUrl as string | undefined;
 
     if (!userId || !message) {
       return NextResponse.json({ error: "missing_params" }, { status: 400 });
@@ -104,6 +105,13 @@ export async function POST(request: NextRequest) {
     const form = new URLSearchParams();
     form.set("message", message);
     form.set("access_token", pageToken);
+    
+    // If image URL is provided, add it to the post
+    // Facebook supports posting images via URL directly
+    if (imageUrl) {
+      form.set("url", imageUrl);
+      console.log("FB post: Including image", { imageUrl: imageUrl.substring(0, 100) + "..." });
+    }
 
     const postResp = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
       method: "POST",

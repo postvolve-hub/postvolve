@@ -59,18 +59,18 @@ async function publishToX(postId: string, content: string, userId: string) {
   }
 }
 
-async function publishToFacebook(postId: string, content: string, userId: string) {
+async function publishToFacebook(postId: string, content: string, imageUrl: string, userId: string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const response = await fetch(`${baseUrl}/api/social/facebook/post`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, message: content }),
+      body: JSON.stringify({ userId, message: content, imageUrl: imageUrl || undefined }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Facebook publish failed');
+      throw new Error(error.message || error.error || 'Facebook publish failed');
     }
 
     const result = await response.json();
@@ -96,7 +96,9 @@ async function publishToInstagram(postId: string, content: string, imageUrl: str
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error || 'Instagram publish failed');
+      // Extract detailed error message from Instagram API response
+      const errorMessage = error.message || error.details?.error?.message || error.error || 'Instagram publish failed';
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
@@ -229,7 +231,7 @@ export async function POST(
             result = await publishToX(postId, platformContent.content, userId);
             break;
           case 'facebook':
-            result = await publishToFacebook(postId, platformContent.content, userId);
+            result = await publishToFacebook(postId, platformContent.content, post.image_url || '', userId);
             break;
           case 'instagram':
             result = await publishToInstagram(postId, platformContent.content, post.image_url || '', userId);
@@ -267,14 +269,32 @@ export async function POST(
         if (platformContent) {
           await supabaseAdmin
             .from('post_platforms')
-            .update({ status: 'failed' })
+            .update({ 
+              status: 'failed',
+              last_error: error.message || 'Unknown error occurred',
+            })
             .eq('id', platformContent.id);
+        }
+
+        // Extract user-friendly error message
+        let errorMessage = error.message || 'Unknown error occurred';
+        
+        // Handle Instagram-specific errors
+        if (platform === 'instagram' && errorMessage.includes('publish_failed')) {
+          // Try to extract more details from the error
+          if (error.details?.error?.message) {
+            errorMessage = error.details.error.message;
+          } else if (error.details?.message) {
+            errorMessage = error.details.message;
+          } else {
+            errorMessage = 'Failed to publish to Instagram. Please check your account connection and try again.';
+          }
         }
 
         publishResults.push({
           platform,
           success: false,
-          error: error.message || 'Unknown error occurred',
+          error: errorMessage,
         });
       }
     }
