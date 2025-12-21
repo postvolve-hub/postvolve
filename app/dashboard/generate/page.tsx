@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { 
   RefreshCw, 
@@ -105,7 +105,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Motivation: "bg-orange-100 text-orange-700 border-orange-200",
 };
 
-export default function ContentGeneration() {
+function ContentGenerationContent() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const { hasAnyConnectedAccount, isLoading: isLoadingAccounts } = useConnectedAccounts(user?.id || null);
@@ -885,5 +885,19 @@ export default function ContentGeneration() {
         }}
       />
     </DashboardLayout>
+  );
+}
+
+export default function ContentGeneration() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-12">
+          <RefreshCw className="h-8 w-8 text-[#6D28D9] animate-spin" />
+        </div>
+      </DashboardLayout>
+    }>
+      <ContentGenerationContent />
+    </Suspense>
   );
 }
