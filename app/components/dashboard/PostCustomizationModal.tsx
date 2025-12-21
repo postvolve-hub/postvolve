@@ -109,34 +109,37 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [hasInitializedPlatforms, setHasInitializedPlatforms] = useState(false);
+  const [lastInitializedPostId, setLastInitializedPostId] = useState<string | null>(null);
 
   // Get saved platforms from post (normalized to UI names)
   const savedPlatformsFromPost = post?.post_platforms?.map(pp => 
     pp.platform === 'twitter' ? 'x' : pp.platform
   ) || [];
 
-  // Initialize basic post data immediately
+  // Initialize basic post data when post changes
   useEffect(() => {
     if (post) {
       setPostTitle(post.title);
       const firstPlatformContent = post.post_platforms?.[0]?.content;
       setPostContent(firstPlatformContent || post.content);
       setCurrentImageUrl(post.image_url || '');
-      setPreviewPlatform(savedPlatformsFromPost[0] || 'linkedin');
     }
-  }, [post?.id]); // Only re-run when post changes
+  }, [post?.id]);
+  
+  // Reset initialization when modal closes or different post
+  useEffect(() => {
+    if (!isOpen) {
+      setHasInitializedPlatforms(false);
+      setLastInitializedPostId(null);
+    } else if (post?.id && post.id !== lastInitializedPostId) {
+      setHasInitializedPlatforms(false);
+    }
+  }, [isOpen, post?.id, lastInitializedPostId]);
   
   // Initialize selected platforms AFTER accounts finish loading
   useEffect(() => {
-    if (!isOpen || !post) {
-      setHasInitializedPlatforms(false);
-      return;
-    }
-    
-    // Wait for accounts to load before initializing platforms
+    if (!isOpen || !post) return;
     if (isLoadingAccounts) return;
-    
-    // Only initialize once per modal open
     if (hasInitializedPlatforms) return;
     
     const connectedList = getConnectedPlatforms();
@@ -148,9 +151,11 @@ export function PostCustomizationModal({ isOpen, onClose, post }: PostCustomizat
       setPreviewPlatform(validPlatforms[0] || savedPlatformsFromPost[0] || 'linkedin');
     } else {
       setSelectedPlatforms([]);
+      setPreviewPlatform('linkedin');
     }
     
     setHasInitializedPlatforms(true);
+    setLastInitializedPostId(post.id);
   }, [isOpen, post?.id, isLoadingAccounts, hasInitializedPlatforms, getConnectedPlatforms, savedPlatformsFromPost.join(',')]);
 
   if (!isOpen || !post) return null;

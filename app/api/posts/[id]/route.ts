@@ -87,19 +87,19 @@ export async function PUT(
     const updateData: any = {};
     if (body.title !== undefined) updateData.title = body.title;
     if (body.content !== undefined) updateData.content = body.content;
+    // Accept both imageUrl and image_url
+    if (body.imageUrl !== undefined) updateData.image_url = body.imageUrl;
     if (body.image_url !== undefined) updateData.image_url = body.image_url;
     if (body.category !== undefined) updateData.category = body.category;
     if (body.status !== undefined) updateData.status = body.status;
 
-    const { data: post, error } = await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('posts')
       .update(updateData)
-      .eq('id', postId)
-      .select()
-      .single();
+      .eq('id', postId);
 
-    if (error) {
-      console.error('[Post PUT] Error:', error);
+    if (updateError) {
+      console.error('[Post PUT] Error:', updateError);
       return NextResponse.json(
         { error: 'database_error', message: 'Failed to update post' },
         { status: 500 }
@@ -107,7 +107,7 @@ export async function PUT(
     }
 
     // Update platform-specific content if provided
-    if (body.platforms && Array.isArray(body.platforms)) {
+    if (body.platforms && Array.isArray(body.platforms) && body.platforms.length > 0) {
       // Delete existing platform entries
       await supabaseAdmin
         .from('post_platforms')
@@ -119,10 +119,34 @@ export async function PUT(
         post_id: postId,
         platform: p.platform === 'x' ? 'twitter' : p.platform,
         content: p.content,
-        status: p.status || 'pending',
+        status: p.status || 'draft',
       }));
 
-      await supabaseAdmin.from('post_platforms').insert(platformEntries);
+      const { error: platformError } = await supabaseAdmin
+        .from('post_platforms')
+        .insert(platformEntries);
+      
+      if (platformError) {
+        console.error('[Post PUT] Platform update error:', platformError);
+      }
+    }
+
+    // Fetch the updated post with platforms
+    const { data: post, error: fetchError } = await supabaseAdmin
+      .from('posts')
+      .select(`
+        *,
+        post_platforms (*)
+      `)
+      .eq('id', postId)
+      .single();
+
+    if (fetchError) {
+      console.error('[Post PUT] Fetch error:', fetchError);
+      return NextResponse.json(
+        { error: 'database_error', message: 'Failed to fetch updated post' },
+        { status: 500 }
+      );
     }
 
     // Log activity

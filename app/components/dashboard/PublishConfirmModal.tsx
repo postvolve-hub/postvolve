@@ -69,27 +69,30 @@ export function PublishConfirmModal({
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [isPublishing, setIsPublishing] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [lastInitializedPostId, setLastInitializedPostId] = useState<string | null>(null);
 
   // Get saved platforms from post (normalized to UI names)
   const savedPlatforms = post?.post_platforms?.map(pp => 
     pp.platform === 'twitter' ? 'x' : pp.platform
   ) || [];
 
-  // Initialize selected platforms AFTER accounts finish loading
+  // Reset initialization when modal closes or different post
   useEffect(() => {
     if (!isOpen) {
       setHasInitialized(false);
+      setLastInitializedPostId(null);
       setSelectedPlatforms([]);
-      return;
+    } else if (post?.id && post.id !== lastInitializedPostId) {
+      setHasInitialized(false);
     }
-    
-    // Wait for accounts to load before initializing
+  }, [isOpen, post?.id, lastInitializedPostId]);
+
+  // Initialize selected platforms AFTER accounts finish loading
+  useEffect(() => {
+    if (!isOpen || !post) return;
     if (isLoadingAccounts) return;
-    
-    // Only initialize once per modal open
     if (hasInitialized) return;
     
-    // Get the connected platforms list
     const connectedList = getConnectedPlatforms();
     
     if (savedPlatforms.length > 0) {
@@ -102,7 +105,8 @@ export function PublishConfirmModal({
     }
     
     setHasInitialized(true);
-  }, [isOpen, isLoadingAccounts, hasInitialized, getConnectedPlatforms, savedPlatforms.join(',')]);
+    setLastInitializedPostId(post.id);
+  }, [isOpen, post?.id, isLoadingAccounts, hasInitialized, getConnectedPlatforms, savedPlatforms.join(',')]);
 
   if (!isOpen || !post) return null;
 
