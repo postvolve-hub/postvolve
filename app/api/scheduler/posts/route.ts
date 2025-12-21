@@ -184,16 +184,16 @@ export async function POST(request: NextRequest) {
       } else {
         // Update ALL post_platforms to 'scheduled' status (not just draft/pending)
         // This ensures the cron job can find them regardless of their current status
-        const { error: platformError, count } = await supabaseAdmin
+        const { data: updatedPlatforms, error: platformError } = await supabaseAdmin
           .from('post_platforms')
           .update({ status: 'scheduled' })
           .eq('post_id', postId)
-          .select('id', { count: 'exact', head: false });
+          .select('id');
 
         if (platformError) {
           console.error('[Scheduler Posts] Error updating platform status:', platformError);
         } else {
-          console.log(`[Scheduler Posts] Updated ${count || existingPlatforms.length} post_platforms to scheduled for post ${postId}`);
+          console.log(`[Scheduler Posts] Updated ${updatedPlatforms?.length || existingPlatforms.length} post_platforms to scheduled for post ${postId}`);
         }
       }
     }
