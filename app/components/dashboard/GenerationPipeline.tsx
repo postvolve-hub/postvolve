@@ -926,53 +926,52 @@ export function GenerationPipeline({ isOpen, onClose, onComplete }: GenerationPi
         postId={generatedPostId || undefined}
         postTitle={generatedContent?.title}
         onSchedule={async (postId, date, time, utcISOString) => {
-            if (!user) return;
-            
-            try {
-              // Use provided UTC ISO string if available, otherwise convert
-              let scheduledAt: string;
-              if (utcISOString) {
-                scheduledAt = utcISOString;
-              } else {
-                const timezone = getUserTimezone();
-                const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
-                scheduledAt = convertToUTC(date, timeFormatted, timezone);
-              }
-              
-              const response = await fetch('/api/scheduler/posts', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  userId: user.id,
-                  postId: generatedPostId,
-                  scheduledAt,
-                }),
-              });
-
-              if (!response.ok) {
-                throw new Error('Failed to schedule post');
-              }
-
-              toast({
-                title: "Post Scheduled",
-                description: `Your post has been scheduled for ${date} at ${time}.`,
-              });
-              
-              setScheduleModalOpen(false);
-              window.dispatchEvent(new CustomEvent('postGenerated'));
-              onComplete?.(generatedContent);
-              onClose();
-            } catch (error: any) {
-              console.error('Schedule error:', error);
-              toast({
-                title: "Schedule Failed",
-                description: error.message || 'Failed to schedule post. Please try again.',
-                variant: "destructive",
-              });
+          if (!user) return;
+          
+          try {
+            // Use provided UTC ISO string if available, otherwise convert
+            let scheduledAt: string;
+            if (utcISOString) {
+              scheduledAt = utcISOString;
+            } else {
+              const timezone = getUserTimezone();
+              const timeFormatted = time.length === 5 ? time : time.padStart(5, '0');
+              scheduledAt = convertToUTC(date, timeFormatted, timezone);
             }
-          }}
-        />
-      )}
+            
+            const response = await fetch('/api/scheduler/posts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.id,
+                postId: generatedPostId,
+                scheduledAt,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to schedule post');
+            }
+
+            toast({
+              title: "Post Scheduled",
+              description: `Your post has been scheduled for ${date} at ${time}.`,
+            });
+            
+            setScheduleModalOpen(false);
+            window.dispatchEvent(new CustomEvent('postGenerated'));
+            onComplete?.(generatedContent);
+            onClose();
+          } catch (error: any) {
+            console.error('Schedule error:', error);
+            toast({
+              title: "Schedule Failed",
+              description: error.message || 'Failed to schedule post. Please try again.',
+              variant: "destructive",
+            });
+          }
+        }}
+      />
 
       <PublishSuccessModal
         isOpen={publishSuccessOpen}
